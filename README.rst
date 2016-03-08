@@ -1,0 +1,32 @@
+===============================
+uMongo
+===============================
+
+.. image:: https://img.shields.io/pypi/v/umongo.svg
+        :target: https://pypi.python.org/pypi/umongo
+
+.. image:: https://img.shields.io/travis/touilleMan/umongo.svg
+        :target: https://travis-ci.org/touilleMan/umongo
+
+.. image:: https://readthedocs.org/projects/umongo/badge/?version=latest
+        :target: https://readthedocs.org/projects/umongo/?badge=latest
+        :alt: Documentation Status
+
+
+Small but efficient MongoDB ODM
+
+* Free software: ISC license
+* Documentation: https://umongo.readthedocs.org.
+
+Features
+--------
+
+* TODO
+
+Credits
+---------
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
