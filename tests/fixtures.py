@@ -1,17 +1,11 @@
 import pytest
-import pymongo
 from functools import namedtuple
 
 from umongo import Document, Schema, fields
 
 
 @pytest.fixture
-def pymongo_db():
-    return pymongo.MongoClient().umongo_test
-
-
-@pytest.fixture
-def classroom_model(pymongo_db):
+def classroom_model(db):
 
     class Teacher(Document):
 
@@ -20,7 +14,7 @@ def classroom_model(pymongo_db):
 
         class Config:
             register_document = False
-            collection = pymongo_db.teacher
+            collection = db.teacher
 
     class Course(Document):
 
@@ -30,7 +24,7 @@ def classroom_model(pymongo_db):
 
         class Config:
             register_document = False
-            collection = pymongo_db.course
+            collection = db.course
 
     class Student(Document):
 
@@ -41,7 +35,7 @@ def classroom_model(pymongo_db):
 
         class Config:
             register_document = False
-            collection = pymongo_db.student
+            collection = db.student
 
     Teacher.collection.drop()
     Course.collection.drop()

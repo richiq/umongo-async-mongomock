@@ -3,6 +3,7 @@ from marshmallow.fields import Field
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError
 from .schema import Schema
+from .drivers import find_driver_from_collection
 
 
 def base_meta_document(name, bases, nmspc):
@@ -40,6 +41,7 @@ class MetaDocument(type):
     def __new__(cls, name, bases, nmspc):
         name, bases, nmspc = base_meta_document(name, bases, nmspc)
         nmspc['_collection'] = None
+        nmspc['_driver'] = None
         # Create config with inheritance
         if 'config' not in nmspc:
             config = {}
@@ -55,6 +57,12 @@ class MetaDocument(type):
         if gen_cls.config.get('register_document'):
             register_document(gen_cls)
         return gen_cls
+
+    @property
+    def driver(self):
+        if not self._driver:
+            self._driver = find_driver_from_collection(self.collection)(self.collection)
+        return self._driver
 
     @property
     def collection(self):

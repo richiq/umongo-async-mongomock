@@ -1,6 +1,6 @@
 from .data_proxy import DataProxy
 from .abstract import BaseWrappedData
-from .exceptions import UpdateError, NotCreatedError
+from .exceptions import NotCreatedError
 from .meta import MetaDocument
 
 
@@ -40,48 +40,29 @@ class Document(BaseWrappedData, metaclass=MetaDocument):
     def dump(self):
         return self.data.dump()
 
-    def reload(self):
-        if not self.created:
-            raise NotCreatedError('Cannot reload a document that'
-                                  ' has not been committed yet')
-        ret = self.collection.find_one(self.pk)
-        if ret is None:
-            raise NotCreatedError("Document doesn't exists in database")
-        self.data = DataProxy(self.schema)
-        self.data.from_mongo(ret)
-
-    def commit(self, io_validate_all=False):
-        # TODO: implement in driver
-        self.data.io_validate(validate_all=io_validate_all)
-        payload = self.data.to_mongo(update=self.created)
-        if self.created:
-            if payload:
-                ret = self.collection.update_one(
-                    {'_id': self.data.get_by_mongo_name('_id')}, payload)
-                if ret.modified_count != 1:
-                    raise UpdateError(ret.raw_result)
-        else:
-            ret = self.collection.insert_one(payload)
-            # TODO: check ret ?
-            self.data.set_by_mongo_name('_id', ret.inserted_id)
-            self.created = True
-        self.data.clear_modified()
-        return self
-
     @property
     def collection(self):
         # Cannot implicitly access to the class's property
         return type(self).collection
 
+    @property
+    def driver(self):
+        # Cannot implicitly access to the class's property
+        return type(self).driver
+
+    def reload(self):
+        if not self.created:
+            raise NotCreatedError('Cannot reload a document that'
+                                  ' has not been committed yet')
+        return self.driver.reload(self)
+
+    def commit(self, io_validate_all=False):
+        return self.driver.commit(self, io_validate_all=False)
+
     @classmethod
     def find_one(cls, *args, **kwargs):
-        ret = cls.collection.find_one(*args, **kwargs)
-        if ret is not None:
-            ret = cls.build_from_mongo(ret)
-        return ret
+        return cls.driver.find_one(cls, *args, **kwargs)
 
     @classmethod
     def find(cls, *args, **kwargs):
-        from .cursor import Cursor
-        cursor = cls.collection.find(*args, **kwargs)
-        return Cursor(cls, cursor)
+        return cls.driver.find(cls, *args, **kwargs)

@@ -20,3 +20,8 @@ class BaseWrappedData:
 
     def load(self, data):
         raise NotImplemented()
+
+
+class AbstractCursor:
+    # TODO...
+    pass

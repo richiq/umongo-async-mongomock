@@ -1,4 +1,7 @@
-class Cursor:
+from .abstract import AbstractCursor
+
+
+class Cursor(AbstractCursor):
 
     def __init__(self, document_cls, cursor, *args, **kwargs):
         self.__dict__['raw_cursor'] = cursor

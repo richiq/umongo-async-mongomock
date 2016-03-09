@@ -16,7 +16,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     "marshmallow>=2.6.0",
-    "pymongo>=3.2.0"  # needed for bson module
+    "pymongo"  # needed for bson module
 ]
 
 test_requirements = [
