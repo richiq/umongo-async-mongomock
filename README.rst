@@ -15,7 +15,7 @@ uMongo
 
 Small but efficient MongoDB ODM
 
-* Free software: ISC license
+* Free software: MIT license
 * Documentation: https://umongo.readthedocs.org.
 
 Features
