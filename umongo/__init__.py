@@ -1,7 +1,9 @@
 from .document import Document
 from .exceptions import *
 from . import fields
-from marshmallow import Schema
+from .schema import Schema
+from .wrapped_data import EmbeddedDocument
+from marshmallow import Schema as NestedSchema
 
 
 __author__ = 'Emmanuel Leblond'

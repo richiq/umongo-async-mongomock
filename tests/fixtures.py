@@ -1,43 +1,50 @@
 import pytest
 import pymongo
+from functools import namedtuple
+
+from umongo import Document, Schema, fields
 
 
 @pytest.fixture
-def db():
+def pymongo_db():
     return pymongo.MongoClient().umongo_test
 
 
 @pytest.fixture
-def classroom_model(db):
-    pass
+def classroom_model(pymongo_db):
 
-    # class Teacher(Document):
-    #     id = fields.ObjectId(dump_only=True, attribute='_id')
-    #     name = fields.Str(required=True)
+    class Teacher(Document):
 
-    #     class Config:
-    #         collection = db.teacher
+        class Schema(Schema):
+            name = fields.StrField(required=True)
 
-    # class Course(Document):
-    #     id = fields.ObjectId(dump_only=True, attribute='_id')
-    #     name = fields.Str(required=True)
-    #     teacher = fields.Reference(Teacher, required=True)
+        class Config:
+            register_document = False
+            collection = pymongo_db.teacher
 
-    #     class Config:
-    #         collection = db.course
+    class Course(Document):
 
-    # class Student(Document):
-    #     id = fields.ObjectId(dump_only=True, attribute='_id')
-    #     name = fields.Str(required=True)
-    #     birthday = fields.DateTime()
-    #     courses = fields.List(fields.Reference(Course))
+        class Schema(Schema):
+            name = fields.StrField(required=True)
+            teacher = fields.ReferenceField(Teacher, required=True)
 
-    #     class Config:
-    #         collection = db.student
+        class Config:
+            register_document = False
+            collection = pymongo_db.course
 
-    # class Mapping:
-    #     teacher = Teacher
-    #     course = Course
-    #     student = Student
+    class Student(Document):
 
-    # return Mapping
+        class Schema(Schema):
+            name = fields.StrField(required=True)
+            birthday = fields.DateTimeField()
+            courses = fields.ListField(fields.ReferenceField(Course))
+
+        class Config:
+            register_document = False
+            collection = pymongo_db.student
+
+    Teacher.collection.drop()
+    Course.collection.drop()
+    Student.collection.drop()
+
+    return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)

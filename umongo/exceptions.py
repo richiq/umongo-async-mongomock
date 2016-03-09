@@ -1,8 +1,11 @@
+from marshmallow import ValidationError
+
+
 class UMongoError(Exception):
     pass
 
 
-class ValidationError(UMongoError):
+class ValidationError(ValidationError, UMongoError):
     pass
 
 
@@ -23,4 +26,20 @@ class SchemaFieldNamingClashError(UMongoError):
 
 
 class UpdateError(UMongoError):
+    pass
+
+
+class MissingSchemaError(UMongoError):
+    pass
+
+
+class NotCreatedError(UMongoError):
+    pass
+
+
+class NoCollectionDefinedError(UMongoError):
+    pass
+
+
+class FieldNotLoadedError(UMongoError):
     pass
