@@ -1,6 +1,3 @@
-from pymongo.cursor import Cursor
-
-
 class Cursor:
 
     def __init__(self, document_cls, cursor, *args, **kwargs):

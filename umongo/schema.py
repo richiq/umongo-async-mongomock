@@ -1,10 +1,10 @@
-from marshmallow import validates_schema, ValidationError, missing
+from marshmallow import validates_schema, ValidationError
 from marshmallow import Schema as MaSchema
 
 from . import fields
 
 
-__all__ = ('Schema', 'BaseSchema')
+__all__ = ('BaseSchema', 'Schema', 'NestedSchema')
 
 
 class BaseSchema(MaSchema):
@@ -19,3 +19,7 @@ class BaseSchema(MaSchema):
 class Schema(BaseSchema):
 
     id = fields.ObjectIdField(attribute='_id')
+
+
+class NestedSchema(BaseSchema):
+    pass

@@ -144,10 +144,12 @@ class TestFields:
         assert d.objid == ObjectId("5672d47b1d41c88dcd37ef05")
 
         d.objid = ObjectId("5672d5e71d41c88f914b77c4")
-        d.to_mongo(update=True) == {'$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
+        d.to_mongo(update=True) == {
+            '$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
 
         d.objid = ObjectId("5672d5e71d41c88f914b77c4")
-        d.to_mongo(update=True) == {'$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
+        d.to_mongo(update=True) == {
+            '$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
 
         d.objid = "5672d5e71d41c88f914b77c4"
         assert d.objid == ObjectId("5672d5e71d41c88f914b77c4")

@@ -1,11 +1,44 @@
 from .document import Document
-from .exceptions import *
+from .exceptions import (
+    UMongoError,
+    ValidationError,
+    NoDBDefinedError,
+    NotRegisteredDocumentError,
+    AlreadyRegisteredDocumentError,
+    SchemaFieldNamingClashError,
+    UpdateError,
+    MissingSchemaError,
+    NotCreatedError,
+    NoCollectionDefinedError,
+    FieldNotLoadedError
+)
 from . import fields
-from .schema import Schema
+from .schema import BaseSchema, Schema, NestedSchema
 from .wrapped_data import EmbeddedDocument
-from marshmallow import Schema as NestedSchema
 
 
 __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
 __version__ = '0.1.0'
+__all__ = (
+    'Document',
+    'EmbeddedDocument',
+
+    'UMongoError',
+    'ValidationError',
+    'NoDBDefinedError',
+    'NotRegisteredDocumentError',
+    'AlreadyRegisteredDocumentError',
+    'SchemaFieldNamingClashError',
+    'UpdateError',
+    'MissingSchemaError',
+    'NotCreatedError',
+    'NoCollectionDefinedError',
+    'FieldNotLoadedError',
+
+    'fields',
+
+    'BaseSchema',
+    'Schema',
+    'NestedSchema'
+)

@@ -1,6 +1,3 @@
-from marshmallow.fields import Field
-
-
 class ChangeTracker:
 
     def has_changed(self):

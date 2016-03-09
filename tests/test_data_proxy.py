@@ -40,7 +40,7 @@ class TestDataProxy:
         assert d.to_mongo(update=True) == {'$set': {'a': 3}}
 
         d.load({'a': 4, 'b': 5})
-        assert d.to_mongo(update=True) == None
+        assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 4, 'in_mongo_b': 5}
 
     def test_modify(self):
@@ -52,12 +52,12 @@ class TestDataProxy:
         d = DataProxy(MySchema())
         d.load({'a': 1, 'b': 2})
         assert d.to_mongo() == {'a': 1, 'in_mongo_b': 2}
-        assert d.to_mongo(update=True) == None
+        assert d.to_mongo(update=True) is None
         d.a = 3
         del d.b
         assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': ['in_mongo_b']}
         d.clear_modified()
-        assert d.to_mongo(update=True) == None
+        assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
 
     def test_set(self):

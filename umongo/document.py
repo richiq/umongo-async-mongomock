@@ -3,7 +3,7 @@ from marshmallow.fields import Field
 from .data_proxy import DataProxy
 from .abstract import BaseWrappedData
 from .registerer import register_document
-from .exceptions import NoCollectionDefinedError, UpdateError
+from .exceptions import NoCollectionDefinedError, UpdateError, NotCreatedError
 from .schema import Schema
 
 
@@ -20,8 +20,8 @@ class MetaDocument(type):
         schema_nmspc = {}
         for key, item in nmspc.items():
             if isinstance(item, Field):
-                schema_nmspc[k] = v
-                nmspc.pop(k)
+                schema_nmspc[key] = item
+                nmspc.pop(key)
         # Need to create a custom Schema class to use the provided fields
         if schema_nmspc:
             schema_cls = type('SubSchema', (schema_cls, ), schema_nmspc)
@@ -36,7 +36,8 @@ class MetaDocument(type):
                 config.update(getattr(base, 'config', {}))
             config_cls = nmspc.get('Config')
             if config_cls:
-                config.update({k: v for k, v in config_cls.__dict__.items() if not k.startswith('_')})
+                config.update({k: v for k, v in config_cls.__dict__.items()
+                               if not k.startswith('_')})
             nmspc['config'] = config
         # Finally create the Document class and register it
         gen_cls = type.__new__(cls, name, bases, nmspc)

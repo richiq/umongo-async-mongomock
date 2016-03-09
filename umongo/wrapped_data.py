@@ -1,5 +1,6 @@
 from .abstract import BaseWrappedData, ChangeTracker
 from .data_proxy import DataProxy
+from .exceptions import ValidationError
 
 
 __all__ = ('MetaEmbeddedDocument', 'EmbeddedDocument', 'List', 'Reference')

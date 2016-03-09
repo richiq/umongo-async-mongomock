@@ -1,5 +1,4 @@
 from datetime import datetime
-import pytest
 
 from .common import BaseTest
 from umongo import Document, Schema, fields
@@ -16,31 +15,44 @@ class TestDocument(BaseTest):
 
     def test_create(self):
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
-        assert john.to_mongo() == {'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0}
-        assert john.created == False
+        assert john.to_mongo() == {
+            'name': 'John Doe',
+            'birthday': datetime(1995, 12, 12),
+            'gpa': 3.0
+        }
+        assert john.created is False
 
     def test_from_mongo(self):
-        john = Student.build_from_mongo(data={'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
-        assert john.to_mongo(update=True) == None
-        assert john.created == True
-        assert john.to_mongo() == {'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0}
+        john = Student.build_from_mongo(data={
+            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+        assert john.to_mongo(update=True) is None
+        assert john.created is True
+        assert john.to_mongo() == {
+            'name': 'John Doe',
+            'birthday': datetime(1995, 12, 12),
+            'gpa': 3.0
+        }
 
     def test_update(self):
-        john = Student.build_from_mongo(data={'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+        john = Student.build_from_mongo(data={
+            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         john.data.name = 'William Doe'
         john.data.birthday = datetime(1996, 12, 12)
-        assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe', 'birthday': datetime(1996, 12, 12)}}
+        assert john.to_mongo(update=True) == {
+            '$set': {'name': 'William Doe', 'birthday': datetime(1996, 12, 12)}}
 
     def test_dump(self):
-        john = Student.build_from_mongo({'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
-        assert john.dump() == {'name': 'John Doe', 'birthday': '1995-12-12T00:00:00+00:00', 'gpa': 3.0}
+        john = Student.build_from_mongo({
+            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+        assert john.dump() == {
+            'name': 'John Doe',
+            'birthday': '1995-12-12T00:00:00+00:00',
+            'gpa': 3.0
+        }
 
-    # def test_load(self):
-    #     john = Student.load({'name': 'John Doe', 'birthday': '1995-12-12T00:00:00+00:00', 'gpa': 3.0})
-    #     assert john.data == {'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0}
 
-# class TestConfig:
-
+class TestConfig:
+    pass
 #     def test_missing_schema(self):
 #         # No exceptions should occure
 
