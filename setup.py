@@ -15,11 +15,13 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    # TODO: put package requirements here
+    "marshmallow>=2.6.0"
 ]
 
 test_requirements = [
-    # TODO: put package test requirements here
+    "txmongo",
+    "pymongo>=3.2.0",
+    "motor>=0.6.0"
 ]
 
 setup(
@@ -31,10 +33,9 @@ setup(
     author_email='emmanuel.leblond@gmail.com',
     url='https://github.com/touilleMan/umongo',
     packages=[
-        'umongo',
+        'umongo'
     ],
-    package_dir={'umongo':
-                 'umongo'},
+    package_dir={'umongo': 'umongo'},
     include_package_data=True,
     install_requires=requirements,
     license="ISCL",
@@ -43,13 +44,9 @@ setup(
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: ISC License (ISCL)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
