@@ -1,4 +1,3 @@
-import bson
 from datetime import datetime
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
@@ -176,20 +175,8 @@ class ConstantField(ma_fields.Constant):
 # Bonus: new fields !
 
 
-class ObjectIdField(ma_fields.Field):
-
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        return str(value)
-
-    def _deserialize(self, value, attr, data):
-        if value is None:
-            return None
-        try:
-            return bson.ObjectId(value)
-        except ValueError:
-            raise ValidationError('Invalid ObjectId')
+# ObjectIdField is declared in schema to prevent recursive import error
+from .schema import ObjectIdField  # noqa
 
 
 class ReferenceField(ObjectIdField):

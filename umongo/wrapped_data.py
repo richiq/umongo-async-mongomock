@@ -1,30 +1,16 @@
 from .abstract import BaseWrappedData, ChangeTracker
 from .data_proxy import DataProxy
 from .exceptions import ValidationError
+from .meta import MetaEmbeddedDocument
 
 
-__all__ = ('MetaEmbeddedDocument', 'EmbeddedDocument', 'List', 'Reference')
-
-
-class MetaEmbeddedDocument(type):
-
-    def __new__(cls, name, bases, nmspc):
-        # Retrieve Schema
-        schema_cls = nmspc.get('Schema')
-        if not schema_cls:
-            schema_cls = next(getattr(base, 'Schema') for base in bases
-                              if hasattr(base, 'Schema'))
-        # Create Schema instance if not provided
-        if 'schema' not in nmspc:
-            nmspc['schema'] = schema_cls()
-        gen_cls = type.__new__(cls, name, bases, nmspc)
-        return gen_cls
+__all__ = ('EmbeddedDocument', 'List', 'Reference')
 
 
 class EmbeddedDocument(DataProxy, metaclass=MetaEmbeddedDocument):
 
-    class Schema:
-        pass
+    class Config:
+        register_document = False
 
     def __init__(self, **kwargs):
         schema = self.Schema()
