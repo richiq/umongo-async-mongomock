@@ -5,8 +5,8 @@ uMongo
 .. image:: https://img.shields.io/pypi/v/umongo.svg
         :target: https://pypi.python.org/pypi/umongo
 
-.. image:: https://img.shields.io/travis/touilleMan/umongo.svg
-        :target: https://travis-ci.org/touilleMan/umongo
+.. image:: https://img.shields.io/travis/Scille/umongo.svg
+        :target: https://travis-ci.org/Scille/umongo
 
 .. image:: https://readthedocs.org/projects/umongo/badge/?version=latest
         :target: https://readthedocs.org/projects/umongo/?badge=latest
