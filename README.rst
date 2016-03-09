@@ -1,6 +1,6 @@
-===============================
-uMongo
-===============================
+======
+μMongo
+======
 
 .. image:: https://img.shields.io/pypi/v/umongo.svg
         :target: https://pypi.python.org/pypi/umongo
