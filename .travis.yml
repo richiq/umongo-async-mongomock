@@ -8,7 +8,7 @@ before_install:
 - echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' |
   sudo tee /etc/apt/sources.list.d/mongodb.list
 - travis_retry sudo apt-get update
-- travis_retry sudo apt-get install mongodb-org-server
+- travis_retry sudo apt-get install mongodb-org
 - sleep 15 #mongo may not be responded directly. See http://docs.travis-ci.com/user/database-setup/#MongoDB
 - mongo --version
 install:
