@@ -1,36 +1,24 @@
-# Config file for automatic testing at travis-ci.org
-# This file will be regenerated if you run travis_pypi_setup.py
-
 language: python
 python: 3.5
-
 env:
-  - TOXENV=py35
-  - TOXENV=py34
-  - TOXENV=py33
-  - TOXENV=py27
-  - TOXENV=py26
-  - TOXENV=pypy
-
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+- TOXENV=py35
+- TOXENV=py34
+- TOXENV=py33
+- TOXENV=py27
+- TOXENV=py26
+- TOXENV=pypy
 install:
-  - pip install -U tox
+- pip install -U tox
 - pip install -U coveralls
-
-# command to run tests, e.g. python setup.py test
 script: tox
-
 after_success:
-  - coveralls
-
-# After you create the Github repo and add it to Travis, run the
-# travis_pypi_setup.py script to finish PyPI deployment setup
+- coveralls
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
   user: touilleMan
   password:
-    secure: PLEASE_REPLACE_ME
+    secure: N5oj/7qsMQykhuhGE9uXEEyhZXDzRceBV047Z1iFxZKPv2hzimrTqY0Zb87hIeSDCmQEowtVsSD40vSHJ9bqdOKmiCYKRLwgAHDs5RepAtszZmCLNWQS/oiwIXrGzg3kqitxvaym1p4aK4ykUUQo8mBsii8WKxefa5esAZG49ovOEPKaywtAiC7De48ChYoxUnJhcKVDxUTBntORsP81F7gmibbZVeB97nVOzmjWnwlfVrEZ83Oq/rGpbPiK/ydYKonrmDVfrHGuhNS41ZpXqR0UlDSa7OWuw/dB5jZQDUtw57la/7FLuBtoGP5EbOUsWiy6+Kc3pEWrx2EupLKILzVezL27frTW41Y7mkhxkS2gu72BlEIdzUqUG+1/MVWzFbidn7auQ7DZeWH6/rFER/PmCzg7Mfkkomgu/Avqcu+sS4ZevVQfN67Lawk8rHvD8g79xSopfr4W55enss4QA5Kf2ICH3mjBuP9PubgJplHyqHf2hvtGc0ycvVxogzk3Ss7fIxg1UuonuW01Se28Fh06cMYaH0qjs06QDisv9qxrM1TTK81yRbzPqAyjxkqpXLLh8pM5BehkBwel7uVT4obDwvgk/mOpC4XKNSLUa6TjSApGe1QorA3E6kD+6Cr/4YLEcFYUlUtF6JFkT3KkqNlYaDNEM5RhRyeeaUYuIEU=
   on:
     tags: true
     repo: touilleMan/umongo
