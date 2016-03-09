@@ -12,6 +12,9 @@ uMongo
         :target: https://readthedocs.org/projects/umongo/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://coveralls.io/repos/github/Scille/umongo/badge.svg?branch=master
+    :target: https://coveralls.io/github/Scille/umongo?branch=master
+    :alt: Code coverage
 
 Small but efficient MongoDB ODM
 
