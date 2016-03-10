@@ -3,9 +3,9 @@
 
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setup, find_packages
 
 
 with open('README.rst') as readme_file:
@@ -32,10 +32,7 @@ setup(
     author="Emmanuel Leblond",
     author_email='emmanuel.leblond@gmail.com',
     url='https://github.com/touilleMan/umongo',
-    packages=[
-        'umongo'
-    ],
-    package_dir={'umongo': 'umongo'},
+    packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
     license="MIT",
