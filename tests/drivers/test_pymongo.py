@@ -6,7 +6,8 @@ from pymongo import MongoClient
 
 from ..common import BaseTest, get_pymongo_version
 
-from umongo import Document, Schema, fields
+from umongo import Document, Schema, fields, exceptions
+
 
 # Check if the required dependancies are met to run this driver's tests
 major, minor, _ = get_pymongo_version()
@@ -107,6 +108,25 @@ class TestPymongo(BaseTest):
         assert john.to_mongo(update=True) == None
         john2 = Student.find_one(john.data.id)
         assert john2.data == john.data
+
+    def test_delete(self, db):
+
+        class Student(Document):
+            class Schema(Schema):
+                name = fields.StrField(required=True)
+                birthday = fields.DateTimeField()
+
+            class Config:
+                collection = db.student
+
+        db.student.drop()
+        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john.commit()
+        db.student.find().count() == 1
+        john.delete()
+        db.student.find().count() == 0
+        with pytest.raises(exceptions.DeleteError):
+           john.delete()
 
     def test_reload(self, db):
 

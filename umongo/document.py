@@ -59,6 +59,9 @@ class Document(BaseWrappedData, metaclass=MetaDocument):
     def commit(self, io_validate_all=False):
         return self.driver.commit(self, io_validate_all=False)
 
+    def delete(self):
+        return self.driver.delete(self)
+
     @classmethod
     def find_one(cls, *args, **kwargs):
         return cls.driver.find_one(cls, *args, **kwargs)

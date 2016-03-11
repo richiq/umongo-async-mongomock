@@ -69,6 +69,9 @@ class TxMongoDriver:
             doc.created = True
         doc.data.clear_modified()
 
+    def delete(self, doc):
+        raise NotImplementedError()
+
     @inlineCallbacks
     def find_one(self, doc_cls, *args, **kwargs):
         ret = yield doc_cls.collection.find_one(*args, **kwargs)

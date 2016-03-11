@@ -29,6 +29,10 @@ class UpdateError(UMongoError):
     pass
 
 
+class DeleteError(UMongoError):
+    pass
+
+
 class MissingSchemaError(UMongoError):
     pass
 

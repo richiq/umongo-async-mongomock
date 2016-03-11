@@ -37,6 +37,9 @@ class MotorAsyncIODriver:
             doc.created = True
         doc.data.clear_modified()
 
+    def delete(self, doc):
+        raise NotImplementedError()
+
     def find_one(self, doc_cls, *args, **kwargs):
         ret = yield from doc_cls.collection.find_one(*args, **kwargs)
         if ret is not None:

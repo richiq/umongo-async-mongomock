@@ -1,7 +1,7 @@
 from pymongo.collection import Collection
 
 from ..data_proxy import DataProxy
-from ..exceptions import NotCreatedError, UpdateError
+from ..exceptions import NotCreatedError, UpdateError, DeleteError
 
 
 class PyMongoDriver:
@@ -36,6 +36,12 @@ class PyMongoDriver:
             doc.data.set_by_mongo_name('_id', ret.inserted_id)
             doc.created = True
         doc.data.clear_modified()
+
+    def delete(self, doc):
+        ret = doc.collection.delete_one({'_id': doc.pk})
+        if ret.deleted_count != 1:
+            raise DeleteError(ret.raw_result)
+
 
     def find_one(self, doc_cls, *args, **kwargs):
         ret = doc_cls.collection.find_one(*args, **kwargs)
