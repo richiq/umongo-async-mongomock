@@ -52,36 +52,61 @@ class TestDocument(BaseTest):
 
 
 class TestConfig:
-    pass
-#     def test_missing_schema(self):
-#         # No exceptions should occure
 
-#         class Doc1(Document):
-#             pass
+    def test_missing_schema(self):
+        # No exceptions should occur
 
-#         d = Doc1()
+        class Doc1(Document):
+            pass
 
-#     def test_base_config(self):
+        d = Doc1()
+        assert isinstance(d.schema, Schema)
 
-#         class Doc2(Document):
-#             class Schema(Schema):
-#                 pass
+    def test_base_config(self):
 
-#         assert Doc2.config.collection is None
-#         assert Doc2.config.lazy_collection is None
+        class Doc2(Document):
+            pass
 
-#     def test_inheritance(self):
+        assert Doc2.config['collection'] is None
+        assert Doc2.config['lazy_collection'] is None
+        assert Doc2.config['register_document'] is True
 
-#         def lazy_collection():
-#             pass
+    def test_lazy_collection(self):
 
-#         class Doc3(Document):
-#             class Schema(Schema):
-#                 pass
+        def lazy_factory():
+            return "fake_collection"
 
-#             class Config:
-#                 nonlocal lazy_collection
-#                 lazy_collection = lazy_collection
+        class Doc3(Document):
+            pass
 
-#         assert Doc3.config.collection is None
-#         assert Doc3.config.lazy_collection is lazy_collection
+            class Config:
+                lazy_collection = lazy_factory
+
+        assert Doc3.config['collection'] is None
+        assert Doc3.config['lazy_collection'] is lazy_factory
+        # Try to do the dereferencing
+        assert Doc3.collection == "fake_collection"
+        d = Doc3()
+        assert d.collection == "fake_collection"
+
+    def test_inheritance(self):
+
+        class Doc4(Document):
+
+            class Config:
+                collection = "fake_collection"
+                register_document = False
+
+
+        class DocChild4(Doc4):
+
+            class Config:
+                collection = "fake_collection_2"
+
+        assert Doc4.config['collection'] == "fake_collection"
+        assert Doc4.config['lazy_collection'] is None
+        assert Doc4.config['register_document'] is False
+        assert DocChild4.config['collection'] == "fake_collection_2"
+        assert DocChild4.config['lazy_collection'] is None
+        assert DocChild4.config['register_document'] is False
+        assert DocChild4.collection == "fake_collection_2"
