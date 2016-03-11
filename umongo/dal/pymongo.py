@@ -1,10 +1,11 @@
 from pymongo.collection import Collection
 
+from .abstract import AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError, DeleteError
 
 
-class PyMongoDal:
+class PyMongoDal(AbstractDal):
 
     @staticmethod
     def is_compatible_with(collection):

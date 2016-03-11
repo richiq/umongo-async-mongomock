@@ -1,7 +1,7 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks
 
-from ..abstract import AbstractCursor
+from .abstract import AbstractCursor, AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError
 
@@ -34,7 +34,7 @@ class TxCursor(AbstractCursor):
             return 10  # !!!
 
 
-class TxMongoDal:
+class TxMongoDal(AbstractDal):
 
     @staticmethod
     def is_compatible_with(collection):

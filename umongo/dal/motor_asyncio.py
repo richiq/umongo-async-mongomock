@@ -1,10 +1,11 @@
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from .abstract import AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError
 
 
-class MotorAsyncIODal:
+class MotorAsyncIODal(AbstractDal):
 
     @staticmethod
     def is_compatible_with(collection):
