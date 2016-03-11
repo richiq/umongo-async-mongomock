@@ -170,5 +170,27 @@ class TestFields:
         d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
         d.load({'ref': "5672d47b1d41c88dcd37ef05"})
         assert d.dump() == {'ref': "5672d47b1d41c88dcd37ef05"}
+        d.ref.document_cls == MyReferencedDoc
         d.ref = to_refer_doc
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
+        assert d.ref.document_cls == MyReferencedDoc
+
+    def test_reference_lazy(self):
+
+        class MyReferencedDocLazy(Document):
+            pass
+
+        to_refer_doc = MyReferencedDocLazy.build_from_mongo(
+            {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
+
+        class MySchema(Schema):
+            ref = fields.ReferenceField("MyReferencedDocLazy", attribute='in_mongo_ref')
+
+        d = DataProxy(MySchema())
+        d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
+        d.load({'ref': "5672d47b1d41c88dcd37ef05"})
+        assert d.dump() == {'ref': "5672d47b1d41c88dcd37ef05"}
+        assert d.ref.document_cls == MyReferencedDocLazy
+        d.ref = to_refer_doc
+        assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
+        assert d.ref.document_cls == MyReferencedDocLazy

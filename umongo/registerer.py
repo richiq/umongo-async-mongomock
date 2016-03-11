@@ -18,6 +18,7 @@ class DocumentRegisterer:
         if not doc:
             raise NotRegisteredDocumentError(
                 "Document `%s` hasn't been registered" % name)
+        return doc
 
 
 default_registerer = DocumentRegisterer()
