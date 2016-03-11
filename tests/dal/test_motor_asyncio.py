@@ -16,7 +16,7 @@ from ..common import BaseTest
 from umongo import Document, Schema, fields
 
 if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.drivers import motor_asyncio
+    from umongo.dal import motor_asyncio
 
 
 @pytest.fixture

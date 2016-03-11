@@ -4,14 +4,11 @@ from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError
 
 
-class MotorAsyncIODriver:
+class MotorAsyncIODal:
 
     @staticmethod
     def is_compatible_with(collection):
         return isinstance(collection, AsyncIOMotorCollection)
-
-    def __init__(self, collection):
-        pass
 
     def reload(self, doc):
         ret = yield from doc.collection.find_one(doc.pk)
@@ -21,7 +18,6 @@ class MotorAsyncIODriver:
         doc.data.from_mongo(ret)
 
     def commit(self, doc, io_validate_all=False):
-        # TODO: implement in driver
         doc.data.io_validate(validate_all=io_validate_all)
         payload = doc.data.to_mongo(update=doc.created)
         if doc.created:

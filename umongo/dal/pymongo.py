@@ -4,14 +4,11 @@ from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError, DeleteError
 
 
-class PyMongoDriver:
+class PyMongoDal:
 
     @staticmethod
     def is_compatible_with(collection):
         return isinstance(collection, Collection)
-
-    def __init__(self, collection):
-        pass
 
     def reload(self, doc):
         ret = doc.collection.find_one(doc.pk)
@@ -21,7 +18,6 @@ class PyMongoDriver:
         doc.data.from_mongo(ret)
 
     def commit(self, doc, io_validate_all=False):
-        # TODO: implement in driver
         doc.data.io_validate(validate_all=io_validate_all)
         payload = doc.data.to_mongo(update=doc.created)
         if doc.created:
@@ -41,7 +37,6 @@ class PyMongoDriver:
         ret = doc.collection.delete_one({'_id': doc.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
-
 
     def find_one(self, doc_cls, *args, **kwargs):
         ret = doc_cls.collection.find_one(*args, **kwargs)

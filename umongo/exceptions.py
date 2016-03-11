@@ -49,5 +49,5 @@ class FieldNotLoadedError(UMongoError):
     pass
 
 
-class NoCompatibleDriver(UMongoError):
+class NoCompatibleDal(UMongoError):
     pass

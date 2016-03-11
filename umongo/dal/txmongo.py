@@ -34,14 +34,11 @@ class TxCursor(AbstractCursor):
             return 10  # !!!
 
 
-class TxMongoDriver:
+class TxMongoDal:
 
     @staticmethod
     def is_compatible_with(collection):
         return isinstance(collection, Collection)
-
-    def __init__(self, collection):
-        pass
 
     @inlineCallbacks
     def reload(self, doc):
@@ -53,7 +50,6 @@ class TxMongoDriver:
 
     @inlineCallbacks
     def commit(self, doc, io_validate_all=False):
-        # TODO: implement in driver
         doc.data.io_validate(validate_all=io_validate_all)
         payload = doc.data.to_mongo(update=doc.created)
         if doc.created:

@@ -3,7 +3,7 @@ from marshmallow.fields import Field
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError
 from .schema import Schema
-from .drivers import find_driver_from_collection
+from .dal import find_dal_from_collection
 
 
 def base_meta_document(name, bases, nmspc):
@@ -61,7 +61,7 @@ class MetaDocument(type):
     @property
     def driver(self):
         if not self._driver:
-            self._driver = find_driver_from_collection(self.collection)(self.collection)
+            self._driver = find_dal_from_collection(self.collection)
         return self._driver
 
     @property
