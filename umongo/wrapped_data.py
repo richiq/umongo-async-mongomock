@@ -15,6 +15,25 @@ class EmbeddedDocument(ChangeTracker, DataProxy, metaclass=MetaEmbeddedDocument)
     def __init__(self, **kwargs):
         schema = self.Schema()
         super().__init__(schema, data=kwargs)
+        self.__dict__['_callback'] = None
+
+    def has_changed(self):
+        return bool(self._modified_data)
+
+    def _trigger_change(self):
+        if self._callback:
+            self._callback()
+
+    def change_tracker_connect(self, callback):
+        self._callback = callback
+
+    def __delitem__(self, name):
+        self._trigger_change()
+        super().__delitem__(name)
+
+    def __setitem__(self, name, value):
+        self._trigger_change()
+        super().__setitem__(name, value)
 
 
 class List(ChangeTracker, list):

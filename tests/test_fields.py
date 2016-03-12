@@ -79,9 +79,14 @@ class TestFields:
 
         d.embedded.a = 3
         assert d.embedded.to_mongo(update=True) == {'$set': {'in_mongo_a': 3}}
-        assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 3}}}
+        assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 3, 'b': 2}}}
+
+        del d.embedded.a
+        assert d.embedded.to_mongo(update=True) == {'$unset': ['in_mongo_a']}
+        assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'b': 2}}}
 
         d.embedded = MyEmbeddedDocument(a=4)
+        assert d.embedded.to_mongo(update=True) is None
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 4}}}
 
     def test_list(self):
