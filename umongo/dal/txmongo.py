@@ -1,7 +1,7 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks
 
-from .abstract import AbstractCursor, AbstractDal
+from ..abstract import AbstractCursor, AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError
 

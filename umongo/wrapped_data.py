@@ -7,7 +7,7 @@ from .meta import MetaEmbeddedDocument
 __all__ = ('EmbeddedDocument', 'List', 'Reference')
 
 
-class EmbeddedDocument(DataProxy, metaclass=MetaEmbeddedDocument):
+class EmbeddedDocument(ChangeTracker, DataProxy, metaclass=MetaEmbeddedDocument):
 
     class Config:
         register_document = False
