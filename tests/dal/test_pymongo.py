@@ -81,14 +81,14 @@ class TestPymongo(BaseTest):
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         john.commit()
         assert john.to_mongo() == {
-            '_id': john.data.id,
+            '_id': john.id,
             'name': 'John Doe',
             'birthday': datetime(1995, 12, 12)
         }
 
 
-        john2 = Student.find_one(john.data.id)
-        assert john2.data == john.data
+        john2 = Student.find_one(john.id)
+        assert john2._data == john._data
 
     def test_update(self, db):
 
@@ -102,12 +102,12 @@ class TestPymongo(BaseTest):
 
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         john.commit()
-        john.data.name = 'William Doe'
+        john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
         john.commit()
         assert john.to_mongo(update=True) == None
-        john2 = Student.find_one(john.data.id)
-        assert john2.data == john.data
+        john2 = Student.find_one(john.id)
+        assert john2._data == john._data
 
     def test_delete(self, db):
 
@@ -139,12 +139,15 @@ class TestPymongo(BaseTest):
                 collection = db.student
 
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        with pytest.raises(exceptions.NotCreatedError):
+            john.reload()
         john.commit()
-        john2 = Student.find_one(john.data.id)
-        john2.data.name = 'William Doe'
+        john2 = Student.find_one(john.id)
+        john2.name = 'William Doe'
         john2.commit()
         john.reload()
-        assert john.data.name == 'William Doe'
+        assert john.name == 'William Doe'
+
 
     def test_cusor(self, db):
 
@@ -166,7 +169,7 @@ class TestPymongo(BaseTest):
         names = []
         for elem in cursor:
             assert isinstance(elem, Student)
-            names.append(elem.data.name)
+            names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
     def test_classroom(self, classroom_model):
@@ -176,8 +179,8 @@ class TestPymongo(BaseTest):
         teacher.commit()
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
         course.commit()
-        assert student.data.courses == []
-        student.data.courses.append(course)
+        assert student.courses == []
+        student.courses.append(course)
         student.commit()
         assert student.to_mongo() == {
             '_id': student.pk,

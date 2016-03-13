@@ -45,25 +45,25 @@ class TxMongoDal(AbstractDal):
         ret = yield doc.collection.find_one(doc.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        doc.data = DataProxy(doc.schema)
-        doc.data.from_mongo(ret)
+        doc._data = DataProxy(doc.schema)
+        doc._data.from_mongo(ret)
 
     @inlineCallbacks
     def commit(self, doc, io_validate_all=False):
-        doc.data.io_validate(validate_all=io_validate_all)
-        payload = doc.data.to_mongo(update=doc.created)
+        doc._data.io_validate(validate_all=io_validate_all)
+        payload = doc._data.to_mongo(update=doc.created)
         if doc.created:
             if payload:
                 ret = yield doc.collection.update_one(
-                    {'_id': doc.data.get_by_mongo_name('_id')}, payload)
+                    {'_id': doc._data.get_by_mongo_name('_id')}, payload)
                 if ret.modified_count != 1:
                     raise UpdateError(ret.raw_result)
         else:
             ret = yield doc.collection.insert_one(payload)
             # TODO: check ret ?
-            doc.data.set_by_mongo_name('_id', ret.inserted_id)
+            doc._data.set_by_mongo_name('_id', ret.inserted_id)
             doc.created = True
-        doc.data.clear_modified()
+        doc._data.clear_modified()
 
     def delete(self, doc):
         raise NotImplementedError()

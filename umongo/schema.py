@@ -3,9 +3,14 @@ from marshmallow import validates_schema, ValidationError
 from marshmallow import Schema as MaSchema
 from marshmallow import fields as ma_fields
 
+from .abstract import BaseField
+
+
+__all__ = ('BaseSchema', 'Schema', 'NestedSchema')
+
 
 # Declare the ObjectIdField here to prevent recursive import error with fields
-class ObjectIdField(ma_fields.Field):
+class ObjectIdField(BaseField, ma_fields.Field):
 
     def _serialize(self, value, attr, obj):
         if value is None:
@@ -17,11 +22,8 @@ class ObjectIdField(ma_fields.Field):
             return None
         try:
             return bson.ObjectId(value)
-        except ValueError:
+        except bson.errors.InvalidId:
             raise ValidationError('Invalid ObjectId')
-
-
-__all__ = ('BaseSchema', 'Schema', 'NestedSchema')
 
 
 class BaseSchema(MaSchema):

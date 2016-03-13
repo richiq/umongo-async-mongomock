@@ -27,7 +27,7 @@ else:
     dep_error = None
     pytest_inlineCallbacks = pytest.inlineCallbacks
 
-from umongo import Document, Schema, fields
+from umongo import Document, Schema, fields, exceptions
 
 
 if not dep_error:  # Make sure the module is valid by importing it
@@ -97,13 +97,13 @@ class TestTxMongo(BaseTest):
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         yield john.commit()
         assert john.to_mongo() == {
-            '_id': john.data.id,
+            '_id': john.id,
             'name': 'John Doe',
             'birthday': datetime(1995, 12, 12)
         }
 
-        john2 = yield Student.find_one(john.data.id)
-        assert john2.data == john.data
+        john2 = yield Student.find_one(john.id)
+        assert john2._data == john._data
 
     @pytest_inlineCallbacks
     def test_update(self, db):
@@ -119,12 +119,12 @@ class TestTxMongo(BaseTest):
 
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         yield john.commit()
-        john.data.name = 'William Doe'
+        john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
         yield john.commit()
         assert john.to_mongo(update=True) == None
-        john2 = yield Student.find_one(john.data.id)
-        assert john2.data == john.data
+        john2 = yield Student.find_one(john.id)
+        assert john2._data == john._data
 
     @pytest_inlineCallbacks
     def test_reload(self, db):
@@ -139,12 +139,14 @@ class TestTxMongo(BaseTest):
                 collection = db.student
 
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        with pytest.raises(exceptions.NotCreatedError):
+            yield john.reload()
         yield john.commit()
-        john2 = yield Student.find_one(john.data.id)
-        john2.data.name = 'William Doe'
+        john2 = yield Student.find_one(john.id)
+        john2.name = 'William Doe'
         yield john2.commit()
         yield john.reload()
-        assert john.data.name == 'William Doe'
+        assert john.name == 'William Doe'
 
     @pytest_inlineCallbacks
     def test_cusor(self, db):
@@ -168,7 +170,7 @@ class TestTxMongo(BaseTest):
         names = []
         for elem in cursor:
             assert isinstance(elem, Student)
-            names.append(elem.data.name)
+            names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
     @pytest_inlineCallbacks
@@ -179,8 +181,8 @@ class TestTxMongo(BaseTest):
         yield teacher.commit()
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
         yield course.commit()
-        assert student.data.courses == []
-        student.data.courses.append(course)
+        assert student.courses == []
+        student.courses.append(course)
         yield student.commit()
         assert student.to_mongo() == {
             '_id': student.pk,

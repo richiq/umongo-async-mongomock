@@ -3,7 +3,8 @@ from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
 
 from .registerer import retrieve_document
-from .wrapped_data import Reference, List
+from .data_objects import BaseDataObject, Reference, List, Dict
+from .abstract import BaseField
 
 
 __all__ = (
@@ -42,133 +43,138 @@ __all__ = (
 # Republish supported mashmallow fields
 
 
-class FieldField(ma_fields.Field):
+class RawField(BaseField, ma_fields.Raw):
     pass
 
 
-class RawField(ma_fields.Raw):
+class NestedField(BaseField, ma_fields.Nested):
     pass
 
 
-class NestedField(ma_fields.Nested):
-    pass
+class DictField(BaseField, ma_fields.Dict):
+
+    def _deserialize(self, value, attr, data):
+        value = super()._deserialize(value, attr, data)
+        return self._deserialize_from_mongo(value)
+
+    def _deserialize_from_mongo(self, value):
+        if value:
+            return Dict(value)
+        else:
+            return Dict()
 
 
-class DictField(ma_fields.Dict):
-    pass
-
-
-class ListField(ma_fields.List):
+class ListField(BaseField, ma_fields.List):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('default', [])
-        kwargs.setdefault('missing', list)
+        kwargs.setdefault('missing', List)
         super().__init__(*args, **kwargs)
 
     def _deserialize(self, value, attr, data):
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
 
-    def _serialize_to_mongo(self, value):
-        if not value:
+    def _serialize_to_mongo(self, obj):
+        if not obj:
             return missing
-        if hasattr(self.container, '_serialize_to_mongo'):
-            return [self.container._serialize_to_mongo(each) for each in value]
-        else:
-            return list(value)
+        return [self.container.serialize_to_mongo(each) for each in obj]
 
     def _deserialize_from_mongo(self, value):
-        return List(value) if value else List()
+        if value:
+            return List([self.container.deserialize_from_mongo(each) for each in value])
+        else:
+            return List()
 
 
-class StringField(ma_fields.String):
+class StringField(BaseField, ma_fields.String):
     pass
 
 
-class UUIDField(ma_fields.UUID):
+class UUIDField(BaseField, ma_fields.UUID):
     pass
 
 
-class NumberField(ma_fields.Number):
+class NumberField(BaseField, ma_fields.Number):
     pass
 
 
-class IntegerField(ma_fields.Integer):
+class IntegerField(BaseField, ma_fields.Integer):
     pass
 
 
-class DecimalField(ma_fields.Decimal):
+class DecimalField(BaseField, ma_fields.Decimal):
     pass
 
 
-class BooleanField(ma_fields.Boolean):
+class BooleanField(BaseField, ma_fields.Boolean):
     pass
 
 
-class FormattedStringField(ma_fields.FormattedString):
+class FormattedStringField(BaseField, ma_fields.FormattedString):
     pass
 
 
-class FloatField(ma_fields.Float):
+class FloatField(BaseField, ma_fields.Float):
     pass
 
 
-class DateTimeField(ma_fields.DateTime):
+class DateTimeField(BaseField, ma_fields.DateTime):
     def _deserialize(self, value, attr, data):
         if isinstance(value, datetime):
             return value
         return super()._deserialize(value, attr, data)
 
 
-class LocalDateTimeField(ma_fields.LocalDateTime):
+class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
     pass
 
 
-class TimeField(ma_fields.Time):
+class TimeField(BaseField, ma_fields.Time):
     pass
 
 
-class DateField(ma_fields.Date):
+class DateField(BaseField, ma_fields.Date):
     pass
 
 
-class TimeDeltaField(ma_fields.TimeDelta):
+class TimeDeltaField(BaseField, ma_fields.TimeDelta):
     pass
 
 
-class UrlField(ma_fields.Url):
+class UrlField(BaseField, ma_fields.Url):
     pass
 
 
-class URLField(ma_fields.URL):
+class URLField(BaseField, ma_fields.URL):
     pass
 
 
-class EmailField(ma_fields.Email):
+class EmailField(BaseField, ma_fields.Email):
     pass
 
 
-class MethodField(ma_fields.Method):
+class MethodField(BaseField, ma_fields.Method):
     pass
 
 
-class FunctionField(ma_fields.Function):
+class FunctionField(BaseField, ma_fields.Function):
     pass
 
 
-class StrField(ma_fields.Str):
+class StrField(BaseField, ma_fields.Str):
     pass
 
 
-class BoolField(ma_fields.Bool):
+class BoolField(BaseField, ma_fields.Bool):
     pass
 
 
-class IntField(ma_fields.Int):
+class IntField(BaseField, ma_fields.Int):
     pass
 
 
-class ConstantField(ma_fields.Constant):
+class ConstantField(BaseField, ma_fields.Constant):
     pass
 
 
@@ -211,8 +217,8 @@ class ReferenceField(ObjectIdField):
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
 
-    def _serialize_to_mongo(self, value):
-        return value.pk
+    def _serialize_to_mongo(self, obj):
+        return obj.pk
 
     def _deserialize_from_mongo(self, value):
         return Reference(self.document_cls, value)
@@ -221,10 +227,10 @@ class ReferenceField(ObjectIdField):
         pass  # TODO
 
 
-class EmbeddedField(ma_fields.Dict):
+class EmbeddedField(BaseField, ma_fields.Nested):
 
     def __init__(self, embedded_document_cls, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(embedded_document_cls.Schema, *args, **kwargs)
         self._embedded_document_cls = embedded_document_cls
 
     def _serialize(self, value, attr, obj):
@@ -236,10 +242,8 @@ class EmbeddedField(ma_fields.Dict):
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
 
-    def _serialize_to_mongo(self, value):
-        return value.to_mongo()
+    def _serialize_to_mongo(self, obj):
+        return obj.to_mongo()
 
     def _deserialize_from_mongo(self, value):
-        embedded_document = self._embedded_document_cls()
-        embedded_document.load(value)
-        return embedded_document
+        return self._embedded_document_cls.build_from_mongo(value)

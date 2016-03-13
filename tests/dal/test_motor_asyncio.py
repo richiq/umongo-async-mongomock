@@ -13,7 +13,7 @@ else:
 
 from ..common import BaseTest
 
-from umongo import Document, Schema, fields
+from umongo import Document, Schema, fields, exceptions
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import motor_asyncio
@@ -95,13 +95,13 @@ class TestMotorAsyncio(BaseTest):
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             yield from john.commit()
             assert john.to_mongo() == {
-                '_id': john.data.id,
+                '_id': john.id,
                 'name': 'John Doe',
                 'birthday': datetime(1995, 12, 12)
             }
 
-            john2 = yield from Student.find_one(john.data.id)
-            assert john2.data == john.data
+            john2 = yield from Student.find_one(john.id)
+            assert john2._data == john._data
 
         loop.run_until_complete(do_test())
 
@@ -121,12 +121,12 @@ class TestMotorAsyncio(BaseTest):
 
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             yield from john.commit()
-            john.data.name = 'William Doe'
+            john.name = 'William Doe'
             assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
             yield from john.commit()
             assert john.to_mongo(update=True) == None
-            john2 = yield from Student.find_one(john.data.id)
-            assert john2.data == john.data
+            john2 = yield from Student.find_one(john.id)
+            assert john2._data == john._data
 
         loop.run_until_complete(do_test())
 
@@ -145,12 +145,14 @@ class TestMotorAsyncio(BaseTest):
                     collection = db.student
 
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            with pytest.raises(exceptions.NotCreatedError):
+                yield from john.reload()
             yield from john.commit()
-            john2 = yield from Student.find_one(john.data.id)
-            john2.data.name = 'William Doe'
+            john2 = yield from Student.find_one(john.id)
+            john2.name = 'William Doe'
             yield from john2.commit()
             yield from john.reload()
-            assert john.data.name == 'William Doe'
+            assert john.name == 'William Doe'
 
         loop.run_until_complete(do_test())
 
@@ -179,7 +181,7 @@ class TestMotorAsyncio(BaseTest):
             names = []
             for elem in cursor:
                 assert isinstance(elem, Student)
-                names.append(elem.data.name)
+                names.append(elem.name)
             assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
         loop.run_until_complete(do_test())
@@ -195,8 +197,8 @@ class TestMotorAsyncio(BaseTest):
             yield from teacher.commit()
             course = classroom_model.Course(name='Overboard 101', teacher=teacher)
             yield from course.commit()
-            assert student.data.courses == []
-            student.data.courses.append(course)
+            assert student.courses == []
+            student.courses.append(course)
             yield from student.commit()
             assert student.to_mongo() == {
                 '_id': student.pk,

@@ -2,6 +2,7 @@ from .exceptions import AlreadyRegisteredDocumentError, NotRegisteredDocumentErr
 
 
 class DocumentRegisterer:
+
     def __init__(self):
         self.documents = {}
 

@@ -1,10 +1,11 @@
 from .data_proxy import DataProxy
-from .abstract import BaseWrappedData
 from .exceptions import NotCreatedError
 from .meta import MetaDocument
 
 
-class Document(BaseWrappedData, metaclass=MetaDocument):
+class Document(metaclass=MetaDocument):
+
+    __slots__ = ('created', '_data')
 
     class Config:
         collection = None
@@ -13,15 +14,11 @@ class Document(BaseWrappedData, metaclass=MetaDocument):
 
     def __init__(self, **kwargs):
         self.created = False
-        self.data = DataProxy(self.schema, kwargs)
+        self._data = DataProxy(self.schema, kwargs)
 
     @property
     def pk(self):
-        return self.data._data.get('_id')
-
-    @property
-    def name(self):
-        return self.__name__
+        return self._data._data.get('_id')
 
     @classmethod
     def build_from_mongo(cls, data, partial=False):
@@ -31,14 +28,14 @@ class Document(BaseWrappedData, metaclass=MetaDocument):
 
     def from_mongo(self, data, partial=False):
         # TODO: handle partial
-        self.data.from_mongo(data, partial=partial)
+        self._data.from_mongo(data, partial=partial)
         self.created = True
 
     def to_mongo(self, update=False):
-        return self.data.to_mongo(update=update)
+        return self._data.to_mongo(update=update)
 
     def dump(self):
-        return self.data.dump()
+        return self._data.dump()
 
     @property
     def collection(self):
@@ -69,3 +66,28 @@ class Document(BaseWrappedData, metaclass=MetaDocument):
     @classmethod
     def find(cls, *args, **kwargs):
         return cls.driver.find(cls, *args, **kwargs)
+
+    def __getitem__(self, name):
+        return self._data.get(name)
+
+    def __delitem__(self, name):
+        self._data.delete(name)
+
+    def __setitem__(self, name, value):
+        self._data.set(name, value)
+
+    def __setattr__(self, name, value):
+        if name in Document.__dict__:
+            Document.__dict__[name].__set__(self, value)
+        else:
+            self._data.set(name, value)
+
+    def __getattr__(self, name):
+        return self._data.get(name)
+
+    def __delattr__(self, name):
+        self._data.delete(name)
+
+    def __repr__(self):
+        return '<object Document %s.%s(%s)>' % (
+            self.__module__, self.__class__.__name__, self._data._data)

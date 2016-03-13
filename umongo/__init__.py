@@ -14,7 +14,7 @@ from .exceptions import (
 )
 from . import fields
 from .schema import BaseSchema, Schema, NestedSchema
-from .wrapped_data import EmbeddedDocument
+from .data_objects import EmbeddedDocument, Reference
 
 
 __author__ = 'Emmanuel Leblond'
@@ -40,5 +40,7 @@ __all__ = (
 
     'BaseSchema',
     'Schema',
-    'NestedSchema'
+    'NestedSchema',
+
+    'Reference'
 )
