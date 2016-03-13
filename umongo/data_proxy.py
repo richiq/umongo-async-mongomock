@@ -1,5 +1,4 @@
 from marshmallow import ValidationError, missing
-from functools import partial
 
 from .abstract import BaseDataObject
 from .exceptions import FieldNotLoadedError

@@ -3,12 +3,11 @@ from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
 
 from .registerer import retrieve_document
-from .data_objects import BaseDataObject, Reference, List, Dict
+from .data_objects import Reference, List, Dict
 from .abstract import BaseField
 
 
 __all__ = (
-    'FieldField',
     'RawField',
     'NestedField',
     'DictField',
