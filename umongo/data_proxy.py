@@ -143,6 +143,9 @@ class DataProxy:
 
     def clear_modified(self):
         self._modified_data.clear()
+        for v in self._data.values():
+            if isinstance(v, BaseDataObject):
+                v.clear_modified()
 
     def io_validate(self, validate_all=False):
         # TODO: handle required here

@@ -2,36 +2,39 @@ from marshmallow.fields import Field
 
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError
-from .schema import Schema
+from .schema import Schema, EmbeddedSchema
 from .dal import find_dal_from_collection
 
 
-def base_meta_document(name, bases, nmspc):
+def base_meta_document(name, bases, nmspc, default_schema=Schema):
     # Retrieve Schema
     schema_cls = nmspc.get('Schema')
     if not schema_cls:
         schema_cls = next((getattr(base, 'Schema') for base in bases
-                           if hasattr(base, 'Schema')), Schema)
+                           if hasattr(base, 'Schema')), default_schema)
     # Retrieve fields declared inside the class
     schema_nmspc = {}
+    doc_nmspc = {}
     for key, item in nmspc.items():
         if isinstance(item, Field):
             schema_nmspc[key] = item
-            nmspc.pop(key)
+        else:
+            doc_nmspc[key] = item
     # Need to create a custom Schema class to use the provided fields
     if schema_nmspc:
         schema_cls = type('SubSchema', (schema_cls, ), schema_nmspc)
-        nmspc['Schema'] = schema_cls
+        doc_nmspc['Schema'] = schema_cls
     # Create Schema instance if not provided
-    if 'schema' not in nmspc:
-        nmspc['schema'] = schema_cls()
-    return name, bases, nmspc
+    if 'schema' not in doc_nmspc:
+        doc_nmspc['schema'] = schema_cls()
+    return name, bases, doc_nmspc
 
 
 class MetaEmbeddedDocument(type):
 
     def __new__(cls, name, bases, nmspc):
-        name, bases, nmspc = base_meta_document(name, bases, nmspc)
+        name, bases, nmspc = base_meta_document(
+            name, bases, nmspc, default_schema=EmbeddedSchema)
         gen_cls = type.__new__(cls, name, bases, nmspc)
         return gen_cls
 
@@ -41,7 +44,7 @@ class MetaDocument(type):
     def __new__(cls, name, bases, nmspc):
         name, bases, nmspc = base_meta_document(name, bases, nmspc)
         nmspc['_collection'] = None
-        nmspc['_driver'] = None
+        nmspc['_dal'] = None
         # Create config with inheritance
         if 'config' not in nmspc:
             config = {}
@@ -59,10 +62,10 @@ class MetaDocument(type):
         return gen_cls
 
     @property
-    def driver(self):
-        if not self._driver:
-            self._driver = find_dal_from_collection(self.collection)
-        return self._driver
+    def dal(self):
+        if not self._dal:
+            self._dal = find_dal_from_collection(self.collection)
+        return self._dal
 
     @property
     def collection(self):

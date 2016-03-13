@@ -4,14 +4,14 @@ from datetime import datetime
 from marshmallow import ValidationError
 
 from umongo.data_proxy import DataProxy
-from umongo import Document, EmbeddedDocument, Schema, NestedSchema, fields, Reference
+from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
 
 
 class TestFields:
 
     def test_datetime(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.DateTimeField()
  
         s = MySchema(strict=True)
@@ -23,25 +23,6 @@ class TestFields:
             s.load({'a': "2016-08-06"})
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
-
-    def test_nested(self):
-
-        class MyNestedSchema(NestedSchema):
-            a = fields.IntField(attribute='in_mongo_a')
-            b = fields.IntField()
-
-        field = fields.NestedField(MyNestedSchema())
-
-        class MySchema(Schema):
-            nested = fields.NestedField(MyNestedSchema(), attribute='in_mongo_nested')
-
-        d = DataProxy(MySchema())
-        d.load({'nested': {'a': 1, 'b': 2}})
-        with pytest.raises(KeyError):
-            d.get('in_mongo_nested')
-        assert d.dump() == {'nested': {'a': 1, 'b': 2}}
-        assert d.get('nested') == {'in_mongo_a': 1, 'b': 2}
-        assert d.to_mongo() == {'in_mongo_nested': {'in_mongo_a': 1, 'b': 2}}
 
     def test_dict(self):
 
@@ -71,13 +52,15 @@ class TestFields:
     def test_embedded_document(self):
 
         class MyEmbeddedDocument(EmbeddedDocument):
-
-            class Schema(NestedSchema):
-                a = fields.IntField(attribute='in_mongo_a')
-                b = fields.IntField()
+            a = fields.IntField(attribute='in_mongo_a')
+            b = fields.IntField()
 
         class MySchema(Schema):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+
+        # Make sure embedded document doesn't have implicit _id field
+        assert '_id' not in MyEmbeddedDocument.Schema().fields
+        assert 'id' not in MyEmbeddedDocument.Schema().fields
 
         d = DataProxy(MySchema())
         d.load(data={'embedded': {'a': 1, 'b': 2}})

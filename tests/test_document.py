@@ -1,11 +1,13 @@
 import pytest
 from datetime import datetime
+from bson import ObjectId
 
 from .common import BaseTest
 from umongo import Document, Schema, fields, exceptions
 
 
 class Student(Document):
+
     class Schema(Schema):
         name = fields.StrField(required=True)
         birthday = fields.DateTimeField()
@@ -30,6 +32,8 @@ class TestDocument(BaseTest):
             'gpa': 3.0
         }
         assert john.created is False
+        with pytest.raises(exceptions.NotCreatedError):
+            john.to_mongo(update=True)
 
     def test_from_mongo(self):
         john = Student.build_from_mongo(data={
@@ -49,6 +53,8 @@ class TestDocument(BaseTest):
         john.birthday = datetime(1996, 12, 12)
         assert john.to_mongo(update=True) == {
             '$set': {'name': 'William Doe', 'birthday': datetime(1996, 12, 12)}}
+        john.clear_modified()
+        assert john.to_mongo(update=True) is None
 
     def test_dump(self):
         john = Student.build_from_mongo(data={
@@ -66,7 +72,7 @@ class TestDocument(BaseTest):
         john.name = 'William Doe'
         assert john.name == 'William Doe'
         del john.name
-        assert john.name == None
+        assert john.name is None
         with pytest.raises(KeyError):
             john.missing
         with pytest.raises(KeyError):
@@ -83,13 +89,36 @@ class TestDocument(BaseTest):
         john['name'] = 'William Doe'
         assert john['name'] == 'William Doe'
         del john['name']
-        assert john['name'] == None
+        assert john['name'] is None
         with pytest.raises(KeyError):
             john['missing']
         with pytest.raises(KeyError):
             john['missing'] = None
         with pytest.raises(KeyError):
             del john['missing']
+
+    def test_pk(self):
+        john = Student.build_from_mongo(data={
+            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+        assert john.pk is None
+        john_id = ObjectId("5672d47b1d41c88dcd37ef05")
+        john = Student.build_from_mongo(data={
+            '_id': john_id, 'name': 'John Doe',
+            'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+        assert john.pk == john_id
+
+        # Don't do that in real life !
+        class CrazyNaming(Document):
+            id = fields.IntField(attribute='in_mongo_id')
+            _id = fields.IntField(attribute='in_mongo__id')
+            pk = fields.IntField()
+            real_pk = fields.IntField(attribute='_id')
+
+        crazy = CrazyNaming.build_from_mongo(data={
+            '_id': 1, 'in_mongo__id': 2, 'in_mongo__id': 3, 'pk': 4
+            })
+        assert crazy.pk == crazy.real_pk == 1
+        assert crazy['pk'] == 4
 
 
 class TestConfig:

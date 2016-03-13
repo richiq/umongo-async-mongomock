@@ -13,7 +13,7 @@ from .exceptions import (
     FieldNotLoadedError
 )
 from . import fields
-from .schema import BaseSchema, Schema, NestedSchema
+from .schema import BaseSchema, Schema, EmbeddedSchema
 from .data_objects import EmbeddedDocument, Reference
 
 
@@ -40,7 +40,7 @@ __all__ = (
 
     'BaseSchema',
     'Schema',
-    'NestedSchema',
+    'EmbeddedSchema',
 
     'Reference'
 )

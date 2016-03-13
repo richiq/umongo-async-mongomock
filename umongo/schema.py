@@ -6,7 +6,7 @@ from marshmallow import fields as ma_fields
 from .abstract import BaseField
 
 
-__all__ = ('BaseSchema', 'Schema', 'NestedSchema')
+__all__ = ('BaseSchema', 'Schema', 'EmbeddedSchema')
 
 
 # Declare the ObjectIdField here to prevent recursive import error with fields
@@ -40,5 +40,5 @@ class Schema(BaseSchema):
     id = ObjectIdField(attribute='_id')
 
 
-class NestedSchema(BaseSchema):
+class EmbeddedSchema(BaseSchema):
     pass

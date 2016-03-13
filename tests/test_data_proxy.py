@@ -2,14 +2,14 @@ from marshmallow import ValidationError, missing
 import pytest
 
 from umongo.data_proxy import DataProxy
-from umongo import NestedSchema, fields
+from umongo import EmbeddedSchema, fields, EmbeddedDocument
 
 
 class TestDataProxy:
 
     def test_repr(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             field_a = fields.IntField()
             field_b = fields.StrField()
 
@@ -21,7 +21,7 @@ class TestDataProxy:
 
     def test_simple(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField()
 
@@ -38,7 +38,7 @@ class TestDataProxy:
 
     def test_load(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -58,7 +58,7 @@ class TestDataProxy:
 
     def test_modify(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -73,9 +73,30 @@ class TestDataProxy:
         assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
 
+    def test_complexe_field_clear_modified(self):
+
+        class MyEmbedded(EmbeddedDocument):
+            aa = fields.IntField()
+
+        class MySchema(EmbeddedSchema):
+            a = fields.EmbeddedField(MyEmbedded)
+            b = fields.ListField(fields.IntField)
+
+        d = DataProxy(MySchema())
+        d.load({'a': {'aa': 1}, 'b': [2, 3]})
+        assert d.to_mongo() == {'a': {'aa': 1}, 'b': [2, 3]}
+        d.get('a').aa = 4
+        d.get('b').append(5)
+        assert d.to_mongo(update=True) == {'$set': {'a': {'aa': 4}, 'b': [2, 3, 5]}}
+        d.clear_modified()
+        assert d.to_mongo(update=True) is None
+        assert not d.get('a').is_modified()
+        assert not d.get('b').is_modified()
+
+
     def test_set(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -95,7 +116,7 @@ class TestDataProxy:
 
     def test_del(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -112,7 +133,7 @@ class TestDataProxy:
 
     def test_route_naming(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             in_front = fields.IntField(attribute='in_mongo')
 
         d = DataProxy(MySchema())
@@ -130,7 +151,7 @@ class TestDataProxy:
 
     def test_from_mongo(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             in_front = fields.IntField(attribute='in_mongo')
 
         d = DataProxy(MySchema())
@@ -141,7 +162,7 @@ class TestDataProxy:
 
     def test_equality(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -155,7 +176,7 @@ class TestDataProxy:
 
     def test_access_by_mongo_name(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -172,7 +193,7 @@ class TestDataProxy:
 
     def test_set_to_missing_fields(self):
 
-        class MySchema(NestedSchema):
+        class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 

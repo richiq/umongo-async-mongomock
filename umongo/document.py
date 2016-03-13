@@ -16,9 +16,17 @@ class Document(metaclass=MetaDocument):
         self.created = False
         self._data = DataProxy(self.schema, kwargs)
 
+    def __repr__(self):
+        return '<object Document %s.%s(%s)>' % (
+            self.__module__, self.__class__.__name__, self._data._data)
+
     @property
     def pk(self):
-        return self._data._data.get('_id')
+        """Return the document's primary key (i.e. `_id` in mongo notation) or
+        None if not available yet
+        """
+        # return 'touille'
+        return self._data.get_by_mongo_name('_id')
 
     @classmethod
     def build_from_mongo(cls, data, partial=False):
@@ -32,40 +40,50 @@ class Document(metaclass=MetaDocument):
         self.created = True
 
     def to_mongo(self, update=False):
+        if update and not self.created:
+            raise NotCreatedError('Must create the document before'
+                                  ' using update')
         return self._data.to_mongo(update=update)
 
     def dump(self):
         return self._data.dump()
+
+    def clear_modified(self):
+        self._data.clear_modified()
 
     @property
     def collection(self):
         # Cannot implicitly access to the class's property
         return type(self).collection
 
+    # DAL related stuff
+
     @property
-    def driver(self):
+    def dal(self):
         # Cannot implicitly access to the class's property
-        return type(self).driver
+        return type(self).dal
 
     def reload(self):
         if not self.created:
             raise NotCreatedError('Cannot reload a document that'
                                   ' has not been committed yet')
-        return self.driver.reload(self)
+        return self.dal.reload(self)
 
     def commit(self, io_validate_all=False):
-        return self.driver.commit(self, io_validate_all=False)
+        return self.dal.commit(self, io_validate_all=False)
 
     def delete(self):
-        return self.driver.delete(self)
+        return self.dal.delete(self)
 
     @classmethod
     def find_one(cls, *args, **kwargs):
-        return cls.driver.find_one(cls, *args, **kwargs)
+        return cls.dal.find_one(cls, *args, **kwargs)
 
     @classmethod
     def find(cls, *args, **kwargs):
-        return cls.driver.find(cls, *args, **kwargs)
+        return cls.dal.find(cls, *args, **kwargs)
+
+    # Data-proxy accessor shortcut
 
     def __getitem__(self, name):
         return self._data.get(name)
@@ -87,7 +105,3 @@ class Document(metaclass=MetaDocument):
 
     def __delattr__(self, name):
         self._data.delete(name)
-
-    def __repr__(self):
-        return '<object Document %s.%s(%s)>' % (
-            self.__module__, self.__class__.__name__, self._data._data)

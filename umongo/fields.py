@@ -9,7 +9,6 @@ from .abstract import BaseField
 
 __all__ = (
     'RawField',
-    'NestedField',
     'DictField',
     'ListField',
     'StringField',
@@ -43,10 +42,6 @@ __all__ = (
 
 
 class RawField(BaseField, ma_fields.Raw):
-    pass
-
-
-class NestedField(BaseField, ma_fields.Nested):
     pass
 
 
