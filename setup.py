@@ -26,7 +26,7 @@ test_requirements = [
 
 setup(
     name='umongo',
-    version='0.3.4',
+    version='0.4.0',
     description="Small but efficient MongoDB ODM",
     long_description=readme + '\n\n' + history,
     author="Emmanuel Leblond",
