@@ -1,6 +1,7 @@
 from .data_proxy import DataProxy
 from .exceptions import NotCreatedError
 from .meta import MetaDocument
+from bson import DBRef
 
 
 class Document(metaclass=MetaDocument):
@@ -25,8 +26,16 @@ class Document(metaclass=MetaDocument):
         """Return the document's primary key (i.e. `_id` in mongo notation) or
         None if not available yet
         """
-        # return 'touille'
         return self._data.get_by_mongo_name('_id')
+
+    @property
+    def dbref(self):
+        """Return a pymongo DBRef instance related to the document
+        """
+        if not self.created:
+            raise NotCreatedError('Must create the document before'
+                                  ' having access to DBRef')
+        return DBRef(collection=self.collection.name, id=self.pk)
 
     @classmethod
     def build_from_mongo(cls, data, partial=False):

@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime
-from bson import ObjectId
+from bson import ObjectId, DBRef
+from functools import namedtuple
 
 from .common import BaseTest
 from umongo import Document, Schema, fields, exceptions
@@ -119,6 +120,26 @@ class TestDocument(BaseTest):
             })
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
+
+    def test_dbref(self):
+
+        class ConfiguredStudent(Student):
+            id = fields.IntField(attribute='_id')
+
+            class Config:
+                collection = namedtuple('MokedCollection', ('name', ))('col_name')
+
+        student = ConfiguredStudent()
+
+        with pytest.raises(exceptions.NotCreatedError):
+            student.dbref
+
+        # Fake document creation
+        student.id = 1
+        student.created = True
+        student.clear_modified()
+
+        assert student.dbref == DBRef(collection='col_name', id=1)
 
 
 class TestConfig:
