@@ -67,55 +67,6 @@ class BaseDataObject:
         return self
 
 
-# class BaseDataObject(metaclass=ABCMeta):
-
-    # @abstractmethod
-    # def __init__(self, schema):
-    #     pass
-
-    # @abstractmethod
-    # def from_mongo(self, data, partial=False):
-    #     pass
-
-    # @abstractmethod
-    # def to_mongo(self, update=False):
-    #     pass
-
-    # @abstractmethod
-    # def load(self, **kwargs):
-    #     pass
-
-    # @abstractmethod
-    # def dump(self):
-    #     pass
-
-    # @abstractmethod
-    # def io_validate(self):
-    #     pass
-
-    # @abstractmethod
-    # def clear_modified(self):
-    #     pass
-
-
-# class BaseField(marshmallow.Field):
-
-#     def serialize(self, value, attr, obj):
-#         return super()._serialize(value.pk, attr, obj)
-
-#     def deserialize(self, value, attr, data):
-#         return self._deserialize_from_mongo(value)
-
-#     def serialize_to_mongo(self, value):
-#         return value
-
-#     def deserialize_from_mongo(self, value):
-#         return value
-
-#     def io_validate(self):
-#         pass  # TODO
-
-
 class AbstractDal(metaclass=ABCMeta):
 
     @abstractstaticmethod
