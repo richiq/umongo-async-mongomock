@@ -32,7 +32,7 @@ class WrappedCursor(AsyncIOMotorCursor):
 
     def each(self, callback):
         def wrapped_callback(result, error):
-            if not error:
+            if not error and result is not None:
                 result = self.document_cls.build_from_mongo(result)
             return callback(result, error)
         return self.raw_cursor.each(wrapped_callback)

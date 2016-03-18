@@ -169,6 +169,24 @@ class TestMotorAsyncio(BaseTest):
                 names.append(elem.name)
             assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
+            # Try with each as well
+            names = []
+            cursor.rewind()
+            future = asyncio.Future()
+
+            def callback(result, error):
+                if error:
+                    future.set_exception(error)
+                elif result is None:
+                    # Iteration complete
+                    future.set_result(names)
+                else:
+                    names.append(result.name)
+
+            cursor.each(callback=callback)
+            yield from future
+            assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+
             # Make sure this kind of notation doesn't create new cursor
             cursor = Student.find()
             cursor_limit = cursor.limit(5)
