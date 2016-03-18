@@ -5,7 +5,13 @@ from umongo import Document, Schema, fields
 
 
 @pytest.fixture
+def collection_moke(name='my_moked_col'):
+    return namedtuple('CollectionMoke', ('name', ))(name)
+
+
+@pytest.fixture
 def classroom_model(db):
+    # `db` should be a fixture provided by the current dal testbench
 
     class Teacher(Document):
 

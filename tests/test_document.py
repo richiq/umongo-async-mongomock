@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
-from functools import namedtuple
 
 from .common import BaseTest
+from .fixtures import collection_moke
 from umongo import Document, Schema, fields, exceptions
 
 
@@ -121,13 +121,13 @@ class TestDocument(BaseTest):
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
 
-    def test_dbref(self):
+    def test_dbref(self, collection_moke):
 
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
             class Config:
-                collection = namedtuple('MokedCollection', ('name', ))('col_name')
+                collection = collection_moke
 
         student = ConfiguredStudent()
 
@@ -139,7 +139,7 @@ class TestDocument(BaseTest):
         student.created = True
         student.clear_modified()
 
-        assert student.dbref == DBRef(collection='col_name', id=1)
+        assert student.dbref == DBRef(collection=collection_moke.name, id=1)
 
 
 class TestConfig:
@@ -162,10 +162,10 @@ class TestConfig:
         assert Doc2.config['lazy_collection'] is None
         assert Doc2.config['register_document'] is True
 
-    def test_lazy_collection(self):
+    def test_lazy_collection(self, collection_moke):
 
         def lazy_factory():
-            return "fake_collection"
+            return collection_moke
 
         class Doc3(Document):
 
@@ -175,31 +175,33 @@ class TestConfig:
         assert Doc3.config['collection'] is None
         assert Doc3.config['lazy_collection'] is lazy_factory
         # Try to do the dereferencing
-        assert Doc3.collection == "fake_collection"
+        assert Doc3.collection is collection_moke
         d = Doc3()
-        assert d.collection == "fake_collection"
+        assert d.collection is collection_moke
 
     def test_inheritance(self):
+        col1 = collection_moke(name='col1')
+        col2 = collection_moke(name='col2')
 
         class Doc4(Document):
 
             class Config:
-                collection = "fake_collection"
+                collection = col1
                 register_document = False
 
 
         class DocChild4(Doc4):
 
             class Config:
-                collection = "fake_collection_2"
+                collection = col2
 
-        assert Doc4.config['collection'] == "fake_collection"
+        assert Doc4.config['collection'] is col1
         assert Doc4.config['lazy_collection'] is None
         assert Doc4.config['register_document'] is False
-        assert DocChild4.config['collection'] == "fake_collection_2"
+        assert DocChild4.config['collection'] == col2
         assert DocChild4.config['lazy_collection'] is None
         assert DocChild4.config['register_document'] is False
-        assert DocChild4.collection == "fake_collection_2"
+        assert DocChild4.collection is col2
 
     def test_no_collection(self):
 
