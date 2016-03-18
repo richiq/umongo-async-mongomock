@@ -2,12 +2,87 @@ from bson import ObjectId
 import pytest
 from datetime import datetime
 from marshmallow import ValidationError
+from uuid import UUID
 
 from umongo.data_proxy import DataProxy
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
+from umongo.data_objects import List, Dict
 
 
 class TestFields:
+
+    def test_basefields(self):
+
+        class MySchema(EmbeddedSchema):
+            string = fields.StringField()
+            uuid = fields.UUIDField()
+            number = fields.NumberField()
+            integer = fields.IntegerField()
+            decimal = fields.DecimalField()
+            boolean = fields.BooleanField()
+            formattedstring = fields.FormattedStringField('Hello {to_format}')
+            float = fields.FloatField()
+            # localdatetime = fields.LocalDateTimeField()
+            url = fields.UrlField()
+            email = fields.EmailField()
+            constant = fields.ConstantField("const")
+
+        s = MySchema(strict=True)
+        data, err = s.load({
+            'string': 'value',
+            'uuid': '8c58b5fc-b902-40c8-9d55-e9beb0906f80',
+            'number': 1.0,
+            'integer': 2,
+            'decimal': 3.0,
+            'boolean': True,
+            'float': 4.0,
+            'url': "http://www.example.com/subject",
+            'email': "jdoe@example.com",
+            'constant': 'forget me'
+        })
+        assert not err
+        assert data == {
+            'string': 'value',
+            'uuid': UUID('8c58b5fc-b902-40c8-9d55-e9beb0906f80'),
+            'number': 1.0,
+            'integer': 2,
+            'decimal': 3.0,
+            'boolean': True,
+            'float': 4.0,
+            'url': "http://www.example.com/subject",
+            'email': "jdoe@example.com",
+            'constant': 'const'
+        }
+        dumped, err = s.dump({
+            'string': 'value',
+            'uuid': UUID('8c58b5fc-b902-40c8-9d55-e9beb0906f80'),
+            'number': 1.0,
+            'integer': 2,
+            'decimal': 3.0,
+            'boolean': True,
+            'formattedstring': 'forget me',
+            'to_format': 'World',
+            'float': 4.0,
+            'url': "http://www.example.com/subject",
+            'email': "jdoe@example.com",
+            'constant': 'forget me'
+        })
+        assert not err
+        assert dumped == {
+            'string': 'value',
+            'uuid': '8c58b5fc-b902-40c8-9d55-e9beb0906f80',
+            'number': 1.0,
+            'integer': 2,
+            'decimal': 3.0,
+            'boolean': True,
+            'formattedstring': 'Hello World',
+            'float': 4.0,
+            'url': "http://www.example.com/subject",
+            'email': "jdoe@example.com",
+            'constant': 'const'
+        }
+        with pytest.raises(ValidationError):
+            s.load({'to_format': 'not allowed'})
 
     def test_datetime(self):
 
@@ -48,6 +123,17 @@ class TestFields:
 
         d2 = DataProxy(MySchema(), {'dict': {}})
         d2.to_mongo() == {'dict': {}}
+
+        d3 = DataProxy(MySchema())
+        d3.from_mongo({})
+        assert isinstance(d3.get('dict'), Dict)
+        assert d3.to_mongo() == {}
+        assert d3.to_mongo(update=True) is None
+        d3.get('dict')['field'] = 'value'
+        assert d3.to_mongo(update=True) is None
+        d3.get('dict').set_modified()
+        assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'field': 'value'}}}
+        assert d3.to_mongo() == {'in_mongo_dict': {'field': 'value'}}
 
     def test_embedded_document(self):
 
@@ -114,12 +200,32 @@ class TestFields:
         assert "'in_mongo_a': 1" in repr_d
         assert "'b': 2" in repr_d
 
+    @pytest.mark.xfail()
+    def test_embedded_document_required(self):
+
+        class MyEmbeddedDocument(EmbeddedDocument):
+            required_field = fields.IntField(required=True)
+            optional_field = fields.IntField()
+
+        class MySchema(Schema):
+            embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+
+        with pytest.raises(ValidationError):
+            MyEmbeddedDocument()
+
+        with pytest.raises(ValidationError):
+            MyEmbeddedDocument(optional_field=1)
+        embedded = MyEmbeddedDocument(optional_field=1, required_field=2)
+        d = DataProxy(MySchema())
+
     def test_list(self):
 
         class MySchema(Schema):
             list = fields.ListField(fields.IntField(), attribute='in_mongo_list')
 
         d = DataProxy(MySchema())
+        assert d.to_mongo() == {}
+
         d.load({'list': [1, 2, 3]})
         assert d.dump() == {'list': [1, 2, 3]}
         assert d.to_mongo() == {'in_mongo_list': [1, 2, 3]}
@@ -162,6 +268,14 @@ class TestFields:
         d.get('list').extend([4, 5])
         assert d.dump() == {'list': [2, 3, 4, 5]}
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_list': [2, 3, 4, 5]}}
+
+        d2 = DataProxy(MySchema())
+        d2.from_mongo({})
+        assert isinstance(d2.get('list'), List)
+        assert d2.to_mongo() == {}
+        d2.get('list').append(1)
+        assert d2.to_mongo() == {'in_mongo_list': [1]}
+        assert d2.to_mongo(update=True) == {'$set': {'in_mongo_list': [1]}}
 
         # Test repr readability
         repr_d = repr(d.get('list'))

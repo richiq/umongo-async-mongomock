@@ -21,6 +21,16 @@ class Document(metaclass=MetaDocument):
         return '<object Document %s.%s(%s)>' % (
             self.__module__, self.__class__.__name__, self._data._data)
 
+    def __eq__(self, other):
+        if self.pk is None:
+            return self is other
+        elif isinstance(other, self.__class__) and other.pk is not None:
+            return self.pk == other.pk
+        elif isinstance(other, DBRef):
+            return other.collection == self.collection.name and other.id == self.pk
+        else:
+            return False
+
     @property
     def pk(self):
         """Return the document's primary key (i.e. `_id` in mongo notation) or
@@ -75,13 +85,16 @@ class Document(metaclass=MetaDocument):
     def reload(self):
         if not self.created:
             raise NotCreatedError('Cannot reload a document that'
-                                  ' has not been committed yet')
+                                  ' is not created in database')
         return self.dal.reload(self)
 
     def commit(self, io_validate_all=False):
         return self.dal.commit(self, io_validate_all=False)
 
     def delete(self):
+        if not self.created:
+            raise NotCreatedError('Cannot delete a document that'
+                                  ' is not created in database')
         return self.dal.delete(self)
 
     @classmethod

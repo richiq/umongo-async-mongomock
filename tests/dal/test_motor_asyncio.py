@@ -13,7 +13,7 @@ else:
 
 from ..common import BaseTest
 
-from umongo import Document, Schema, fields, exceptions
+from umongo import Document, fields, exceptions
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import motor_asyncio
@@ -28,30 +28,24 @@ def db():
 def classroom_model(db):
 
     class Teacher(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
+        name = fields.StrField(required=True)
 
         class Config:
             register_document = False
             collection = db.teacher
 
     class Course(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            teacher = fields.ReferenceField(Teacher, required=True)
+        name = fields.StrField(required=True)
+        teacher = fields.ReferenceField(Teacher, required=True)
 
         class Config:
             register_document = False
             collection = db.course
 
     class Student(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            birthday = fields.DateTimeField()
-            courses = fields.ListField(fields.ReferenceField(Course))
+        name = fields.StrField(required=True)
+        birthday = fields.DateTimeField()
+        courses = fields.ListField(fields.ReferenceField(Course))
 
         class Config:
             register_document = False
@@ -79,19 +73,11 @@ def loop():
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestMotorAsyncio(BaseTest):
 
-    def test_create(self, loop, db):
+    def test_create(self, loop, classroom_model):
+        Student = classroom_model.Student
 
         @asyncio.coroutine
         def do_test():
-            class Student(Document):
-
-                class Schema(Schema):
-                    name = fields.StrField(required=True)
-                    birthday = fields.DateTimeField()
-
-                class Config:
-                    collection = db.student
-
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             yield from john.commit()
             assert john.to_mongo() == {
@@ -105,20 +91,11 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_update(self, loop, db):
+    def test_update(self, loop, classroom_model):
+        Student = classroom_model.Student
 
         @asyncio.coroutine
         def do_test():
-
-            class Student(Document):
-
-                class Schema(Schema):
-                    name = fields.StrField(required=True)
-                    birthday = fields.DateTimeField()
-
-                class Config:
-                    collection = db.student
-
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             yield from john.commit()
             john.name = 'William Doe'
@@ -130,20 +107,25 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_reload(self, loop, db):
+    def test_delete(self, classroom_model):
+        Student = classroom_model.Student
 
         @asyncio.coroutine
         def do_test():
+            yield from db.student.drop()
+            john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            yield from john.commit()
+            assert (yield from db.student.find()).count() == 1
+            yield from john.delete()
+            assert (yield from db.student.find()).count() == 0
+            with pytest.raises(exceptions.DeleteError):
+               yield from john.delete()
 
-            class Student(Document):
+    def test_reload(self, loop, classroom_model):
+        Student = classroom_model.Student
 
-                class Schema(Schema):
-                    name = fields.StrField(required=True)
-                    birthday = fields.DateTimeField()
-
-                class Config:
-                    collection = db.student
-
+        @asyncio.coroutine
+        def do_test():
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             with pytest.raises(exceptions.NotCreatedError):
                 yield from john.reload()
@@ -156,33 +138,51 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    @pytest.mark.xfail
-    def test_cusor(self, loop, db):
+    def test_cursor(self, loop, classroom_model):
+        Student = classroom_model.Student
 
         @asyncio.coroutine
         def do_test():
-
-            class Student(Document):
-
-                class Schema(Schema):
-                    name = fields.StrField(required=True)
-                    birthday = fields.DateTimeField()
-
-                class Config:
-                    collection = db.student
-
             Student.collection.drop()
 
             for i in range(10):
                 yield from Student(name='student-%s' % i).commit()
-            cursor = yield from Student.find(limit=5, skip=6)
-            assert cursor.count() == 10
-            assert cursor.count(with_limit_and_skip=True) == 4
+            cursor = Student.find(limit=5, skip=6)
+            count = yield from cursor.count()
+            assert count == 10
+            count_with_limit_and_skip = yield from cursor.count(with_limit_and_skip=True)
+            assert count_with_limit_and_skip == 4
+
+            # Make sure returned documents are wrapped
             names = []
-            for elem in cursor:
+            for elem in (yield from cursor.to_list(length=100)):
                 assert isinstance(elem, Student)
                 names.append(elem.name)
             assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+
+            # Try with fetch_next as well
+            names = []
+            cursor.rewind()
+            while (yield from cursor.fetch_next):
+                elem = cursor.next_object()
+                assert isinstance(elem, Student)
+                names.append(elem.name)
+            assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+
+            # Make sure this kind of notation doesn't create new cursor
+            cursor = Student.find()
+            cursor_limit = cursor.limit(5)
+            cursor_skip = cursor.skip(6)
+            assert cursor is cursor_limit is cursor_skip
+
+            # Test clone&rewind as well
+            cursor = Student.find()
+            cursor2 = cursor.clone()
+            yield from cursor.fetch_next
+            yield from cursor2.fetch_next
+            cursor_student = cursor.next_object()
+            cursor2_student = cursor2.next_object()
+            assert cursor_student == cursor2_student
 
         loop.run_until_complete(do_test())
 

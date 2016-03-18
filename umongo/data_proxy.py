@@ -157,4 +157,7 @@ class DataProxy:
         for name, field in self._fields.items():
             name = field.attribute or name
             if name not in self._data:
-                self._data[name] = missing
+                if callable(field.missing):
+                    self._data[name] = field.missing()
+                else:
+                    self._data[name] = field.missing

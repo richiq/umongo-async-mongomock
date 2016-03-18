@@ -141,6 +141,59 @@ class TestDocument(BaseTest):
 
         assert student.dbref == DBRef(collection=collection_moke.name, id=1)
 
+    def test_equality(self, collection_moke):
+
+        class ConfiguredStudent(Student):
+            id = fields.IntField(attribute='_id')
+
+            class Config:
+                collection = collection_moke
+
+        john_data = {
+            '_id': 42, 'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0
+        }
+        john = ConfiguredStudent.build_from_mongo(data=john_data)
+        john2 = ConfiguredStudent.build_from_mongo(data=john_data)
+        phillipe = ConfiguredStudent.build_from_mongo(data={
+            '_id': 3, 'name': 'Phillipe J. Fry', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+
+        assert john != phillipe
+        assert john2 == john
+        assert john == DBRef(collection=collection_moke.name, id=john.pk)
+
+        john.name = 'William Doe'
+        assert john == john2
+
+        newbie = ConfiguredStudent(name='Newbie')
+        newbie2 = ConfiguredStudent(name='Newbie')
+        assert newbie != newbie2
+
+    def test_dal_connection(self, collection_moke):
+
+        class ConfiguredStudent(Student):
+            id = fields.IntField(attribute='_id')
+
+            class Config:
+                collection = collection_moke
+
+        newbie = ConfiguredStudent(name='Newbie')
+
+        def commiter(doc, io_validate_all=False):
+            doc.created = True
+
+        collection_moke.push_callback('commit', callback=commiter)
+        collection_moke.push_callback('reload')
+        collection_moke.push_callback('delete')
+        collection_moke.push_callback('find_one')
+        collection_moke.push_callback('find')
+
+        with collection_moke:
+            newbie.commit()
+            newbie.reload()
+            newbie.delete()
+            newbie.find_one()
+            newbie.find()
+
 
 class TestConfig:
 

@@ -1,37 +1,9 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks
 
-from ..abstract import AbstractCursor, AbstractDal
+from ..abstract import AbstractDal
 from ..data_proxy import DataProxy
-from ..exceptions import NotCreatedError, UpdateError
-
-
-class TxCursor(AbstractCursor):
-
-    def __init__(self, document_cls, cursor, *args, **kwargs):
-        self._next_index = 0
-        self.raw_cursor = cursor
-        self.document_cls = document_cls
-        self._total = len(cursor)
-        self._total_with_limit_and_skip = len(cursor)
-
-    def __next__(self):
-        if self._next_index >= self._total_with_limit_and_skip:
-            raise StopIteration
-        else:
-            val = self.raw_cursor[self._next_index]
-            self._next_index += 1
-            return val
-
-    def __iter__(self):
-        for elem in self.raw_cursor:
-            yield self.document_cls.build_from_mongo(elem)
-
-    def count(self, with_limit_and_skip=False):
-        if with_limit_and_skip:
-            return self._total
-        else:
-            return 10  # !!!
+from ..exceptions import NotCreatedError, UpdateError, DeleteError
 
 
 class TxMongoDal(AbstractDal):
@@ -65,8 +37,11 @@ class TxMongoDal(AbstractDal):
             doc.created = True
         doc._data.clear_modified()
 
+    @inlineCallbacks
     def delete(self, doc):
-        raise NotImplementedError()
+        ret = yield doc.collection.delete_one({'_id': doc.pk})
+        if ret.deleted_count != 1:
+            raise DeleteError(ret.raw_result)
 
     @inlineCallbacks
     def find_one(self, doc_cls, *args, **kwargs):
@@ -77,5 +52,15 @@ class TxMongoDal(AbstractDal):
 
     @inlineCallbacks
     def find(self, doc_cls, *args, **kwargs):
-        raw_cursor = yield doc_cls.collection.find(*args, **kwargs)
-        return TxCursor(doc_cls, raw_cursor)
+        raw_cursor_or_list = yield doc_cls.collection.find(*args, **kwargs)
+        if isinstance(raw_cursor_or_list, tuple):
+
+            def wrap_raw_results(result):
+                cursor = result[1]
+                if cursor is not None:
+                    cursor.addCallback(wrap_raw_results)
+                return ([doc_cls.build_from_mongo(e) for e in result[0]], cursor)
+
+            return wrap_raw_results(raw_cursor_or_list)
+        else:
+            return [doc_cls.build_from_mongo(e) for e in raw_cursor_or_list]

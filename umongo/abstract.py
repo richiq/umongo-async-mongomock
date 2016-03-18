@@ -141,8 +141,3 @@ class AbstractDal(metaclass=ABCMeta):
     @abstractmethod
     def find(self, doc_cls, *args, **kwargs):
         pass
-
-
-class AbstractCursor:
-    # TODO...
-    pass

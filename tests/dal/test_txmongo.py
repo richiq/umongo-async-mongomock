@@ -27,7 +27,7 @@ else:
     dep_error = None
     pytest_inlineCallbacks = pytest.inlineCallbacks
 
-from umongo import Document, Schema, fields, exceptions
+from umongo import Document, fields, exceptions
 
 
 if not dep_error:  # Make sure the module is valid by importing it
@@ -43,30 +43,24 @@ def db():
 def classroom_model(db):
 
     class Teacher(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
+        name = fields.StrField(required=True)
 
         class Config:
             register_document = False
             collection = db.teacher
 
     class Course(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            teacher = fields.ReferenceField(Teacher, required=True)
+        name = fields.StrField(required=True)
+        teacher = fields.ReferenceField(Teacher, required=True)
 
         class Config:
             register_document = False
             collection = db.course
 
     class Student(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            birthday = fields.DateTimeField()
-            courses = fields.ListField(fields.ReferenceField(Course))
+        name = fields.StrField(required=True)
+        birthday = fields.DateTimeField()
+        courses = fields.ListField(fields.ReferenceField(Course))
 
         class Config:
             register_document = False
@@ -83,17 +77,8 @@ def classroom_model(db):
 class TestTxMongo(BaseTest):
 
     @pytest_inlineCallbacks
-    def test_create(self, db):
-
-        class Student(Document):
-
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_create(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         yield john.commit()
         assert john.to_mongo() == {
@@ -106,17 +91,8 @@ class TestTxMongo(BaseTest):
         assert john2._data == john._data
 
     @pytest_inlineCallbacks
-    def test_update(self, db):
-
-        class Student(Document):
-
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_update(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         yield john.commit()
         john.name = 'William Doe'
@@ -127,17 +103,29 @@ class TestTxMongo(BaseTest):
         assert john2._data == john._data
 
     @pytest_inlineCallbacks
-    def test_reload(self, db):
+    def test_delete(self, db):
 
         class Student(Document):
-
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
+            name = fields.StrField(required=True)
+            birthday = fields.DateTimeField()
 
             class Config:
                 collection = db.student
 
+        yield db.student.drop()
+        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        yield john.commit()
+        students = yield db.student.find()
+        assert len(students) == 1
+        yield john.delete()
+        students = yield db.student.find()
+        assert len(students) == 0
+        with pytest.raises(exceptions.DeleteError):
+           yield john.delete()
+
+    @pytest_inlineCallbacks
+    def test_reload(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             yield john.reload()
@@ -149,26 +137,33 @@ class TestTxMongo(BaseTest):
         assert john.name == 'William Doe'
 
     @pytest_inlineCallbacks
-    def test_cusor(self, db):
-
-        class Student(Document):
-
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_find_no_cursor(self, classroom_model):
+        Student = classroom_model.Student
         Student.collection.drop()
-
         for i in range(10):
             yield Student(name='student-%s' % i).commit()
-        cursor = yield Student.find(limit=5, skip=6)
-        assert cursor.count() == 10
-        assert cursor.count(with_limit_and_skip=True) == 4
+        results = yield Student.find(limit=5, skip=6)
+        assert isinstance(results, list)
+        assert len(results) == 4
         names = []
-        for elem in cursor:
+        for elem in results:
+            assert isinstance(elem, Student)
+            names.append(elem.name)
+        assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+
+    @pytest_inlineCallbacks
+    def test_find_with_cursor(self, classroom_model):
+        Student = classroom_model.Student
+        Student.collection.drop()
+        for i in range(10):
+            yield Student(name='student-%s' % i).commit()
+        batch1, cursor1 = yield Student.find(limit=5, skip=6, cursor=True)
+        assert len(batch1) == 4
+        batch2, cursor2 = yield cursor1
+        assert len(batch2) == 0
+        assert cursor2 is None
+        names = []
+        for elem in batch1:
             assert isinstance(elem, Student)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]

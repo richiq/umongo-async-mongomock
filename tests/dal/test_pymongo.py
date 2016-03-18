@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 from ..common import BaseTest, get_pymongo_version
 
-from umongo import Document, Schema, fields, exceptions
+from umongo import Document, fields, exceptions
 
 
 # Check if the required dependancies are met to run this driver's tests
@@ -29,30 +29,24 @@ def db():
 def classroom_model(db):
 
     class Teacher(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
+        name = fields.StrField(required=True)
 
         class Config:
             register_document = False
             collection = db.teacher
 
     class Course(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            teacher = fields.ReferenceField(Teacher, required=True)
+        name = fields.StrField(required=True)
+        teacher = fields.ReferenceField(Teacher, required=True)
 
         class Config:
             register_document = False
             collection = db.course
 
     class Student(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            birthday = fields.DateTimeField()
-            courses = fields.ListField(fields.ReferenceField(Course))
+        name = fields.StrField(required=True)
+        birthday = fields.DateTimeField()
+        courses = fields.ListField(fields.ReferenceField(Course))
 
         class Config:
             register_document = False
@@ -68,16 +62,8 @@ def classroom_model(db):
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestPymongo(BaseTest):
 
-    def test_create(self, db):
-
-        class Student(Document):
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_create(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         john.commit()
         assert john.to_mongo() == {
@@ -90,16 +76,8 @@ class TestPymongo(BaseTest):
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
 
-    def test_update(self, db):
-
-        class Student(Document):
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_update(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         john.commit()
         john.name = 'William Doe'
@@ -109,35 +87,19 @@ class TestPymongo(BaseTest):
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
 
-    def test_delete(self, db):
-
-        class Student(Document):
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
-        db.student.drop()
+    def test_delete(self, classroom_model):
+        Student = classroom_model.Student
+        Student.collection.drop()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         john.commit()
-        db.student.find().count() == 1
+        assert Student.collection.find().count() == 1
         john.delete()
-        db.student.find().count() == 0
+        assert Student.collection.find().count() == 0
         with pytest.raises(exceptions.DeleteError):
            john.delete()
 
-    def test_reload(self, db):
-
-        class Student(Document):
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_reload(self, classroom_model):
+        Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             john.reload()
@@ -149,18 +111,9 @@ class TestPymongo(BaseTest):
         assert john.name == 'William Doe'
 
 
-    def test_cusor(self, db):
-
-        class Student(Document):
-            class Schema(Schema):
-                name = fields.StrField(required=True)
-                birthday = fields.DateTimeField()
-
-            class Config:
-                collection = db.student
-
+    def test_cusor(self, classroom_model):
+        Student = classroom_model.Student
         Student.collection.drop()
-
         for i in range(10):
             Student(name='student-%s' % i).commit()
         cursor = Student.find(limit=5, skip=6)
@@ -171,6 +124,12 @@ class TestPymongo(BaseTest):
             assert isinstance(elem, Student)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+
+        # Make sure this kind of notation doesn't create new cursor
+        cursor = Student.find()
+        cursor_limit = cursor.limit(5)
+        cursor_skip = cursor.skip(6)
+        assert cursor is cursor_limit is cursor_skip
 
     def test_classroom(self, classroom_model):
         student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))

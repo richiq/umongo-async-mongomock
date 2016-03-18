@@ -1,8 +1,35 @@
 from pymongo.collection import Collection
+from pymongo.cursor import Cursor
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError, DeleteError
+
+
+class WrappedCursor(Cursor):
+
+    __slots__ = ('raw_cursor', 'document_cls')
+
+    def __init__(self, document_cls, cursor, *args, **kwargs):
+        # Such a cunning plan my lord !
+        # We inherit from Cursor but don't call it __init__ because
+        # we act as a proxy to the underlying raw_cursor
+        WrappedCursor.raw_cursor.__set__(self, cursor)
+        WrappedCursor.document_cls.__set__(self, document_cls)
+
+    def __getattr__(self, name):
+        return getattr(self.raw_cursor, name)
+
+    def __setattr__(self, name, value):
+        return setattr(self.raw_cursor, name, value)
+
+    def __next__(self):
+        elem = next(self.raw_cursor)
+        return self.document_cls.build_from_mongo(elem)
+
+    def __iter__(self):
+        for elem in self.raw_cursor:
+            yield self.document_cls.build_from_mongo(elem)
 
 
 class PyMongoDal(AbstractDal):
@@ -46,6 +73,5 @@ class PyMongoDal(AbstractDal):
         return ret
 
     def find(self, doc_cls, *args, **kwargs):
-        from ..cursor import Cursor
         raw_cursor = doc_cls.collection.find(*args, **kwargs)
-        return Cursor(doc_cls, raw_cursor)
+        return WrappedCursor(doc_cls, raw_cursor)

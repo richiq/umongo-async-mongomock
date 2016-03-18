@@ -1,8 +1,52 @@
-from motor.motor_asyncio import AsyncIOMotorCollection
+from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
+from asyncio import Future
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy
 from ..exceptions import NotCreatedError, UpdateError
+
+
+class WrappedCursor(AsyncIOMotorCursor):
+
+    __slots__ = ('raw_cursor', 'document_cls')
+
+    def __init__(self, document_cls, cursor):
+        # Such a cunning plan my lord !
+        # We inherit from Cursor but don't call it __init__ because
+        # we act as a proxy to the underlying raw_cursor
+        WrappedCursor.raw_cursor.__set__(self, cursor)
+        WrappedCursor.document_cls.__set__(self, document_cls)
+
+    def __getattr__(self, name):
+        return getattr(self.raw_cursor, name)
+
+    def __setattr__(self, name, value):
+        return setattr(self.raw_cursor, name, value)
+
+    def clone(self):
+        return WrappedCursor(self.document_cls, self.raw_cursor.clone())
+
+    def next_object(self):
+        raw = self.raw_cursor.next_object()
+        return self.document_cls.build_from_mongo(raw)
+
+    def each(self, callback):
+        def wrapped_callback(result, error):
+            if not error:
+                result = self.document_cls.build_from_mongo(result)
+            return callback(result, error)
+        return self.raw_cursor.each(wrapped_callback)
+
+    def to_list(self, length, callback=None):
+        raw_future = self.raw_cursor.to_list(length, callback=callback)
+        cooked_future = Future()
+        builder = self.document_cls.build_from_mongo
+
+        def on_raw_done(fut):
+            cooked_future.set_result([builder(e) for e in fut.result()])
+
+        raw_future.add_done_callback(on_raw_done)
+        return cooked_future
 
 
 class MotorAsyncIODal(AbstractDal):
@@ -44,6 +88,4 @@ class MotorAsyncIODal(AbstractDal):
         return ret
 
     def find(self, doc_cls, *args, **kwargs):
-        from ..cursor import Cursor
-        raw_cursor = yield from doc_cls.collection.find(*args, **kwargs)
-        return Cursor(doc_cls, raw_cursor)
+        return WrappedCursor(doc_cls, doc_cls.collection.find(*args, **kwargs))

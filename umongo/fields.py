@@ -8,7 +8,7 @@ from .abstract import BaseField
 
 
 __all__ = (
-    'RawField',
+    # 'RawField',
     'DictField',
     'ListField',
     'StringField',
@@ -20,14 +20,14 @@ __all__ = (
     'FormattedStringField',
     'FloatField',
     'DateTimeField',
-    'TimeField',
-    'DateField',
-    'TimeDeltaField',
+    # 'TimeField',
+    # 'DateField',
+    # 'TimeDeltaField',
     'UrlField',
     'URLField',
     'EmailField',
-    'MethodField',
-    'FunctionField',
+    # 'MethodField',
+    # 'FunctionField',
     'StrField',
     'BoolField',
     'IntField',
@@ -41,15 +41,25 @@ __all__ = (
 # Republish supported mashmallow fields
 
 
-class RawField(BaseField, ma_fields.Raw):
-    pass
+# class RawField(BaseField, ma_fields.Raw):
+#     pass
 
 
 class DictField(BaseField, ma_fields.Dict):
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('default', {})
+        kwargs.setdefault('missing', Dict)
+        super().__init__(*args, **kwargs)
+
     def _deserialize(self, value, attr, data):
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
+
+    def _serialize_to_mongo(self, obj):
+        if not obj:
+            return missing
+        return dict(obj)
 
     def _deserialize_from_mongo(self, value):
         if value:
@@ -114,6 +124,7 @@ class FloatField(BaseField, ma_fields.Float):
 
 
 class DateTimeField(BaseField, ma_fields.DateTime):
+
     def _deserialize(self, value, attr, data):
         if isinstance(value, datetime):
             return value
@@ -121,26 +132,26 @@ class DateTimeField(BaseField, ma_fields.DateTime):
 
 
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
-    pass
+
+    def _deserialize(self, value, attr, data):
+        if isinstance(value, datetime):
+            return value
+        return super()._deserialize(value, attr, data)
 
 
-class TimeField(BaseField, ma_fields.Time):
-    pass
+# class TimeField(BaseField, ma_fields.Time):
+#     pass
 
 
-class DateField(BaseField, ma_fields.Date):
-    pass
+# class DateField(BaseField, ma_fields.Date):
+#     pass
 
 
-class TimeDeltaField(BaseField, ma_fields.TimeDelta):
-    pass
+# class TimeDeltaField(BaseField, ma_fields.TimeDelta):
+#     pass
 
 
 class UrlField(BaseField, ma_fields.Url):
-    pass
-
-
-class URLField(BaseField, ma_fields.URL):
     pass
 
 
@@ -148,28 +159,23 @@ class EmailField(BaseField, ma_fields.Email):
     pass
 
 
-class MethodField(BaseField, ma_fields.Method):
-    pass
+# class MethodField(BaseField, ma_fields.Method):
+#     pass
 
 
-class FunctionField(BaseField, ma_fields.Function):
-    pass
-
-
-class StrField(BaseField, ma_fields.Str):
-    pass
-
-
-class BoolField(BaseField, ma_fields.Bool):
-    pass
-
-
-class IntField(BaseField, ma_fields.Int):
-    pass
+# class FunctionField(BaseField, ma_fields.Function):
+#     pass
 
 
 class ConstantField(BaseField, ma_fields.Constant):
     pass
+
+
+# Aliases
+URLField = UrlField
+StrField = StringField
+BoolField = BooleanField
+IntField = IntegerField
 
 
 # Bonus: new fields !
