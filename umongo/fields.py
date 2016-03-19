@@ -90,6 +90,10 @@ class ListField(BaseField, ma_fields.List):
         else:
             return List()
 
+    def io_validate(self, obj, validate_all=False):
+        for each in obj:
+            self.container.io_validate(each)
+
 
 class StringField(BaseField, ma_fields.String):
     pass
@@ -223,8 +227,9 @@ class ReferenceField(ObjectIdField):
     def _deserialize_from_mongo(self, value):
         return Reference(self.document_cls, value)
 
-    def io_validate(self):
-        pass  # TODO
+    def io_validate(self, obj, validate_all=False):
+        for each in obj:
+            self.container.io_validate(each)
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):
@@ -247,3 +252,6 @@ class EmbeddedField(BaseField, ma_fields.Nested):
 
     def _deserialize_from_mongo(self, value):
         return self._embedded_document_cls.build_from_mongo(value)
+
+    def io_validate(self, obj, validate_all=False):
+        obj.io_validate(validate_all=validate_all)

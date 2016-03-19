@@ -14,11 +14,14 @@ class BaseMokedDal(AbstractDal):
     def is_compatible_with(collection):
         return True
 
+    @staticmethod
+    def io_validate_patch_schema(schema):
+        pass
+
     def reload(self):
         pass
 
     def commit(self):
-        self._data.io_validate()
         payload = self._data.to_mongo(update=self.created)
         if not self.created:
             if not self._data.get_by_mongo_name('_id'):
@@ -94,6 +97,9 @@ def dal_moke(request, collection_moke):
 
         def delete(self):
             self._pass_to_collection("delete", self)
+
+        def io_validate(self, *args, **kwargs):
+            self._pass_to_collection("io_validate", self, *args, **kwargs)
 
         @classmethod
         def find_one(cls, *args, **kwargs):

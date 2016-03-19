@@ -5,8 +5,8 @@ class UMongoError(Exception):
     pass
 
 
-class ValidationError(ValidationError, UMongoError):
-    pass
+# class ValidationError(ValidationError, UMongoError):
+#     pass
 
 
 class NoDBDefinedError(UMongoError):

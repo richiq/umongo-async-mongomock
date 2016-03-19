@@ -187,6 +187,7 @@ class TestDocument(BaseTest):
         collection_moke.push_callback('delete')
         collection_moke.push_callback('find_one')
         collection_moke.push_callback('find')
+        collection_moke.push_callback('io_validate')
 
         with collection_moke:
             newbie.commit()
@@ -194,6 +195,14 @@ class TestDocument(BaseTest):
             newbie.delete()
             newbie.find_one()
             newbie.find()
+            newbie.io_validate()
+
+    def test_required_fields(self):
+
+        # Should be able to instanciate document without there required field
+        student = Student()
+        student = Student(gpa=2.8)
+        # Required check is done in `io_validate`, cannot go further without a dal
 
 
 class TestConfig:

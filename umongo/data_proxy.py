@@ -4,6 +4,9 @@ from .abstract import BaseDataObject
 from .exceptions import FieldNotLoadedError
 
 
+__all__ = ('DataProxy', 'missing')
+
+
 class DataProxy:
 
     __slots__ = ('partial', '_schema', '_fields', '_data',
@@ -21,7 +24,7 @@ class DataProxy:
                 k = v.attribute
             fields_from_mongo_key[k] = v
         self._fields_from_mongo_key = fields_from_mongo_key
-        if data:
+        if data is not None:
             self.load(data)
 
     def to_mongo(self, update=False):
@@ -78,7 +81,8 @@ class DataProxy:
         self._modified_data.add(key)
 
     def load(self, data, partial=False):
-        data, err = self._schema.load(data)
+        # Always use marshmallow partial load to skip required checks
+        data, err = self._schema.load(data, partial=True)
         if err:
             raise ValidationError(err)
         self._data = data
@@ -141,16 +145,22 @@ class DataProxy:
         else:
             return self._data == other._data
 
+    def get_modified_fields_by_mongo_name(self):
+        return self._modified_data
+
+    def get_modified_fields(self):
+        modified = []
+        for name, field in self._fields.items():
+            value_name = field.attribute or name
+            if value_name in self._modified_data:
+                modified.append(name)
+        return modified
+
     def clear_modified(self):
         self._modified_data.clear()
         for v in self._data.values():
             if isinstance(v, BaseDataObject):
                 v.clear_modified()
-
-    def io_validate(self, validate_all=False):
-        # TODO: handle required here
-        # TODO: handle unique here
-        pass
 
     def _add_missing_fields(self):
         # TODO: we should be able to do that by configuring marshmallow...

@@ -226,3 +226,144 @@ class TestMotorAsyncio(BaseTest):
             }
 
         loop.run_until_complete(do_test())
+
+    def test_required(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            Student = classroom_model.Student
+            student = Student(birthday=datetime(1968, 6, 9))
+
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from student.io_validate()
+            assert exc.value.messages == {'name': ['Missing data for required field.']}
+
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from student.commit()
+            assert exc.value.messages == {'name': ['Missing data for required field.']}
+
+            student.name = 'Marty'
+            yield from student.commit()
+
+            # with pytest.raises(exceptions.ValidationError):
+            #     Student.build_from_mongo({})
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            Student = classroom_model.Student
+
+            io_field_value = 'io?'
+            io_validate_called = False
+
+            def io_validate(field, value):
+                assert field == IOStudent.schema.fields['io_field']
+                assert value == io_field_value
+                nonlocal io_validate_called
+                io_validate_called = True
+
+            class IOStudent(Student):
+                io_field = fields.StrField(io_validate=io_validate)
+
+            student = IOStudent(name='Marty', io_field=io_field_value)
+            assert not io_validate_called
+
+            yield from student.io_validate()
+            assert io_validate_called
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate_error(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            Student = classroom_model.Student
+
+            def io_validate(field, value):
+                raise exceptions.ValidationError('Ho boys !')
+
+            class IOStudent(Student):
+                io_field = fields.StrField(io_validate=io_validate)
+
+            student = IOStudent(name='Marty', io_field='io?')
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from student.io_validate()
+            assert exc.value.messages == {'io_field': ['Ho boys !']}
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate_multi_validate(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            Student = classroom_model.Student
+            called = []
+
+            future1 = asyncio.Future()
+            future2 = asyncio.Future()
+            future3 = asyncio.Future()
+            future4 = asyncio.Future()
+
+            def io_validate11(field, value):
+                called.append(1)
+                future1.set_result(None)
+                yield from future3
+                called.append(4)
+                future4.set_result(None)
+
+            def io_validate12(field, value):
+                yield from future4
+                called.append(5)
+
+            def io_validate21(field, value):
+                yield from future2
+                called.append(3)
+                future3.set_result(None)
+
+            def io_validate22(field, value):
+                yield from future1
+                called.append(2)
+                future2.set_result(None)
+
+            class IOStudent(Student):
+                io_field1 = fields.StrField(io_validate=(io_validate11, io_validate12))
+                io_field2 = fields.StrField(io_validate=(io_validate21, io_validate22))
+
+            student = IOStudent(name='Marty', io_field1='io1', io_field2='io2')
+            yield from student.io_validate()
+            assert called == [1, 2, 3, 4, 5]
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate_list(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            Student = classroom_model.Student
+            called = []
+
+            values = [1, 2, 3, 4]
+            total = len(values)
+            futures = [asyncio.Future() for _ in range(total*2)]
+
+            def io_validate(field, value):
+                futures[total - value + 1].set_result(None)
+                yield from futures[value]
+                called.append(value)
+
+            class IOStudent(Student):
+                io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+
+            student = IOStudent(name='Marty', io_field=values)
+            yield from student.io_validate()
+            assert set(called) == set(values)
+
+        loop.run_until_complete(do_test())

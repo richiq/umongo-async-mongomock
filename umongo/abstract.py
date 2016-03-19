@@ -4,6 +4,20 @@ from marshmallow import fields as ma_fields, missing
 
 class BaseField(ma_fields.Field):
 
+    def __init__(self, *args, io_validate=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.io_validate = io_validate
+
+    def __repr__(self):
+        return ('<fields.{ClassName}(default={self.default!r}, '
+                'attribute={self.attribute!r}, '
+                'validate={self.validate}, required={self.required}, '
+                'load_only={self.load_only}, dump_only={self.dump_only}, '
+                'missing={self.missing}, allow_none={self.allow_none}, '
+                'error_messages={self.error_messages}, '
+                'io_validate={self.io_validate})>'
+                .format(ClassName=self.__class__.__name__, self=self))
+
     def serialize(self, attr, obj, accessor=None):
         return super().serialize(attr, obj, accessor=accessor)
 
@@ -67,55 +81,32 @@ class BaseDataObject:
         return self
 
 
-# class AbstractDal(metaclass=ABCMeta):
-
-#     @abstractstaticmethod
-#     def is_compatible_with(collection):
-#         pass
-
-#     @abstractmethod
-#     def reload(self, doc):
-#         pass
-
-#     @abstractmethod
-#     def commit(self, doc, io_validate_all=False):
-#         pass
-
-#     @abstractmethod
-#     def delete(self, doc):
-#         pass
-
-#     @abstractmethod
-#     def find_one(self, doc_cls, *args, **kwargs):
-#         pass
-
-#     @abstractmethod
-#     def find(self, doc_cls, *args, **kwargs):
-#         pass
-
-
 class AbstractDal:
 
-    @abstractstaticmethod
+    @staticmethod
     def is_compatible_with(collection):
         raise NotImplementedError
 
-    @abstractmethod
-    def reload(self, doc):
+    def reload(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def commit(self, doc, io_validate_all=False):
+    def commit(self, io_validate_all=False):
         raise NotImplementedError
 
-    @abstractmethod
-    def delete(self, doc):
+    def delete(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def find_one(self, doc_cls, *args, **kwargs):
+    @classmethod
+    def find_one(cls, *args, **kwargs):
         raise NotImplementedError
 
-    @abstractmethod
-    def find(self, doc_cls, *args, **kwargs):
+    @classmethod
+    def find(cls, *args, **kwargs):
+        raise NotImplementedError
+
+    def io_validate(self, validate_all=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def io_validate_patch_schema(schema):
         raise NotImplementedError

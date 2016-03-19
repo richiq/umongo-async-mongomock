@@ -3,7 +3,6 @@ from marshmallow.fields import Field
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError
 from .schema import Schema, EmbeddedSchema
-from .dal import find_dal_from_collection
 from .abstract import AbstractDal
 
 
@@ -63,6 +62,7 @@ class MetaDocument(type):
         if not dal:
             if collection:
                 # Try to determine dal from the collection itself
+                from .dal import find_dal_from_collection
                 dal = find_dal_from_collection(collection)
                 if not dal:
                     raise NoCollectionDefinedError(
@@ -74,6 +74,8 @@ class MetaDocument(type):
             if not issubclass(dal, AbstractDal):
                 raise NoCollectionDefinedError(
                     "`dal` attribute must be a subclass of %s" % AbstractDal)
+            # Patch the schema to add the io_validate stuff
+            dal.io_validate_patch_schema(nmspc['schema'])
             bases = bases + (dal, )
         # Finally create the Document class and register it
         gen_cls = type.__new__(cls, name, bases, nmspc)

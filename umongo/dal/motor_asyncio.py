@@ -1,9 +1,10 @@
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
-from asyncio import Future
 
 from ..abstract import AbstractDal
-from ..data_proxy import DataProxy
-from ..exceptions import NotCreatedError, UpdateError
+from ..data_proxy import DataProxy, missing
+from ..exceptions import NotCreatedError, UpdateError, ValidationError
+from ..fields import ReferenceField, ListField, EmbeddedField
 
 
 class WrappedCursor(AsyncIOMotorCursor):
@@ -39,7 +40,7 @@ class WrappedCursor(AsyncIOMotorCursor):
 
     def to_list(self, length, callback=None):
         raw_future = self.raw_cursor.to_list(length, callback=callback)
-        cooked_future = Future()
+        cooked_future = asyncio.Future()
         builder = self.document_cls.build_from_mongo
 
         def on_raw_done(fut):
@@ -55,6 +56,10 @@ class MotorAsyncIODal(AbstractDal):
     def is_compatible_with(collection):
         return isinstance(collection, AsyncIOMotorCollection)
 
+    @staticmethod
+    def io_validate_patch_schema(schema):
+        _io_validate_patch_schema(schema)
+
     def reload(self):
         ret = yield from self.collection.find_one(self.pk)
         if ret is None:
@@ -63,7 +68,7 @@ class MotorAsyncIODal(AbstractDal):
         self._data.from_mongo(ret)
 
     def commit(self, io_validate_all=False):
-        self._data.io_validate(validate_all=io_validate_all)
+        yield from self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
         if self.created:
             if payload:
@@ -81,6 +86,13 @@ class MotorAsyncIODal(AbstractDal):
     def delete(self):
         raise NotImplementedError()
 
+    def io_validate(self, validate_all=False):
+        if validate_all:
+            return _io_validate_data_proxy(self.schema, self._data)
+        else:
+            return _io_validate_data_proxy(
+                self.schema, self._data, partial=self._data.get_modified_fields())
+
     @classmethod
     def find_one(cls, *args, **kwargs):
         ret = yield from cls.collection.find_one(*args, **kwargs)
@@ -91,3 +103,103 @@ class MotorAsyncIODal(AbstractDal):
     @classmethod
     def find(cls, *args, **kwargs):
         return WrappedCursor(cls, cls.collection.find(*args, **kwargs))
+
+
+# Run multiple validators and collect all errors in one
+@asyncio.coroutine
+def _run_validators(validators, field, value):
+    errors = []
+    tasks = [validator(field, value) for validator in validators]
+    results = yield from asyncio.gather(*tasks, return_exceptions=True)
+    for i, res in enumerate(results):
+        if isinstance(res, ValidationError):
+            errors.extend(res.messages)
+        elif res:
+            raise res
+    if errors:
+        raise ValidationError(errors)
+
+
+def _io_validate_data_proxy(schema, data_proxy, partial=None):
+    errors = {}
+    tasks = []
+    tasks_field_name = []
+    for name, field in schema.fields.items():
+        if partial and name not in partial:
+            continue
+        data_name = field.attribute or name
+        value = data_proxy._data[data_name]
+        try:
+            # Also look for required
+            field._validate_missing(value)
+            if value is not missing:
+                if field.io_validate:
+                    tasks.append(_run_validators(field.io_validate, field, value))
+                    tasks_field_name.append(name)
+        except ValidationError as ve:
+            errors[name] = ve.messages
+    results = yield from asyncio.gather(*tasks, return_exceptions=True)
+    for i, res in enumerate(results):
+        if isinstance(res, ValidationError):
+            errors[tasks_field_name[i]] = res.messages
+        elif res:
+            raise res
+    if errors:
+        raise ValidationError(errors)
+
+
+@asyncio.coroutine
+def _reference_io_validate(field, value):
+    pass
+    # if yield from value.io_fetch():
+    # raise NotImplementedError
+
+
+@asyncio.coroutine
+def _list_io_validate(field, value):
+    validators = field.container.io_validate
+    if not validators or not value:
+        return
+    tasks = [_run_validators(validators, field.container, e) for e in value]
+    results = yield from asyncio.gather(*tasks, return_exceptions=True)
+    errors = {}
+    for i, res in enumerate(results):
+        if isinstance(res, ValidationError):
+            errors[i] = res.messages
+        elif res:
+            raise res
+    if errors:
+        raise ValidationError(errors)
+
+
+@asyncio.coroutine
+def _embedded_document_io_validate(field, value):
+    yield from _io_validate_data_proxy(value.schema, value._data)
+
+
+def _io_validate_patch_schema(schema):
+    """Add default io validators to the given schema
+    """
+
+    def patch_field(field):
+        validators = field.io_validate
+        if not validators:
+            field.io_validate = []
+        else:
+            if hasattr(validators, '__iter__'):
+                validators = list(validators)
+            else:
+                validators = [validators]
+            field.io_validate = [v if asyncio.iscoroutinefunction(v) else asyncio.coroutine(v)
+                                 for v in validators]
+        if isinstance(field, ListField):
+            field.io_validate.append(_list_io_validate)
+            patch_field(field.container)
+        if isinstance(field, ReferenceField):
+            field.io_validate.append(_reference_io_validate)
+        if isinstance(field, EmbeddedField):
+            field.io_validate.append(_embedded_document_io_validate)
+            _io_validate_patch_schema(field.schema)
+
+    for field in schema.fields.values():
+        patch_field(field)

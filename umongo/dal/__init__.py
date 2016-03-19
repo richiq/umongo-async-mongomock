@@ -46,7 +46,6 @@ unregister_dal = default_dal_registerer.unregister
 find_dal_from_collection = default_dal_registerer.find_from_collection
 
 # try to load all the dals by default
-
 try:
     from .pymongo import PyMongoDal
     register_dal(PyMongoDal)

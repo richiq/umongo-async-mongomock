@@ -17,7 +17,7 @@ class Document(metaclass=MetaDocument):
     def __init__(self, **kwargs):
         super().__init__()
         self.created = False
-        self._data = DataProxy(self.schema, kwargs)
+        self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
@@ -77,7 +77,7 @@ class Document(metaclass=MetaDocument):
         # Cannot implicitly access to the class's property
         return type(self).collection
 
-    # Data-proxy accessor shortcut
+    # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):
         return self._data.get(name)

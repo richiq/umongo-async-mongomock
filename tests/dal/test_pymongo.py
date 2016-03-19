@@ -147,3 +147,85 @@ class TestPymongo(BaseTest):
             'birthday': datetime(1968, 6, 9),
             'courses': [course.pk]
         }
+
+    def test_required(self, classroom_model):
+        Student = classroom_model.Student
+        student = Student(birthday=datetime(1968, 6, 9))
+
+        with pytest.raises(exceptions.ValidationError):
+            student.io_validate()
+
+        with pytest.raises(exceptions.ValidationError):
+            student.commit()
+
+        student.name = 'Marty'
+        student.commit()
+        # with pytest.raises(exceptions.ValidationError):
+        #     Student.build_from_mongo({})
+
+    def test_io_validate(self, classroom_model):
+        Student = classroom_model.Student
+
+        io_field_value = 'io?'
+        io_validate_called = False
+
+        def io_validate(field, value):
+            assert field == IOStudent.schema.fields['io_field']
+            assert value == io_field_value
+            nonlocal io_validate_called
+            io_validate_called = True
+
+        class IOStudent(Student):
+            io_field = fields.StrField(io_validate=io_validate)
+
+        student = IOStudent(name='Marty', io_field=io_field_value)
+        assert not io_validate_called
+
+        student.io_validate()
+        assert io_validate_called
+
+    def test_io_validate_error(self, classroom_model):
+        Student = classroom_model.Student
+
+        def io_validate(field, value):
+            raise exceptions.ValidationError('Ho boys !')
+
+        class IOStudent(Student):
+            io_field = fields.StrField(io_validate=io_validate)
+
+        student = IOStudent(name='Marty', io_field='io?')
+        with pytest.raises(exceptions.ValidationError) as exc:
+            student.io_validate()
+        assert exc.value.messages == {'io_field': ['Ho boys !']}
+
+    def test_io_validate_multi_validate(self, classroom_model):
+        Student = classroom_model.Student
+        called = []
+
+        def io_validate1(field, value):
+            called.append('io_validate1')
+
+        def io_validate2(field, value):
+            called.append('io_validate2')
+
+        class IOStudent(Student):
+            io_field = fields.StrField(io_validate=(io_validate1, io_validate2))
+
+        student = IOStudent(name='Marty', io_field='io?')
+        student.io_validate()
+        assert called == ['io_validate1', 'io_validate2']
+
+    def test_io_validate_list(self, classroom_model):
+        Student = classroom_model.Student
+        called = []
+        values = [1, 2, 3, 4]
+
+        def io_validate(field, value):
+            called.append(value)
+
+        class IOStudent(Student):
+            io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+
+        student = IOStudent(name='Marty', io_field=values)
+        student.io_validate()
+        assert called == values
