@@ -3,6 +3,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
+from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
@@ -27,7 +28,7 @@ class TxMongoDal(AbstractDal):
 
     @inlineCallbacks
     def commit(self, io_validate_all=False):
-        self.io_validate(validate_all=io_validate_all)
+        yield self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
         if self.created:
             if payload:
@@ -51,9 +52,9 @@ class TxMongoDal(AbstractDal):
     @inlineCallbacks
     def io_validate(self, validate_all=False):
         if validate_all:
-            return _io_validate_data_proxy(self.schema, self._data)
+            yield _io_validate_data_proxy(self.schema, self._data)
         else:
-            return _io_validate_data_proxy(
+            yield _io_validate_data_proxy(
                 self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
@@ -119,8 +120,7 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 @inlineCallbacks
 def _reference_io_validate(field, value):
-    return
-    # raise NotImplementedError
+    yield value.io_fetch(no_data=True)
 
 
 @inlineCallbacks
@@ -143,26 +143,47 @@ def _embedded_document_io_validate(field, value):
     return _io_validate_data_proxy(value.schema, value._data)
 
 
-# Must be a dict of list !
-PER_CLASS_IO_VALIDATORS = {
-    ReferenceField: [_reference_io_validate],
-    ListField: [_list_io_validate],
-    EmbeddedField: [_embedded_document_io_validate]
-}
-
-
 def _io_validate_patch_schema(schema):
     """Add default io validators to the given schema
     """
-    for field in schema.fields.values():
-        io_validate = field.io_validate
-        if not io_validate:
+
+    def patch_field(field):
+        validators = field.io_validate
+        if not validators:
             field.io_validate = []
         else:
-            if hasattr(io_validate, '__iter__'):
-                field.io_validate = list(io_validate)
+            if hasattr(validators, '__iter__'):
+                validators = list(validators)
             else:
-                field.io_validate = [io_validate]
-        for cls, validators in PER_CLASS_IO_VALIDATORS.items():
-            if isinstance(field, cls):
-                field.io_validate += validators
+                validators = [validators]
+            field.io_validate = validators
+        if isinstance(field, ListField):
+            field.io_validate.append(_list_io_validate)
+            patch_field(field.container)
+        if isinstance(field, ReferenceField):
+            field.io_validate.append(_reference_io_validate)
+            field.reference_cls = TxMongoReference
+        if isinstance(field, EmbeddedField):
+            field.io_validate.append(_embedded_document_io_validate)
+            _io_validate_patch_schema(field.schema)
+
+    for field in schema.fields.values():
+        patch_field(field)
+
+
+class TxMongoReference(Reference):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._document = None
+
+    @inlineCallbacks
+    def io_fetch(self, no_data=False):
+        if not self._document:
+            if self.pk is None:
+                raise ReferenceError('Cannot retrieve a None Reference')
+            self._document = yield self.document_cls.find_one(self.pk)
+            if not self._document:
+                raise ValidationError(
+                    'Reference not found for document %s.' % self.document_cls.__name__)
+        return self._document

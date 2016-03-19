@@ -196,7 +196,7 @@ def _io_validate_patch_schema(schema):
             patch_field(field.container)
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
-            field.reference_cls = PyMongoReference
+            field.reference_cls = MotorAsyncIOReference
         if isinstance(field, EmbeddedField):
             field.io_validate.append(_embedded_document_io_validate)
             _io_validate_patch_schema(field.schema)
@@ -205,7 +205,7 @@ def _io_validate_patch_schema(schema):
         patch_field(field)
 
 
-class PyMongoReference(Reference):
+class MotorAsyncIOReference(Reference):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
