@@ -72,12 +72,12 @@ class ListField(BaseField, ma_fields.List):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('default', [])
-        kwargs.setdefault('missing', List)
+        kwargs.setdefault('missing', lambda: List(self.container))
         super().__init__(*args, **kwargs)
 
     def _deserialize(self, value, attr, data):
-        value = super()._deserialize(value, attr, data)
-        return self._deserialize_from_mongo(value)
+        return List(self.container, super()._deserialize(value, attr, data))
+        # return self._deserialize_from_mongo(value)
 
     def _serialize_to_mongo(self, obj):
         if not obj:
@@ -86,9 +86,9 @@ class ListField(BaseField, ma_fields.List):
 
     def _deserialize_from_mongo(self, value):
         if value:
-            return List([self.container.deserialize_from_mongo(each) for each in value])
+            return List(self.container, [self.container.deserialize_from_mongo(each) for each in value])
         else:
-            return List()
+            return List(self.container)
 
     def io_validate(self, obj, validate_all=False):
         for each in obj:
@@ -191,8 +191,9 @@ from .schema import ObjectIdField  # noqa
 
 class ReferenceField(ObjectIdField):
 
-    def __init__(self, document_cls, *args, **kwargs):
+    def __init__(self, document_cls, *args, reference_cls=Reference, **kwargs):
         super().__init__(*args, **kwargs)
+        self.reference_cls = reference_cls
         self._document_cls = document_cls
 
     @property
@@ -209,6 +210,8 @@ class ReferenceField(ObjectIdField):
             return None
         from .document import Document
         if isinstance(value, Reference):
+            if type(value) is not self.reference_cls:
+                value = self.reference_cls(value.document_cls, value.pk)
             if value.document_cls != self.document_cls:
                 raise ValidationError("%s reference expected" % self.document_cls.__name__)
             return value
@@ -225,7 +228,7 @@ class ReferenceField(ObjectIdField):
         return obj.pk
 
     def _deserialize_from_mongo(self, value):
-        return Reference(self.document_cls, value)
+        return self.reference_cls(self.document_cls, value)
 
     def io_validate(self, obj, validate_all=False):
         for each in obj:

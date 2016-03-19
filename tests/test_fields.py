@@ -281,6 +281,49 @@ class TestFields:
         repr_d = repr(d.get('list'))
         assert repr_d == "<object umongo.data_objects.List([2, 3, 4, 5])>"
 
+    def test_complexe_list(self):
+
+        class MyEmbeddedDocument(EmbeddedDocument):
+            field = fields.IntField()
+
+        class ToRefDoc(Document):
+            pass
+
+        class MySchema(Schema):
+            embeds = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
+            refs = fields.ListField(fields.ReferenceField(ToRefDoc))
+
+        obj_id1 = ObjectId()
+        obj_id2 = ObjectId()
+        to_ref_doc1 = ToRefDoc.build_from_mongo(data={'_id': obj_id1})
+        d = DataProxy(MySchema())
+        d.load({
+            'embeds': [MyEmbeddedDocument(field=1),
+                       {'field': 2}],
+            'refs': [to_ref_doc1, Reference(ToRefDoc, obj_id2)]
+        })
+        assert d.to_mongo() == {
+            'embeds': [{'field': 1}, {'field': 2}],
+            'refs': [obj_id1, obj_id2]
+        }
+        assert isinstance(d.get('embeds'), List)
+        assert isinstance(d.get('refs'), List)
+        for e in d.get('refs'):
+            assert isinstance(e, Reference)
+        for e in d.get('embeds'):
+            assert isinstance(e, MyEmbeddedDocument)
+        # Test list modification as well
+        refs_list = d.get('refs')
+        refs_list.append(to_ref_doc1)
+        refs_list.extend([to_ref_doc1, Reference(ToRefDoc, obj_id2)])
+        for e in refs_list:
+            assert isinstance(e, Reference)
+        embeds_list = d.get('embeds')
+        embeds_list.append(MyEmbeddedDocument(field=3))
+        embeds_list.extend([{'field': 4}, {'field': 5}])
+        for e in embeds_list:
+            assert isinstance(e, MyEmbeddedDocument)
+
     def test_objectid(self):
 
         class MySchema(Schema):

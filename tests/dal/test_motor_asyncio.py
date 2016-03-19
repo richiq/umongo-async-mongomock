@@ -2,6 +2,7 @@ import pytest
 import asyncio
 from datetime import datetime
 from functools import namedtuple
+from bson import ObjectId
 
 # Check if the required dependancies are met to run this driver's tests
 try:
@@ -13,7 +14,7 @@ else:
 
 from ..common import BaseTest
 
-from umongo import Document, fields, exceptions
+from umongo import Document, fields, exceptions, Reference
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import motor_asyncio
@@ -224,6 +225,26 @@ class TestMotorAsyncio(BaseTest):
                 'birthday': datetime(1968, 6, 9),
                 'courses': [course.pk]
             }
+
+        loop.run_until_complete(do_test())
+
+    def test_reference(self, loop, classroom_model):
+
+        @asyncio.coroutine
+        def do_test():
+
+            teacher = classroom_model.Teacher(name='M. Strickland')
+            yield from teacher.commit()
+            course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+            yield from course.commit()
+            assert isinstance(course.teacher, Reference)
+            teacher_fetched = yield from course.teacher.io_fetch()
+            assert teacher_fetched == teacher
+            # Test bad ref as well
+            course.teacher = Reference(classroom_model.Teacher, ObjectId())
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from course.io_validate()
+            assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
 
         loop.run_until_complete(do_test())
 

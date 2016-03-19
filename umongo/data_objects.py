@@ -73,8 +73,13 @@ class EmbeddedDocument(BaseDataObject, metaclass=MetaEmbeddedDocument):
 
 class List(BaseDataObject, list):
 
-    def append(self, *args, **kwargs):
-        ret = super().append(*args, **kwargs)
+    def __init__(self, container_field, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.container_field = container_field
+
+    def append(self, obj):
+        obj = self.container_field.deserialize(obj)
+        ret = super().append(obj)
         self.set_modified()
         return ret
 
@@ -103,8 +108,9 @@ class List(BaseDataObject, list):
         self.set_modified()
         return ret
 
-    def extend(self, *args, **kwargs):
-        ret = super().extend(*args, **kwargs)
+    def extend(self, iterable):
+        iterable = [self.container_field.deserialize(obj) for obj in iterable]
+        ret = super().extend(iterable)
         self.set_modified()
         return ret
 
@@ -124,16 +130,8 @@ class Reference:
         self.pk = pk
         self._document = None
 
-    def io_fetch(self):
-        # Sync version
-        if not self._document:
-            if self.pk is None:
-                raise ReferenceError('Cannot retrieve a None Reference')
-            self._document = self.document_cls.find_one(self.pk)
-            if not self._document:
-                raise ValidationError(
-                    'Reference not found for document %s.' % self._document_cls.__name__)
-        return self._document
+    def io_fetch(self, no_data=False):
+        raise NotImplementedError
 
     def __repr__(self):
         return '<object Reference %s.%s(document=%s, id=%s)>' % (

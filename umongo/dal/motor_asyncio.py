@@ -3,6 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
+from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
@@ -150,9 +151,7 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 @asyncio.coroutine
 def _reference_io_validate(field, value):
-    pass
-    # if yield from value.io_fetch():
-    # raise NotImplementedError
+    yield from value.io_fetch(no_data=True)
 
 
 @asyncio.coroutine
@@ -197,9 +196,27 @@ def _io_validate_patch_schema(schema):
             patch_field(field.container)
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
+            field.reference_cls = PyMongoReference
         if isinstance(field, EmbeddedField):
             field.io_validate.append(_embedded_document_io_validate)
             _io_validate_patch_schema(field.schema)
 
     for field in schema.fields.values():
         patch_field(field)
+
+
+class PyMongoReference(Reference):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._document = None
+
+    def io_fetch(self, no_data=False):
+        if not self._document:
+            if self.pk is None:
+                raise ReferenceError('Cannot retrieve a None Reference')
+            self._document = yield from self.document_cls.find_one(self.pk)
+            if not self._document:
+                raise ValidationError(
+                    'Reference not found for document %s.' % self.document_cls.__name__)
+        return self._document

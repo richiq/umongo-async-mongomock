@@ -1,12 +1,13 @@
 import pytest
 from datetime import datetime
 from functools import namedtuple
+from bson import ObjectId
 import pymongo
 from pymongo import MongoClient
 
 from ..common import BaseTest, get_pymongo_version
 
-from umongo import Document, fields, exceptions
+from umongo import Document, fields, exceptions, Reference
 
 
 # Check if the required dependancies are met to run this driver's tests
@@ -110,7 +111,6 @@ class TestPymongo(BaseTest):
         john.reload()
         assert john.name == 'William Doe'
 
-
     def test_cusor(self, classroom_model):
         Student = classroom_model.Student
         Student.collection.drop()
@@ -147,6 +147,20 @@ class TestPymongo(BaseTest):
             'birthday': datetime(1968, 6, 9),
             'courses': [course.pk]
         }
+
+    def test_reference(self, classroom_model):
+        teacher = classroom_model.Teacher(name='M. Strickland')
+        teacher.commit()
+        course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+        course.commit()
+        assert isinstance(course.teacher, Reference)
+        teacher_fetched = course.teacher.io_fetch()
+        assert teacher_fetched == teacher
+        # Test bad ref as well
+        course.teacher = Reference(classroom_model.Teacher, ObjectId())
+        with pytest.raises(exceptions.ValidationError) as exc:
+            course.io_validate()
+        assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
 
     def test_required(self, classroom_model):
         Student = classroom_model.Student
