@@ -55,37 +55,39 @@ class MotorAsyncIODal(AbstractDal):
     def is_compatible_with(collection):
         return isinstance(collection, AsyncIOMotorCollection)
 
-    def reload(self, doc):
-        ret = yield from doc.collection.find_one(doc.pk)
+    def reload(self):
+        ret = yield from self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        doc._data = DataProxy(doc.schema)
-        doc._data.from_mongo(ret)
+        self._data = DataProxy(self.schema)
+        self._data.from_mongo(ret)
 
-    def commit(self, doc, io_validate_all=False):
-        doc._data.io_validate(validate_all=io_validate_all)
-        payload = doc._data.to_mongo(update=doc.created)
-        if doc.created:
+    def commit(self, io_validate_all=False):
+        self._data.io_validate(validate_all=io_validate_all)
+        payload = self._data.to_mongo(update=self.created)
+        if self.created:
             if payload:
-                ret = yield from doc.collection.update(
-                    {'_id': doc._data.get_by_mongo_name('_id')}, payload)
+                ret = yield from self.collection.update(
+                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
                 if ret.get('nModified') != 1:
                     raise UpdateError(ret.raw_result)
         else:
-            ret = yield from doc.collection.insert(payload)
+            ret = yield from self.collection.insert(payload)
             # TODO: check ret ?
-            doc._data.set_by_mongo_name('_id', ret)
-            doc.created = True
-        doc._data.clear_modified()
+            self._data.set_by_mongo_name('_id', ret)
+            self.created = True
+        self._data.clear_modified()
 
-    def delete(self, doc):
+    def delete(self):
         raise NotImplementedError()
 
-    def find_one(self, doc_cls, *args, **kwargs):
-        ret = yield from doc_cls.collection.find_one(*args, **kwargs)
+    @classmethod
+    def find_one(cls, *args, **kwargs):
+        ret = yield from cls.collection.find_one(*args, **kwargs)
         if ret is not None:
-            ret = doc_cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret)
         return ret
 
-    def find(self, doc_cls, *args, **kwargs):
-        return WrappedCursor(doc_cls, doc_cls.collection.find(*args, **kwargs))
+    @classmethod
+    def find(cls, *args, **kwargs):
+        return WrappedCursor(cls, cls.collection.find(*args, **kwargs))

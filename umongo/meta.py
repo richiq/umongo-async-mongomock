@@ -4,6 +4,7 @@ from .registerer import register_document
 from .exceptions import NoCollectionDefinedError
 from .schema import Schema, EmbeddedSchema
 from .dal import find_dal_from_collection
+from .abstract import AbstractDal
 
 
 def base_meta_document(name, bases, nmspc, default_schema=Schema):
@@ -44,7 +45,6 @@ class MetaDocument(type):
     def __new__(cls, name, bases, nmspc):
         name, bases, nmspc = base_meta_document(name, bases, nmspc)
         nmspc['_collection'] = None
-        nmspc['_dal'] = None
         # Create config with inheritance
         if 'config' not in nmspc:
             config = {}
@@ -55,17 +55,31 @@ class MetaDocument(type):
                 config.update({k: v for k, v in config_cls.__dict__.items()
                                if not k.startswith('_')})
             nmspc['config'] = config
+        # If a collection has been defined, the document is not abstract.
+        # Retrieve it corresponding DAL and make the document inherit it.
+        collection = nmspc['config'].get('collection')
+        lazy_collection = nmspc['config'].get('lazy_collection')
+        dal = nmspc['config'].get('dal')
+        if not dal:
+            if collection:
+                # Try to determine dal from the collection itself
+                dal = find_dal_from_collection(collection)
+                if not dal:
+                    raise NoCollectionDefinedError(
+                        "No DAL available for collection %s" % collection)
+            elif lazy_collection:
+                raise NoCollectionDefinedError(
+                    "`dal` attribute is required when using `lazy_collection`")
+        if dal:
+            if not issubclass(dal, AbstractDal):
+                raise NoCollectionDefinedError(
+                    "`dal` attribute must be a subclass of %s" % AbstractDal)
+            bases = bases + (dal, )
         # Finally create the Document class and register it
         gen_cls = type.__new__(cls, name, bases, nmspc)
         if gen_cls.config.get('register_document'):
             register_document(gen_cls)
         return gen_cls
-
-    @property
-    def dal(self):
-        if not self._dal:
-            self._dal = find_dal_from_collection(self.collection)
-        return self._dal
 
     @property
     def collection(self):

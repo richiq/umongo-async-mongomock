@@ -38,40 +38,42 @@ class PyMongoDal(AbstractDal):
     def is_compatible_with(collection):
         return isinstance(collection, Collection)
 
-    def reload(self, doc):
-        ret = doc.collection.find_one(doc.pk)
+    def reload(self):
+        ret = self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        doc._data = DataProxy(doc.schema)
-        doc._data.from_mongo(ret)
+        self._data = DataProxy(self.schema)
+        self._data.from_mongo(ret)
 
-    def commit(self, doc, io_validate_all=False):
-        doc._data.io_validate(validate_all=io_validate_all)
-        payload = doc._data.to_mongo(update=doc.created)
-        if doc.created:
+    def commit(self, io_validate_all=False):
+        self._data.io_validate(validate_all=io_validate_all)
+        payload = self._data.to_mongo(update=self.created)
+        if self.created:
             if payload:
-                ret = doc.collection.update_one(
-                    {'_id': doc._data.get_by_mongo_name('_id')}, payload)
+                ret = self.collection.update_one(
+                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
                 if ret.modified_count != 1:
                     raise UpdateError(ret.raw_result)
         else:
-            ret = doc.collection.insert_one(payload)
+            ret = self.collection.insert_one(payload)
             # TODO: check ret ?
-            doc._data.set_by_mongo_name('_id', ret.inserted_id)
-            doc.created = True
-        doc._data.clear_modified()
+            self._data.set_by_mongo_name('_id', ret.inserted_id)
+            self.created = True
+        self._data.clear_modified()
 
-    def delete(self, doc):
-        ret = doc.collection.delete_one({'_id': doc.pk})
+    def delete(self):
+        ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
 
-    def find_one(self, doc_cls, *args, **kwargs):
-        ret = doc_cls.collection.find_one(*args, **kwargs)
+    @classmethod
+    def find_one(cls, *args, **kwargs):
+        ret = cls.collection.find_one(*args, **kwargs)
         if ret is not None:
-            ret = doc_cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret)
         return ret
 
-    def find(self, doc_cls, *args, **kwargs):
-        raw_cursor = doc_cls.collection.find(*args, **kwargs)
-        return WrappedCursor(doc_cls, raw_cursor)
+    @classmethod
+    def find(cls, *args, **kwargs):
+        raw_cursor = cls.collection.find(*args, **kwargs)
+        return WrappedCursor(cls, raw_cursor)

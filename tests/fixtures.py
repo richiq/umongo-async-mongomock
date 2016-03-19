@@ -1,12 +1,42 @@
 import pytest
 from functools import namedtuple
 from collections import deque
+from bson import ObjectId
 
 from umongo import Document, Schema, fields, dal
-from umongo.dal import register_dal
+from umongo.abstract import AbstractDal
+from umongo.dal import register_dal, unregister_dal
 
 
-class BaseMoke:
+class BaseMokedDal(AbstractDal):
+
+    @staticmethod
+    def is_compatible_with(collection):
+        return True
+
+    def reload(self):
+        pass
+
+    def commit(self):
+        self._data.io_validate()
+        payload = self._data.to_mongo(update=self.created)
+        if not self.created:
+            if not self._data.get_by_mongo_name('_id'):
+                self._data.set_by_mongo_name('_id', ObjectId())
+            self.created = True
+        self._data.clear_modified()
+
+    def delete(self):
+        pass
+
+    def find_one(self, *args, **kwargs):
+        pass
+
+    def find(self, *args, **kwargs):
+        pass
+
+
+class CallTracerMoke:
 
     def __init__(self):
         self.__callbacks = deque()
@@ -46,32 +76,54 @@ class BaseMoke:
 
 
 @pytest.fixture
-def collection_moke(name='my_moked_col'):
+def dal_moke(request, collection_moke):
 
-    class CollectionMoke(BaseMoke):
+    # Really simple DAL: just proxy to the collection_moke for everything
+    class MokedDal(BaseMokedDal):
+
+        @staticmethod
+        def is_compatible_with(collection):
+            return collection is collection_moke
+
+        def reload(self):
+            self._pass_to_collection("reload", self)
+
+        def commit(self):
+            super().commit()
+            self._pass_to_collection("commit", self)
+
+        def delete(self):
+            self._pass_to_collection("delete", self)
+
+        @classmethod
+        def find_one(cls, *args, **kwargs):
+            cls._pass_to_collection("find_one", cls, *args, **kwargs)
+
+        @classmethod
+        def find(cls, *args, **kwargs):
+            cls._pass_to_collection("find", cls, *args, **kwargs)
+
+        @classmethod
+        def _pass_to_collection(cls, name, doc, *args, **kwargs):
+            return getattr(cls.collection, name)(doc, *args, **kwargs)
+
+    register_dal(MokedDal)
+    request.addfinalizer(lambda: unregister_dal(MokedDal))
+    return MokedDal
+
+
+@pytest.fixture
+def collection_moke(request, name='my_moked_col'):
+
+    class MokedCollection(CallTracerMoke):
 
         def __init__(self, name):
             self.name = name
             super().__init__()
             self.__callbacks = deque()
 
-    my_collection_moke = CollectionMoke(name)
-
-    # Really simple DAL: just proxy to the collection for everything
-    class DALMoke:
-
-        @staticmethod
-        def is_compatible_with(collection):
-            return collection is my_collection_moke
-
-        def __getattr__(self, name):
-
-            def caller(doc, *args, **kwargs):
-                return getattr(doc.collection, name)(doc, *args, **kwargs)
-
-            return caller
-
-    register_dal(DALMoke())
+    my_collection_moke = MokedCollection(name)
+    dal_moke(request, my_collection_moke)
     return my_collection_moke
 
 

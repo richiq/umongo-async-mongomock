@@ -1,3 +1,4 @@
+from bson import ObjectId
 from umongo.registerer import default_registerer
 
 

@@ -11,9 +11,11 @@ class Document(metaclass=MetaDocument):
     class Config:
         collection = None
         lazy_collection = None
+        dal = None
         register_document = True
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.created = False
         self._data = DataProxy(self.schema, kwargs)
 
@@ -74,36 +76,6 @@ class Document(metaclass=MetaDocument):
     def collection(self):
         # Cannot implicitly access to the class's property
         return type(self).collection
-
-    # DAL related stuff
-
-    @property
-    def dal(self):
-        # Cannot implicitly access to the class's property
-        return type(self).dal
-
-    def reload(self):
-        if not self.created:
-            raise NotCreatedError('Cannot reload a document that'
-                                  ' is not created in database')
-        return self.dal.reload(self)
-
-    def commit(self, io_validate_all=False):
-        return self.dal.commit(self, io_validate_all=False)
-
-    def delete(self):
-        if not self.created:
-            raise NotCreatedError('Cannot delete a document that'
-                                  ' is not created in database')
-        return self.dal.delete(self)
-
-    @classmethod
-    def find_one(cls, *args, **kwargs):
-        return cls.dal.find_one(cls, *args, **kwargs)
-
-    @classmethod
-    def find(cls, *args, **kwargs):
-        return cls.dal.find(cls, *args, **kwargs)
 
     # Data-proxy accessor shortcut
 

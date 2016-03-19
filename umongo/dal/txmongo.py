@@ -13,54 +13,56 @@ class TxMongoDal(AbstractDal):
         return isinstance(collection, Collection)
 
     @inlineCallbacks
-    def reload(self, doc):
-        ret = yield doc.collection.find_one(doc.pk)
+    def reload(self):
+        ret = yield self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        doc._data = DataProxy(doc.schema)
-        doc._data.from_mongo(ret)
+        self._data = DataProxy(self.schema)
+        self._data.from_mongo(ret)
 
     @inlineCallbacks
-    def commit(self, doc, io_validate_all=False):
-        doc._data.io_validate(validate_all=io_validate_all)
-        payload = doc._data.to_mongo(update=doc.created)
-        if doc.created:
+    def commit(self, io_validate_all=False):
+        self._data.io_validate(validate_all=io_validate_all)
+        payload = self._data.to_mongo(update=self.created)
+        if self.created:
             if payload:
-                ret = yield doc.collection.update_one(
-                    {'_id': doc._data.get_by_mongo_name('_id')}, payload)
+                ret = yield self.collection.update_one(
+                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
                 if ret.modified_count != 1:
                     raise UpdateError(ret.raw_result)
         else:
-            ret = yield doc.collection.insert_one(payload)
+            ret = yield self.collection.insert_one(payload)
             # TODO: check ret ?
-            doc._data.set_by_mongo_name('_id', ret.inserted_id)
-            doc.created = True
-        doc._data.clear_modified()
+            self._data.set_by_mongo_name('_id', ret.inserted_id)
+            self.created = True
+        self._data.clear_modified()
 
     @inlineCallbacks
-    def delete(self, doc):
-        ret = yield doc.collection.delete_one({'_id': doc.pk})
+    def delete(self):
+        ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
 
+    @classmethod
     @inlineCallbacks
-    def find_one(self, doc_cls, *args, **kwargs):
-        ret = yield doc_cls.collection.find_one(*args, **kwargs)
+    def find_one(cls, *args, **kwargs):
+        ret = yield cls.collection.find_one(*args, **kwargs)
         if ret is not None:
-            ret = doc_cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret)
         return ret
 
+    @classmethod
     @inlineCallbacks
-    def find(self, doc_cls, *args, **kwargs):
-        raw_cursor_or_list = yield doc_cls.collection.find(*args, **kwargs)
+    def find(cls, *args, **kwargs):
+        raw_cursor_or_list = yield cls.collection.find(*args, **kwargs)
         if isinstance(raw_cursor_or_list, tuple):
 
             def wrap_raw_results(result):
                 cursor = result[1]
                 if cursor is not None:
                     cursor.addCallback(wrap_raw_results)
-                return ([doc_cls.build_from_mongo(e) for e in result[0]], cursor)
+                return ([cls.build_from_mongo(e) for e in result[0]], cursor)
 
             return wrap_raw_results(raw_cursor_or_list)
         else:
-            return [doc_cls.build_from_mongo(e) for e in raw_cursor_or_list]
+            return [cls.build_from_mongo(e) for e in raw_cursor_or_list]

@@ -3,7 +3,8 @@ from datetime import datetime
 from bson import ObjectId, DBRef
 
 from .common import BaseTest
-from .fixtures import collection_moke
+from .fixtures import collection_moke, dal_moke
+
 from umongo import Document, Schema, fields, exceptions
 
 
@@ -213,9 +214,10 @@ class TestConfig:
 
         assert Doc2.config['collection'] is None
         assert Doc2.config['lazy_collection'] is None
+        assert Doc2.config['dal'] is None
         assert Doc2.config['register_document'] is True
 
-    def test_lazy_collection(self, collection_moke):
+    def test_lazy_collection(self, dal_moke, collection_moke):
 
         def lazy_factory():
             return collection_moke
@@ -224,17 +226,20 @@ class TestConfig:
 
             class Config:
                 lazy_collection = lazy_factory
+                dal = dal_moke
 
         assert Doc3.config['collection'] is None
         assert Doc3.config['lazy_collection'] is lazy_factory
+        assert Doc3.config['dal'] is dal_moke
+        assert issubclass(Doc3, dal_moke)
         # Try to do the dereferencing
         assert Doc3.collection is collection_moke
         d = Doc3()
         assert d.collection is collection_moke
 
-    def test_inheritance(self):
-        col1 = collection_moke(name='col1')
-        col2 = collection_moke(name='col2')
+    def test_inheritance(self, request):
+        col1 = collection_moke(request, name='col1')
+        col2 = collection_moke(request, name='col2')
 
         class Doc4(Document):
 
@@ -249,10 +254,8 @@ class TestConfig:
                 collection = col2
 
         assert Doc4.config['collection'] is col1
-        assert Doc4.config['lazy_collection'] is None
         assert Doc4.config['register_document'] is False
         assert DocChild4.config['collection'] == col2
-        assert DocChild4.config['lazy_collection'] is None
         assert DocChild4.config['register_document'] is False
         assert DocChild4.collection is col2
 
@@ -267,15 +270,23 @@ class TestConfig:
         with pytest.raises(exceptions.NoCollectionDefinedError):
             Doc5().collection
 
-    def test_bad_lazy_collection(self):
+    def test_bad_lazy_collection(self, dal_moke):
 
-        class Doc6(Document):
-
-            class Config:
-                lazy_collection = lambda: None
-
+        # Missing `dal` attribute
         with pytest.raises(exceptions.NoCollectionDefinedError):
-            Doc6.collection
 
+            class Doc7(Document):
+
+                class Config:
+                    lazy_collection = lambda: None
+
+        # Bad `dal` attribute
         with pytest.raises(exceptions.NoCollectionDefinedError):
-            Doc6().collection
+
+            class Doc7(Document):
+
+                class Config:
+                    lazy_collection = lambda: None
+
+                    class dal:
+                        pass
