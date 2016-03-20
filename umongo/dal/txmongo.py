@@ -1,5 +1,6 @@
 from txmongo.collection import Collection
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
+import functools
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
@@ -49,12 +50,11 @@ class TxMongoDal(AbstractDal):
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
 
-    @inlineCallbacks
     def io_validate(self, validate_all=False):
         if validate_all:
-            yield _io_validate_data_proxy(self.schema, self._data)
+            return _io_validate_data_proxy(self.schema, self._data)
         else:
-            yield _io_validate_data_proxy(
+            return _io_validate_data_proxy(
                 self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
@@ -82,25 +82,39 @@ class TxMongoDal(AbstractDal):
             return [cls.build_from_mongo(e) for e in raw_cursor_or_list]
 
 
+def _errback_factory(errors, field=None):
+
+    def errback(err):
+        if isinstance(err.value, ValidationError):
+            if field:
+                errors[field] = err.value.messages
+            else:
+                errors.extend(err.value.messages)
+        else:
+            raise err.value
+
+    return errback
+
+
 # Run multiple validators and collect all errors in one
 @inlineCallbacks
 def _run_validators(validators, field, value):
-    if not hasattr(validators, '__iter__'):
-        return validators(field, value)
-    else:
-        errors = []
-        for validator in validators:
-            try:
-                yield validator(field, value)
-            except ValidationError as ve:
-                errors.extend(ve.messages)
-        if errors:
-            raise ValidationError(errors)
+    errors = []
+    defers = []
+    for validator in validators:
+        defer = validator(field, value)
+        assert isinstance(defer, Deferred), 'io_validate functions must return a Deferred'
+        defer.addErrback(_errback_factory(errors))
+        defers.append(defer)
+    yield DeferredList(defers)
+    if errors:
+        raise ValidationError(errors)
 
 
 @inlineCallbacks
 def _io_validate_data_proxy(schema, data_proxy, partial=None):
     errors = {}
+    defers = []
     for name, field in schema.fields.items():
         if partial and name not in partial:
             continue
@@ -111,34 +125,36 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
             field._validate_missing(value)
             if value is not missing:
                 if field.io_validate:
-                    yield _run_validators(field.io_validate, field, value)
+                    defer = _run_validators(field.io_validate, field, value)
+                    defer.addErrback(_errback_factory(errors, name))
+                    defers.append(defer)
         except ValidationError as ve:
             errors[name] = ve.messages
+    yield DeferredList(defers)
     if errors:
         raise ValidationError(errors)
 
 
-@inlineCallbacks
 def _reference_io_validate(field, value):
-    yield value.io_fetch(no_data=True)
+    return value.io_fetch(no_data=True)
 
 
 @inlineCallbacks
 def _list_io_validate(field, value):
-    errors = {}
-    validators = field.container.validators
-    if not validators:
+    validators = field.container.io_validate
+    if not validators or not value:
         return
+    errors = {}
+    defers = []
     for i, e in enumerate(value):
-        try:
-            yield _run_validators(validators, e)
-        except ValidationError as ev:
-            errors[i] = ev.messages
+        defer = _run_validators(validators, field.container, e)
+        defer.addErrback(_errback_factory(errors, i))
+        defers.append(defer)
+    yield DeferredList(defers)
     if errors:
         raise ValidationError(errors)
 
 
-@inlineCallbacks
 def _embedded_document_io_validate(field, value):
     return _io_validate_data_proxy(value.schema, value._data)
 
@@ -186,4 +202,4 @@ class TxMongoReference(Reference):
             if not self._document:
                 raise ValidationError(
                     'Reference not found for document %s.' % self.document_cls.__name__)
-        return self._document
+        returnValue(self._document)
