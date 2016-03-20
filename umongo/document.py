@@ -1,6 +1,8 @@
 from .data_proxy import DataProxy
 from .exceptions import NotCreatedError
 from .meta import MetaDocument
+from .data_objects import Reference
+
 from bson import DBRef
 
 
@@ -30,8 +32,9 @@ class Document(metaclass=MetaDocument):
             return self.pk == other.pk
         elif isinstance(other, DBRef):
             return other.collection == self.collection.name and other.id == self.pk
-        else:
-            return False
+        elif isinstance(other, Reference):
+            return isinstance(self, other.document_cls) and self.pk == other.pk
+        return NotImplemented
 
     @property
     def pk(self):

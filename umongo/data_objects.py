@@ -1,3 +1,5 @@
+from bson import DBRef
+
 from .abstract import BaseDataObject
 from .data_proxy import DataProxy
 from .meta import MetaEmbeddedDocument
@@ -137,8 +139,10 @@ class Reference:
             self.__module__, self.__class__.__name__, self.pk, self.document_cls.__name__)
 
     def __eq__(self, other):
-        if isinstance(other, Reference):
+        if isinstance(other, self.document_cls):
+            return other.pk == self.pk
+        elif isinstance(other, Reference):
             return self.pk == other.pk and self.document_cls == other.document_cls
         elif isinstance(other, DBRef):
             return self.pk == other.id and self.document_cls.collection.name == other.collection
-        return False
+        return NotImplemented

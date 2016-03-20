@@ -371,6 +371,14 @@ class TestFields:
         other_doc = OtherDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef07")})
 
+        # Test reference equality
+        assert ref == to_refer_doc
+        assert ref == dbref
+        assert dbref == to_refer_doc
+        assert dbref == ref
+        assert to_refer_doc == ref
+        assert to_refer_doc == dbref
+
         class MySchema(Schema):
             ref = fields.ReferenceField(MyReferencedDoc, attribute='in_mongo_ref')
 
