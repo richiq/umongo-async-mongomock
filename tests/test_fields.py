@@ -1,4 +1,4 @@
-from bson import ObjectId
+from bson import ObjectId, DBRef
 import pytest
 from datetime import datetime
 from marshmallow import ValidationError
@@ -7,6 +7,8 @@ from uuid import UUID
 from umongo.data_proxy import DataProxy
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
 from umongo.data_objects import List, Dict
+
+from .fixtures import collection_moke
 
 
 class TestFields:
@@ -352,17 +354,20 @@ class TestFields:
         with pytest.raises(ValidationError):
             d.set('objid', 'notanid')
 
-    def test_reference(self):
+    def test_reference(self, collection_moke):
 
         class MyReferencedDoc(Document):
-            pass
+
+            class Config:
+                collection = collection_moke
 
         class OtherDoc(Document):
             pass
 
         to_refer_doc = MyReferencedDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
-
+        ref = Reference(MyReferencedDoc, to_refer_doc.pk)
+        dbref = DBRef(collection_moke.name, to_refer_doc.pk)
         other_doc = OtherDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef07")})
 
@@ -376,10 +381,11 @@ class TestFields:
         d.get('ref').document_cls == MyReferencedDoc
         d.set('ref', to_refer_doc)
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
-        assert d.get('ref').document_cls == MyReferencedDoc
-        good_ref = Reference(MyReferencedDoc, to_refer_doc.pk)
-        d.set('ref', good_ref)
-        assert d.get('ref') == good_ref
+        assert d.get('ref') == ref
+        d.set('ref', ref)
+        assert d.get('ref') == ref
+        d.set('ref', dbref)
+        assert d.get('ref') == ref
 
         with pytest.raises(ValidationError):
             d.set('ref', other_doc)

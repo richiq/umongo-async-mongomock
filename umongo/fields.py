@@ -1,6 +1,7 @@
 from datetime import datetime
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
+from bson import DBRef
 
 from .registerer import retrieve_document
 from .data_objects import Reference, List, Dict
@@ -210,18 +211,23 @@ class ReferenceField(ObjectIdField):
         if value is None:
             return None
         from .document import Document
+        if isinstance(value, DBRef):
+            if self._document_cls.collection.name != value.collection:
+                raise ValidationError("DBRef must be on collection `%s`" %
+                                      self._document_cls.collection.name)
+            value = value.id
         if isinstance(value, Reference):
+            if value.document_cls != self.document_cls:
+                raise ValidationError("`%s` reference expected" % self.document_cls.__name__)
             if type(value) is not self.reference_cls:
                 value = self.reference_cls(value.document_cls, value.pk)
-            if value.document_cls != self.document_cls:
-                raise ValidationError("%s reference expected" % self.document_cls.__name__)
             return value
         elif isinstance(value, self.document_cls):
             if not value.created:
                 raise ValidationError("Cannot reference a document that has not been created yet")
             value = value.pk
         elif isinstance(value, Document):
-            raise ValidationError("%s reference expected" % self.document_cls.__name__)
+            raise ValidationError("`%s` reference expected" % self.document_cls.__name__)
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
 

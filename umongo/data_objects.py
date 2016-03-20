@@ -135,3 +135,10 @@ class Reference:
     def __repr__(self):
         return '<object Reference %s.%s(document=%s, id=%s)>' % (
             self.__module__, self.__class__.__name__, self.pk, self.document_cls.__name__)
+
+    def __eq__(self, other):
+        if isinstance(other, Reference):
+            return self.pk == other.pk and self.document_cls == other.document_cls
+        elif isinstance(other, DBRef):
+            return self.pk == other.id and self.document_cls.collection.name == other.collection
+        return False
