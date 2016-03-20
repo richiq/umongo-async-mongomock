@@ -1,6 +1,5 @@
 from .abstract import BaseDataObject
 from .data_proxy import DataProxy
-from .exceptions import ValidationError
 from .meta import MetaEmbeddedDocument
 
 

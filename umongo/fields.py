@@ -86,7 +86,8 @@ class ListField(BaseField, ma_fields.List):
 
     def _deserialize_from_mongo(self, value):
         if value:
-            return List(self.container, [self.container.deserialize_from_mongo(each) for each in value])
+            return List(self.container, [self.container.deserialize_from_mongo(each)
+                                         for each in value])
         else:
             return List(self.container)
 

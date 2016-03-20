@@ -1,6 +1,5 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
-import functools
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing

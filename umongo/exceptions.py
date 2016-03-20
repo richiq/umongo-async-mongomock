@@ -1,4 +1,4 @@
-from marshmallow import ValidationError
+from marshmallow import ValidationError  # noqa, republishing
 
 
 class UMongoError(Exception):

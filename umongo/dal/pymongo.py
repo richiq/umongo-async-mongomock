@@ -126,7 +126,6 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
         raise ValidationError(errors)
 
 
-
 def _reference_io_validate(field, value):
     value.io_fetch(no_data=True)
 
