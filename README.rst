@@ -16,7 +16,7 @@
     :target: https://coveralls.io/github/Scille/umongo?branch=master
     :alt: Code coverage
 
-Small but efficient MongoDB ODM
+Both sync/async MongoDB ODM
 
 * Free software: MIT license
 * Documentation: https://umongo.readthedocs.org.
@@ -24,7 +24,8 @@ Small but efficient MongoDB ODM
 Features
 --------
 
-* TODO
+- Small wrapper around your mongo driver to add enough OO goodness without beeing to cumbersome
+- Support PyMongo, motor-asyncio and TxMongo
 
 Credits
 ---------
