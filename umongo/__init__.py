@@ -19,7 +19,7 @@ from .data_objects import EmbeddedDocument, Reference
 
 __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 __all__ = (
     'Document',
     'EmbeddedDocument',
