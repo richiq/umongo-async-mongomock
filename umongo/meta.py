@@ -1,9 +1,10 @@
 from marshmallow.fields import Field
 
 from .registerer import register_document
-from .exceptions import NoCollectionDefinedError
+from .exceptions import NoCollectionDefinedError, DocumentDefinitionError
 from .schema import Schema, EmbeddedSchema
 from .abstract import AbstractDal
+from .indexes import parse_index
 
 
 def base_meta_document(name, bases, nmspc, default_schema=Schema):
@@ -23,10 +24,8 @@ def base_meta_document(name, bases, nmspc, default_schema=Schema):
     # Need to create a custom Schema class to use the provided fields
     if schema_nmspc:
         schema_cls = type('SubSchema', (schema_cls, ), schema_nmspc)
-        doc_nmspc['Schema'] = schema_cls
-    # Create Schema instance if not provided
-    if 'schema' not in doc_nmspc:
-        doc_nmspc['schema'] = schema_cls()
+    doc_nmspc['Schema'] = schema_cls
+    doc_nmspc['schema'] = schema_cls()
     return name, bases, doc_nmspc
 
 
@@ -41,19 +40,97 @@ class MetaEmbeddedDocument(type):
 
 class MetaDocument(type):
 
+    BASE_DOCUMENT_CLS = None
+
     def __new__(cls, name, bases, nmspc):
-        name, bases, nmspc = base_meta_document(name, bases, nmspc)
+        assert 'schema' not in nmspc
+        assert 'config' not in nmspc
         nmspc['_collection'] = None
         # Create config with inheritance
-        if 'config' not in nmspc:
-            config = {}
-            for base in bases:
-                config.update(getattr(base, 'config', {}))
-            config_cls = nmspc.get('Config')
-            if config_cls:
-                config.update({k: v for k, v in config_cls.__dict__.items()
-                               if not k.startswith('_')})
-            nmspc['config'] = config
+        config = {}
+        indexes = []
+        is_child = False
+        config_cls = nmspc.get('Config')
+        abstract = getattr(config_cls, 'abstract', False)
+        dal = getattr(config_cls, 'dal', None)
+        collection = getattr(config_cls, 'collection', None)
+        lazy_collection = getattr(config_cls, 'lazy_collection', None)
+        register_document_ = getattr(config_cls, 'register_document', True)
+        allow_inheritance = getattr(config_cls, 'allow_inheritance', abstract)
+        if abstract and not allow_inheritance:
+            raise DocumentDefinitionError("Abstract document cannot disable inheritance")
+        for base in bases:
+            if not issubclass(base, cls.BASE_DOCUMENT_CLS):
+                continue
+            base_config = getattr(base, 'config', {})
+            if not base_config.get('abstract', False):
+                if abstract:
+                    raise DocumentDefinitionError(
+                        "Abstract document should have all it parents abstract")
+                is_child = True
+            if not base_config.get('allow_inheritance'):
+                raise DocumentDefinitionError(
+                    "Document %r doesn't allow inheritance" % base)
+            if base_config.get('indexes'):
+                indexes.extend(base_config['indexes'])
+            if base_config.get('collection'):
+                if collection:
+                    raise DocumentDefinitionError(
+                        "Collection cannot be defined multiple times (got `%s` and `%s`)" %
+                        (collection, base_config['collection']))
+                else:
+                    collection = base_config['collection']
+            if base_config.get('lazy_collection'):
+                if lazy_collection:
+                    raise DocumentDefinitionError(
+                        "Lazzy collection cannot be defined multiple"
+                        " times (got `%s` and `%s`)" %
+                        (lazy_collection, base_config['lazy_collection']))
+                else:
+                    lazy_collection = base_config['lazy_collection']
+            if base_config.get('dal'):
+                if dal:
+                    raise DocumentDefinitionError(
+                        "Lazzy collection cannot be defined multiple"
+                        " times (got `%s` and `%s`)" %
+                        (dal, base_config['dal']))
+                else:
+                    dal = base_config['dal']
+        if config_cls:
+            config.update({k: v for k, v in config_cls.__dict__.items()
+                           if not k.startswith('_')})
+            if getattr(config_cls, 'indexes', None):
+                if is_child:
+                    for index in getattr(config_cls, 'indexes'):
+                        indexes.append(parse_index(index, base_compound_field='_cls'))
+                else:
+                    indexes.extend(getattr(config_cls, 'indexes'))
+            abstract = getattr(config_cls, 'abstract', False)
+        if is_child:
+            indexes.append('_cls')
+        if collection and lazy_collection:
+            raise DocumentDefinitionError(
+                "Both `collection` and `lazy_collection` are defined")
+        config.update({
+            'indexes': [parse_index(index) for index in indexes],
+            'abstract': abstract,
+            'allow_inheritance': allow_inheritance,
+            'lazy_collection': lazy_collection,
+            'collection': collection,
+            'dal': dal,
+            'is_child': is_child,
+            'register_document': register_document_
+        })
+        if abstract and config.get('collection'):
+            raise DocumentDefinitionError(
+                'Cannot defined a collection for an abstract document')
+        nmspc['config'] = config
+        # If Document is a child, _cls field must be added to the schema
+        if is_child:
+            from .fields import StrField
+            nmspc['_cls'] = StrField(dump_only=True, missing=name)
+        # Now that config is done, we can create the schema
+        name, bases, nmspc = base_meta_document(name, bases, nmspc)
         # If a collection has been defined, the document is not abstract.
         # Retrieve it corresponding DAL and make the document inherit it.
         collection = nmspc['config'].get('collection')
@@ -81,6 +158,8 @@ class MetaDocument(type):
         gen_cls = type.__new__(cls, name, bases, nmspc)
         if gen_cls.config.get('register_document'):
             register_document(gen_cls)
+        if not cls.BASE_DOCUMENT_CLS:
+            cls.BASE_DOCUMENT_CLS = gen_cls
         return gen_cls
 
     @property
@@ -92,7 +171,7 @@ class MetaDocument(type):
             if not self._collection:
                 lazy_collection = self.config.get('lazy_collection')
                 if not lazy_collection:
-                    raise NoCollectionDefinedError("Not collection nor lazy_collection defined")
+                    raise NoCollectionDefinedError("No collection nor lazy_collection defined")
                 self._collection = lazy_collection()
                 if not self._collection:
                     raise NoCollectionDefinedError("lazy_collection didn't returned a collection")

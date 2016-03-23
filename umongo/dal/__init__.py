@@ -5,7 +5,7 @@ dal
 Driver Abstraction Layer
 """
 
-from ..exceptions import NoCompatibleDal
+from ..exceptions import NoCompatibleDalError
 
 
 __all__ = (
@@ -36,8 +36,8 @@ class DalRegisterer:
         for dal in self._dals:
             if dal.is_compatible_with(collection):
                 return dal
-        raise NoCompatibleDal('Cannot find a umongo dal compatible with %s' %
-                              type(collection))
+        raise NoCompatibleDalError('Cannot find a umongo dal compatible with %s' %
+                                   type(collection))
 
 
 default_dal_registerer = DalRegisterer()

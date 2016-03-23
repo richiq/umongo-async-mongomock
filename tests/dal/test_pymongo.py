@@ -2,10 +2,11 @@ import pytest
 from datetime import datetime
 from functools import namedtuple
 from bson import ObjectId
-import pymongo
-from pymongo import MongoClient
+from pymongo import MongoClient, IndexModel, ASCENDING
 
 from ..common import BaseTest, get_pymongo_version
+from ..test_indexes import assert_indexes
+from ..fixtures import classroom_model
 
 from umongo import Document, fields, exceptions, Reference
 
@@ -24,40 +25,6 @@ if not dep_error:  # Make sure the module is valid by importing it
 @pytest.fixture
 def db():
     return MongoClient().umongo_test
-
-
-@pytest.fixture
-def classroom_model(db):
-
-    class Teacher(Document):
-        name = fields.StrField(required=True)
-
-        class Config:
-            register_document = False
-            collection = db.teacher
-
-    class Course(Document):
-        name = fields.StrField(required=True)
-        teacher = fields.ReferenceField(Teacher, required=True)
-
-        class Config:
-            register_document = False
-            collection = db.course
-
-    class Student(Document):
-        name = fields.StrField(required=True)
-        birthday = fields.DateTimeField()
-        courses = fields.ListField(fields.ReferenceField(Course))
-
-        class Config:
-            register_document = False
-            collection = db.student
-
-    Teacher.collection.drop()
-    Course.collection.drop()
-    Student.collection.drop()
-
-    return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
@@ -243,3 +210,93 @@ class TestPymongo(BaseTest):
         student = IOStudent(name='Marty', io_field=values)
         student.io_validate()
         assert called == values
+
+    def test_indexes(self, db):
+
+        class SimpleIndexDoc(Document):
+            indexed = fields.StrField()
+            no_indexed = fields.IntField()
+
+            class Config:
+                collection = db.simple_index_doc
+                indexes = ['indexed']
+
+        # Make sure only _id default index is present first
+        SimpleIndexDoc.collection.drop_indexes()
+        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        assert indexes == [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': 'umongo_test.simple_index_doc',
+                'v': 1
+            }
+        ]
+
+        # Now ask for indexes building
+        SimpleIndexDoc.ensure_indexes()
+        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': 'umongo_test.simple_index_doc',
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'indexed': 1},
+                'name': 'indexed_1',
+                'ns': 'umongo_test.simple_index_doc'
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        SimpleIndexDoc.ensure_indexes()
+        assert indexes == expected_indexes
+
+    def test_indexes_inheritance(self, db):
+
+        class SimpleIndexDoc(Document):
+            indexed = fields.StrField()
+            no_indexed = fields.IntField()
+
+            class Config:
+                collection = db.simple_index_doc
+                indexes = ['indexed']
+
+        # Make sure only _id default index is present first
+        SimpleIndexDoc.collection.drop_indexes()
+        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        assert indexes == [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': 'umongo_test.simple_index_doc',
+                'v': 1
+            }
+        ]
+
+        # Now ask for indexes building
+        SimpleIndexDoc.ensure_indexes()
+        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': 'umongo_test.simple_index_doc',
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'indexed': 1},
+                'name': 'indexed_1',
+                'ns': 'umongo_test.simple_index_doc'
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        SimpleIndexDoc.ensure_indexes()
+        assert indexes == expected_indexes

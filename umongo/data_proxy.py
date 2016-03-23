@@ -105,9 +105,9 @@ class DataProxy:
     def delete_by_mongo_name(self, name):
         self.set_by_mongo_name(name, missing)
 
-    def get(self, name):
+    def get(self, name, to_raise=KeyError):
         if name not in self._fields:
-            raise KeyError(name)
+            raise to_raise(name)
         field = self._fields[name]
         name = field.attribute or name
         value = self._data[name]
@@ -120,21 +120,21 @@ class DataProxy:
                 return None
         return value
 
-    def set(self, name, value):
+    def set(self, name, value, to_raise=KeyError):
         if name not in self._fields:
-            raise KeyError(name)
+            raise to_raise(name)
         field = self._fields[name]
         name = field.attribute or name
         value = field._deserialize(value, name, None)
         self._data[name] = value
         self._mark_as_modified(name)
 
-    def delete(self, name):
+    def delete(self, name, to_raise=KeyError):
         if name not in self._fields:
-            raise KeyError(name)
+            raise to_raise(name)
         name = self._fields[name].attribute or name
         if self._data[name] is missing:
-            raise KeyError(name)
+            raise to_raise(name)
         self._data[name] = missing
         self._mark_as_modified(name)
 

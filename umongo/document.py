@@ -1,5 +1,5 @@
 from .data_proxy import DataProxy
-from .exceptions import NotCreatedError
+from .exceptions import NotCreatedError, AbstractDocumentError
 from .meta import MetaDocument
 from .data_objects import Reference
 
@@ -8,15 +8,20 @@ from bson import DBRef
 
 class Document(metaclass=MetaDocument):
 
-    __slots__ = ('created', '_data')
+    __slots__ = ('created', '_data', 'parent')
 
     class Config:
-        collection = None
-        lazy_collection = None
-        dal = None
-        register_document = True
+        collection = None  # Inherited
+        lazy_collection = None  # Inherited
+        dal = None  # Inherited
+        register_document = False
+        allow_inheritance = True
+        abstract = True
+        indexes = []
 
     def __init__(self, **kwargs):
+        if self.config.get('abstract'):
+            raise AbstractDocumentError("Cannot instaciate an abstract Document")
         super().__init__()
         self.created = False
         self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
@@ -80,6 +85,11 @@ class Document(metaclass=MetaDocument):
         # Cannot implicitly access to the class's property
         return type(self).collection
 
+    @property
+    def indexes(self):
+        # Cannot implicitly access to the class's property
+        return type(self).indexes
+
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):
@@ -95,10 +105,10 @@ class Document(metaclass=MetaDocument):
         if name in Document.__dict__:
             Document.__dict__[name].__set__(self, value)
         else:
-            self._data.set(name, value)
+            self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):
-        return self._data.get(name)
+        return self._data.get(name, to_raise=AttributeError)
 
     def __delattr__(self, name):
-        self._data.delete(name)
+        self._data.delete(name, to_raise=AttributeError)

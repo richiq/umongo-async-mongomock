@@ -91,6 +91,12 @@ class PyMongoDal(AbstractDal):
         raw_cursor = cls.collection.find(*args, **kwargs)
         return WrappedCursor(cls, raw_cursor)
 
+    @classmethod
+    def ensure_indexes(cls):
+        indexes = cls.config.get('indexes')
+        if indexes:
+            cls.collection.create_indexes(indexes)
+
 
 # Run multiple validators and collect all errors in one
 def _run_validators(validators, field, value):

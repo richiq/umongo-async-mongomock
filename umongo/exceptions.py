@@ -9,6 +9,14 @@ class UMongoError(Exception):
 #     pass
 
 
+class AbstractDocumentError(UMongoError):
+    pass
+
+
+class DocumentDefinitionError(UMongoError):
+    pass
+
+
 class NoDBDefinedError(UMongoError):
     pass
 
@@ -18,10 +26,6 @@ class NotRegisteredDocumentError(UMongoError):
 
 
 class AlreadyRegisteredDocumentError(UMongoError):
-    pass
-
-
-class SchemaFieldNamingClashError(UMongoError):
     pass
 
 
@@ -49,5 +53,5 @@ class FieldNotLoadedError(UMongoError):
     pass
 
 
-class NoCompatibleDal(UMongoError):
+class NoCompatibleDalError(UMongoError):
     pass

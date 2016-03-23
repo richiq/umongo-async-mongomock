@@ -10,10 +10,12 @@ from umongo import Document, Schema, fields, exceptions
 
 class Student(Document):
 
-    class Schema(Schema):
-        name = fields.StrField(required=True)
-        birthday = fields.DateTimeField()
-        gpa = fields.FloatField()
+    name = fields.StrField(required=True)
+    birthday = fields.DateTimeField()
+    gpa = fields.FloatField()
+
+    class Config:
+        allow_inheritance = True
 
 
 class TestDocument(BaseTest):
@@ -75,13 +77,13 @@ class TestDocument(BaseTest):
         assert john.name == 'William Doe'
         del john.name
         assert john.name is None
-        with pytest.raises(KeyError):
+        with pytest.raises(AttributeError):
             john.missing
-        with pytest.raises(KeyError):
+        with pytest.raises(AttributeError):
             john.missing = None
-        with pytest.raises(KeyError):
+        with pytest.raises(AttributeError):
             del john.missing
-        with pytest.raises(KeyError):
+        with pytest.raises(AttributeError):
             del john.commit
 
     def test_fields_by_items(self):
@@ -250,23 +252,34 @@ class TestConfig:
         col1 = collection_moke(request, name='col1')
         col2 = collection_moke(request, name='col2')
 
-        class Doc4(Document):
+        class AbsDoc(Document):
+
+            class Config:
+                register_document = False
+                abstract = True
+
+        class Doc4Child1(AbsDoc):
 
             class Config:
                 collection = col1
+                allow_inheritance = True
                 register_document = False
 
+        class Doc4Child1Child(Doc4Child1):
+            pass
 
-        class DocChild4(Doc4):
+        class Doc4Child2(AbsDoc):
 
             class Config:
                 collection = col2
 
-        assert Doc4.config['collection'] is col1
-        assert Doc4.config['register_document'] is False
-        assert DocChild4.config['collection'] == col2
-        assert DocChild4.config['register_document'] is False
-        assert DocChild4.collection is col2
+        assert Doc4Child1.config['collection'] is col1
+        assert Doc4Child1Child.config['collection'] is col1
+        assert Doc4Child1Child.config['allow_inheritance'] is False
+        assert Doc4Child1.config['register_document'] is False
+        assert Doc4Child2.config['register_document'] is True
+        assert Doc4Child2.config['collection'] == col2
+        assert Doc4Child2.config['register_document'] is True
 
     def test_no_collection(self):
 

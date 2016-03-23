@@ -138,34 +138,29 @@ def classroom_model(db):
     # `db` should be a fixture provided by the current dal testbench
 
     class Teacher(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
+        name = fields.StrField(required=True)
 
         class Config:
             register_document = False
             collection = db.teacher
 
     class Course(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            teacher = fields.ReferenceField(Teacher, required=True)
+        name = fields.StrField(required=True)
+        teacher = fields.ReferenceField(Teacher, required=True)
 
         class Config:
             register_document = False
             collection = db.course
 
     class Student(Document):
-
-        class Schema(Schema):
-            name = fields.StrField(required=True)
-            birthday = fields.DateTimeField()
-            courses = fields.ListField(fields.ReferenceField(Course))
+        name = fields.StrField(required=True)
+        birthday = fields.DateTimeField()
+        courses = fields.ListField(fields.ReferenceField(Course))
 
         class Config:
             register_document = False
             collection = db.student
+            allow_inheritance = True
 
     Teacher.collection.drop()
     Course.collection.drop()
