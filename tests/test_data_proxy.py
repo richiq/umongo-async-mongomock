@@ -207,3 +207,17 @@ class TestDataProxy:
         assert d.get('b') == 2
         d.delete('b')
         assert d._data['in_mongo_b'] is missing
+
+    def test_default(self):
+
+        class MySchema(EmbeddedSchema):
+            with_default = fields.StrField(default='default_value')
+            with_missing = fields.StrField(missing='missing_value')
+
+        d = DataProxy(MySchema(), data={})
+        assert d._data['with_default'] is missing
+        assert d._data['with_missing'] is 'missing_value'
+        assert d.get('with_default') == 'default_value'
+        assert d.get('with_missing') == 'missing_value'
+        assert d.to_mongo() == {'with_missing': 'missing_value'}
+        assert d.dump() == {'with_default': 'default_value', 'with_missing': 'missing_value'}

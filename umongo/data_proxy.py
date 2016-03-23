@@ -24,8 +24,7 @@ class DataProxy:
                 k = v.attribute
             fields_from_mongo_key[k] = v
         self._fields_from_mongo_key = fields_from_mongo_key
-        if data is not None:
-            self.load(data)
+        self.load(data if data else {})
 
     def to_mongo(self, update=False):
         if update:
@@ -109,11 +108,14 @@ class DataProxy:
     def get(self, name):
         if name not in self._fields:
             raise KeyError(name)
-        name = self._fields[name].attribute or name
+        field = self._fields[name]
+        name = field.attribute or name
         value = self._data[name]
         if value is missing:
             if self.partial:
                 raise FieldNotLoadedError(name)
+            elif field.default is not missing:
+                return field.default
             else:
                 return None
         return value
