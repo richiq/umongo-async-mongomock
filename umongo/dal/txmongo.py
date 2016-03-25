@@ -1,5 +1,6 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
+from txmongo import filter as qf
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
@@ -20,6 +21,8 @@ class TxMongoDal(AbstractDal):
 
     @inlineCallbacks
     def reload(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
         ret = yield self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
@@ -79,6 +82,16 @@ class TxMongoDal(AbstractDal):
             return wrap_raw_results(raw_cursor_or_list)
         else:
             return [cls.build_from_mongo(e) for e in raw_cursor_or_list]
+
+    @classmethod
+    @inlineCallbacks
+    def ensure_indexes(cls):
+        indexes = cls.config.get('indexes')
+        for index in indexes:
+            kwargs = index.document.copy()
+            keys = kwargs.pop('key')
+            index = qf.sort([(k, d) for k, d in keys.items()])
+            yield cls.collection.create_index(index, **kwargs)
 
 
 def _errback_factory(errors, field=None):

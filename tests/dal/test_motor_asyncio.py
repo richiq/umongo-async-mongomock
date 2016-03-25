@@ -12,7 +12,8 @@ except ImportError as e:
 else:
     dep_error = None
 
-from ..common import BaseTest
+from ..common import BaseTest, TEST_DB
+from ..fixtures import classroom_model
 
 from umongo import Document, fields, exceptions, Reference
 
@@ -22,48 +23,7 @@ if not dep_error:  # Make sure the module is valid by importing it
 
 @pytest.fixture
 def db():
-    return AsyncIOMotorClient().umongo_test
-
-
-@pytest.fixture
-def classroom_model(db):
-
-    class Teacher(Document):
-        name = fields.StrField(required=True)
-
-        class Config:
-            register_document = False
-            collection = db.teacher
-
-    class Course(Document):
-        name = fields.StrField(required=True)
-        teacher = fields.ReferenceField(Teacher, required=True)
-
-        class Config:
-            register_document = False
-            collection = db.course
-
-    class Student(Document):
-        name = fields.StrField(required=True)
-        birthday = fields.DateTimeField()
-        courses = fields.ListField(fields.ReferenceField(Course))
-
-        class Config:
-            register_document = False
-            collection = db.student
-
-    loop = asyncio.get_event_loop()
-    loop.set_debug(True)
-
-    @asyncio.coroutine
-    def clean_db():
-        yield from Teacher.collection.drop()
-        yield from Course.collection.drop()
-        yield from Student.collection.drop()
-
-    loop.run_until_complete(clean_db())
-
-    return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
+    return AsyncIOMotorClient()[TEST_DB]
 
 
 @pytest.fixture
@@ -127,6 +87,7 @@ class TestMotorAsyncio(BaseTest):
 
         @asyncio.coroutine
         def do_test():
+            yield from Student(name='Other dude').commit()
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             with pytest.raises(exceptions.NotCreatedError):
                 yield from john.reload()
@@ -386,5 +347,81 @@ class TestMotorAsyncio(BaseTest):
             student = IOStudent(name='Marty', io_field=values)
             yield from student.io_validate()
             assert set(called) == set(values)
+
+        loop.run_until_complete(do_test())
+
+    def test_indexes(self, loop, db):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class SimpleIndexDoc(Document):
+                indexed = fields.StrField()
+                no_indexed = fields.IntField()
+
+                class Config:
+                    collection = db.simple_index_doc
+                    indexes = ['indexed']
+
+            yield from SimpleIndexDoc.collection.drop_indexes()
+
+            # Now ask for indexes building
+            yield from SimpleIndexDoc.ensure_indexes()
+            indexes = yield from SimpleIndexDoc.collection.index_information()
+            expected_indexes = {
+                '_id_': {
+                    'key': [('_id', 1)],
+                    'v': 1,
+                    'ns': '%s.simple_index_doc' % TEST_DB
+                },
+                'indexed_1': {
+                    'key': [('indexed', 1)],
+                    'v': 1,
+                    'ns': '%s.simple_index_doc' % TEST_DB
+                }
+            }
+            assert indexes == expected_indexes
+
+            # Redoing indexes building should do nothing
+            yield from SimpleIndexDoc.ensure_indexes()
+            assert indexes == expected_indexes
+
+        loop.run_until_complete(do_test())
+
+    def test_indexes_inheritance(self, loop, db):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class SimpleIndexDoc(Document):
+                indexed = fields.StrField()
+                no_indexed = fields.IntField()
+
+                class Config:
+                    collection = db.simple_index_doc
+                    indexes = ['indexed']
+
+            yield from SimpleIndexDoc.collection.drop_indexes()
+
+            # Now ask for indexes building
+            yield from SimpleIndexDoc.ensure_indexes()
+            indexes = yield from SimpleIndexDoc.collection.index_information()
+            expected_indexes = {
+                '_id_': {
+                    'key': [('_id', 1)],
+                    'v': 1,
+                    'ns': '%s.simple_index_doc' % TEST_DB
+                },
+                'indexed_1': {
+                    'key': [('indexed', 1)],
+                    'v': 1,
+                    'ns': '%s.simple_index_doc' % TEST_DB
+                }
+            }
+            assert indexes == expected_indexes
+
+            # Redoing indexes building should do nothing
+            yield from SimpleIndexDoc.ensure_indexes()
+            assert indexes == expected_indexes
 
         loop.run_until_complete(do_test())

@@ -1,7 +1,8 @@
-from pymongo import IndexModel, ASCENDING, DESCENDING, TEXT, HASHED
 from itertools import zip_longest
 
-from umongo.indexes import parse_index, explicit_index, parse_index
+from umongo.indexes import (
+    parse_index, explicit_index, parse_index,
+    IndexModel, ASCENDING, DESCENDING, TEXT, HASHED)
 from umongo import Document, fields
 
 

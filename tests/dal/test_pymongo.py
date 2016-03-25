@@ -2,9 +2,9 @@ import pytest
 from datetime import datetime
 from functools import namedtuple
 from bson import ObjectId
-from pymongo import MongoClient, IndexModel, ASCENDING
+from pymongo import MongoClient
 
-from ..common import BaseTest, get_pymongo_version
+from ..common import BaseTest, get_pymongo_version, TEST_DB
 from ..test_indexes import assert_indexes
 from ..fixtures import classroom_model
 
@@ -24,7 +24,7 @@ if not dep_error:  # Make sure the module is valid by importing it
 
 @pytest.fixture
 def db():
-    return MongoClient().umongo_test
+    return MongoClient()[TEST_DB]
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
@@ -68,6 +68,7 @@ class TestPymongo(BaseTest):
 
     def test_reload(self, classroom_model):
         Student = classroom_model.Student
+        Student(name='Other dude').commit()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             john.reload()
@@ -221,17 +222,7 @@ class TestPymongo(BaseTest):
                 collection = db.simple_index_doc
                 indexes = ['indexed']
 
-        # Make sure only _id default index is present first
         SimpleIndexDoc.collection.drop_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
-        assert indexes == [
-            {
-                'key': {'_id': 1},
-                'name': '_id_',
-                'ns': 'umongo_test.simple_index_doc',
-                'v': 1
-            }
-        ]
 
         # Now ask for indexes building
         SimpleIndexDoc.ensure_indexes()
@@ -240,14 +231,14 @@ class TestPymongo(BaseTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': 'umongo_test.simple_index_doc',
+                'ns': '%s.simple_index_doc' % TEST_DB,
                 'v': 1
             },
             {
                 'v': 1,
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
-                'ns': 'umongo_test.simple_index_doc'
+                'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
         assert indexes == expected_indexes
@@ -266,17 +257,7 @@ class TestPymongo(BaseTest):
                 collection = db.simple_index_doc
                 indexes = ['indexed']
 
-        # Make sure only _id default index is present first
         SimpleIndexDoc.collection.drop_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
-        assert indexes == [
-            {
-                'key': {'_id': 1},
-                'name': '_id_',
-                'ns': 'umongo_test.simple_index_doc',
-                'v': 1
-            }
-        ]
 
         # Now ask for indexes building
         SimpleIndexDoc.ensure_indexes()
@@ -285,14 +266,14 @@ class TestPymongo(BaseTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': 'umongo_test.simple_index_doc',
+                'ns': '%s.simple_index_doc' % TEST_DB,
                 'v': 1
             },
             {
                 'v': 1,
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
-                'ns': 'umongo_test.simple_index_doc'
+                'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
         assert indexes == expected_indexes

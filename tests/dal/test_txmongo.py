@@ -3,7 +3,8 @@ from datetime import datetime
 from bson import ObjectId
 from functools import namedtuple, wraps
 
-from ..common import BaseTest, get_pymongo_version
+from ..common import BaseTest, get_pymongo_version, TEST_DB, con
+from ..fixtures import classroom_model
 
 # Check if the required dependancies are met to run this driver's tests
 try:
@@ -38,41 +39,7 @@ if not dep_error:  # Make sure the module is valid by importing it
 
 @pytest.fixture
 def db():
-    return MongoConnection().umongo_test
-
-
-@pytest.fixture
-def classroom_model(db):
-
-    class Teacher(Document):
-        name = fields.StrField(required=True)
-
-        class Config:
-            register_document = False
-            collection = db.teacher
-
-    class Course(Document):
-        name = fields.StrField(required=True)
-        teacher = fields.ReferenceField(Teacher, required=True)
-
-        class Config:
-            register_document = False
-            collection = db.course
-
-    class Student(Document):
-        name = fields.StrField(required=True)
-        birthday = fields.DateTimeField()
-        courses = fields.ListField(fields.ReferenceField(Course))
-
-        class Config:
-            register_document = False
-            collection = db.student
-
-    pytest.blockon(Teacher.collection.drop())
-    pytest.blockon(Course.collection.drop())
-    pytest.blockon(Student.collection.drop())
-
-    return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
+    return MongoConnection()[TEST_DB]
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
@@ -128,6 +95,7 @@ class TestTxMongo(BaseTest):
     @pytest_inlineCallbacks
     def test_reload(self, classroom_model):
         Student = classroom_model.Student
+        yield Student(name='Other dude').commit()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             yield john.reload()
@@ -320,3 +288,75 @@ class TestTxMongo(BaseTest):
         student = IOStudent(name='Marty', io_field=values)
         yield student.io_validate()
         assert called == values
+
+    @pytest_inlineCallbacks
+    def test_indexes(self, db):
+        class SimpleIndexDoc(Document):
+            indexed = fields.StrField()
+            no_indexed = fields.IntField()
+
+            class Config:
+                collection = db.simple_index_doc
+                indexes = ['indexed']
+
+        yield SimpleIndexDoc.collection.drop_indexes()
+
+        # Now ask for indexes building
+        yield SimpleIndexDoc.ensure_indexes()
+        # SimpleIndexDoc.collection.index_information doesn't seems to work...
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': '%s.simple_index_doc' % TEST_DB,
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'indexed': 1},
+                'name': 'indexed_1',
+                'ns': '%s.simple_index_doc' % TEST_DB
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        yield SimpleIndexDoc.ensure_indexes()
+        assert indexes == expected_indexes
+
+    @pytest_inlineCallbacks
+    def test_indexes_inheritance(self, db):
+        class SimpleIndexDoc(Document):
+            indexed = fields.StrField()
+            no_indexed = fields.IntField()
+
+            class Config:
+                collection = db.simple_index_doc
+                indexes = ['indexed']
+
+        yield SimpleIndexDoc.collection.drop_indexes()
+
+        # Now ask for indexes building
+        yield SimpleIndexDoc.ensure_indexes()
+        # SimpleIndexDoc.collection.index_information doesn't seems to work...
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': '%s.simple_index_doc' % TEST_DB,
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'indexed': 1},
+                'name': 'indexed_1',
+                'ns': '%s.simple_index_doc' % TEST_DB
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        yield SimpleIndexDoc.ensure_indexes()
+        assert indexes == expected_indexes

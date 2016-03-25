@@ -1,4 +1,14 @@
-from pymongo import IndexModel, ASCENDING, DESCENDING, TEXT, HASHED
+try:
+    from pymongo import IndexModel
+except ImportError:
+    # Pymong < 3 used by motor doesn't support IndexModel
+    class IndexModel:
+        def __init__(self, keys, **kwargs):
+            if not isinstance(keys, (list, tuple)):
+                keys = [keys]
+            kwargs['key'] = {k: d for k, d in keys}
+            self.document = kwargs
+from pymongo import ASCENDING, DESCENDING, TEXT, HASHED
 
 
 def explicit_index(index):

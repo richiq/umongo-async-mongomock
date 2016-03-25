@@ -62,6 +62,8 @@ class MotorAsyncIODal(AbstractDal):
         _io_validate_patch_schema(schema)
 
     def reload(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
@@ -104,6 +106,13 @@ class MotorAsyncIODal(AbstractDal):
     @classmethod
     def find(cls, *args, **kwargs):
         return WrappedCursor(cls, cls.collection.find(*args, **kwargs))
+
+    @classmethod
+    def ensure_indexes(cls):
+        for index in cls.config.get('indexes'):
+            kwargs = index.document.copy()
+            keys = [(k, d) for k, d in kwargs.pop('key').items()]
+            yield from cls.collection.create_index(keys, **kwargs)
 
 
 # Run multiple validators and collect all errors in one

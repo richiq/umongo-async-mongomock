@@ -162,8 +162,4 @@ def classroom_model(db):
             collection = db.student
             allow_inheritance = True
 
-    Teacher.collection.drop()
-    Course.collection.drop()
-    Student.collection.drop()
-
     return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)

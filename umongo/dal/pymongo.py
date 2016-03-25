@@ -45,6 +45,8 @@ class PyMongoDal(AbstractDal):
         _io_validate_patch_schema(schema)
 
     def reload(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
