@@ -70,8 +70,9 @@ class DataProxy:
         self.clear_modified()
         self.partial = partial
 
-    def dump(self):
-        data, err = self._schema.dump(self._data)
+    def dump(self, schema=None, **kwargs):
+        schema = schema or self._schema
+        data, err = schema.dump(self._data)
         if err:
             raise ValidationError(err)
         return data
@@ -79,9 +80,20 @@ class DataProxy:
     def _mark_as_modified(self, key):
         self._modified_data.add(key)
 
-    def load(self, data, partial=False):
+    def update(self, data, schema=None):
+        schema = schema or self._schema
         # Always use marshmallow partial load to skip required checks
-        loaded_data, err = self._schema.load(data, partial=True)
+        loaded_data, err = schema.load(data, partial=True)
+        if err:
+            raise ValidationError(err)
+        self._data.update(loaded_data)
+        for key in loaded_data:
+            self._mark_as_modified(key)
+
+    def load(self, data, partial=False, schema=None):
+        schema = schema or self._schema
+        # Always use marshmallow partial load to skip required checks
+        loaded_data, err = schema.load(data, partial=True)
         if err:
             raise ValidationError(err)
         self._data = loaded_data

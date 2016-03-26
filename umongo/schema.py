@@ -30,8 +30,9 @@ class BaseSchema(MaSchema):
 
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
+        loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
         for key in original_data:
-            if key not in self.fields:
+            if key not in loadable_fields:
                 raise ValidationError('Unknown field name {}'.format(key))
 
 

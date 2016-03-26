@@ -74,8 +74,11 @@ class Document(metaclass=MetaDocument):
                                   ' using update')
         return self._data.to_mongo(update=update)
 
-    def dump(self):
-        return self._data.dump()
+    def update(self, data, **kwargs):
+        return self._data.update(data, **kwargs)
+
+    def dump(self, **kwargs):
+        return self._data.dump(**kwargs)
 
     def clear_modified(self):
         self._data.clear_modified()
