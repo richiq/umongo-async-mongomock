@@ -128,7 +128,7 @@ def list_users():
 
 
 @app.route('/users', methods=['POST'])
-def create_user(nick_or_id):
+def create_user():
     payload = request.get_json()
     try:
         user = User(**payload)
