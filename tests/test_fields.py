@@ -8,7 +8,7 @@ from umongo.data_proxy import DataProxy
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
 from umongo.data_objects import List, Dict
 
-from .fixtures import collection_moke
+from .fixtures import collection_moke, db_moke
 
 
 class TestFields:
@@ -423,3 +423,51 @@ class TestFields:
         d.set('ref', to_refer_doc)
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
         assert d.get('ref').document_cls == MyReferencedDocLazy
+
+    def test_generic_reference(self, db_moke):
+
+        class ToRef1(Document):
+
+            class Config:
+                collection = db_moke.col_ref1
+
+        class ToRef2(Document):
+
+            class Config:
+                collection = db_moke.col_ref2
+
+        doc1 = ToRef1.build_from_mongo({'_id': ObjectId()})
+        ref1 = Reference(ToRef1, doc1.pk)
+
+        class MySchema(Schema):
+            gref = fields.GenericReferenceField(attribute='in_mongo_gref')
+
+        d = DataProxy(MySchema())
+        d.load({'gref': {'id': ObjectId("5672d47b1d41c88dcd37ef05"), 'cls': ToRef2.__name__}})
+        assert d.dump() == {'gref': {'id': "5672d47b1d41c88dcd37ef05", 'cls': 'ToRef2'}}
+        d.get('gref').document_cls == ToRef2
+        d.set('gref', doc1)
+        assert d.to_mongo(update=True) == {'$set': {'in_mongo_gref': {'_id': doc1.pk, '_cls': 'ToRef1'}}}
+        assert d.get('gref') == ref1
+        d.set('gref', ref1)
+        assert d.get('gref') == ref1
+        assert d.dump() == {'gref': {'id': str(doc1.pk), 'cls': 'ToRef1'}}
+
+        not_created_doc = ToRef1()
+        with pytest.raises(ValidationError):
+            d.set('gref', not_created_doc)
+
+        # Test invalid references
+        for v in [
+                {'id': ObjectId()},  # missing _cls
+                {'cls': ToRef1.__name__},  # missing _id
+                {'id': ObjectId(), 'cls': 'dummy!'},  # invalid _cls
+                {'_id': ObjectId(), '_cls': ToRef1.__name__},  # bad field names
+                {'id': ObjectId(), 'cls': ToRef1.__name__, 'e': '?'},  # too much fields
+                ObjectId("5672d47b1d41c88dcd37ef05"),  # missing cls info
+                42,  # Are you kidding ?
+                '',  # Please stop...
+                True  # I'm outa of that !
+                ]:
+            with pytest.raises(ValidationError) as exc:
+                d.set('gref', v)

@@ -119,6 +119,27 @@ def dal_moke(request, collection_moke):
 
 
 @pytest.fixture
+def db_moke(request, name='my_moked_db'):
+
+    class MokedCollection():
+        def __init__(self, name):
+            self.name = name
+
+    class MokedDB:
+        def __init__(self, name):
+            self.name = name
+            self.cols = {}
+
+        def __getattr__(self, name):
+            if name not in self.cols:
+                self.cols[name] = MokedCollection(name)
+                dal_moke(request, self.cols[name])
+            return self.cols[name]
+
+    return MokedDB(name)
+
+
+@pytest.fixture
 def collection_moke(request, name='my_moked_col'):
 
     class MokedCollection(CallTracerMoke):

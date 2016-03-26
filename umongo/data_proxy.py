@@ -81,10 +81,10 @@ class DataProxy:
 
     def load(self, data, partial=False):
         # Always use marshmallow partial load to skip required checks
-        data, err = self._schema.load(data, partial=True)
+        loaded_data, err = self._schema.load(data, partial=True)
         if err:
             raise ValidationError(err)
-        self._data = data
+        self._data = loaded_data
         self._add_missing_fields()
         self.clear_modified()
         self.partial = partial

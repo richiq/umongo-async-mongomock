@@ -1,9 +1,10 @@
 from datetime import datetime
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
-from bson import DBRef
+from bson import DBRef, ObjectId
 
 from .registerer import retrieve_document
+from .exceptions import NotRegisteredDocumentError
 from .data_objects import Reference, List, Dict
 from .abstract import BaseField
 
@@ -35,6 +36,7 @@ __all__ = (
     'ConstantField',
     'ObjectIdField',
     'ReferenceField',
+    'GenericReferenceField',
     'EmbeddedField'
 )
 
@@ -91,10 +93,6 @@ class ListField(BaseField, ma_fields.List):
                                          for each in value])
         else:
             return List(self.container)
-
-    def io_validate(self, obj, validate_all=False):
-        for each in obj:
-            self.container.io_validate(each)
 
 
 class StringField(BaseField, ma_fields.String):
@@ -216,7 +214,7 @@ class ReferenceField(ObjectIdField):
                 raise ValidationError("DBRef must be on collection `%s`" %
                                       self._document_cls.collection.name)
             value = value.id
-        if isinstance(value, Reference):
+        elif isinstance(value, Reference):
             if value.document_cls != self.document_cls:
                 raise ValidationError("`%s` reference expected" % self.document_cls.__name__)
             if type(value) is not self.reference_cls:
@@ -237,9 +235,51 @@ class ReferenceField(ObjectIdField):
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
 
-    def io_validate(self, obj, validate_all=False):
-        for each in obj:
-            self.container.io_validate(each)
+
+class GenericReferenceField(BaseField):
+
+    def __init__(self, *args, reference_cls=Reference, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reference_cls = reference_cls
+
+    def _serialize(self, value, attr, obj):
+        return {'id': str(value.pk), 'cls': value.document_cls.__name__}
+
+    def _deserialize(self, value, attr, data):
+        if value is None:
+            return None
+        from .document import Document
+        if isinstance(value, Reference):
+            if type(value) is not self.reference_cls:
+                value = self.reference_cls(value.document_cls, value.pk)
+            return value
+        elif isinstance(value, Document):
+            if not value.created:
+                raise ValidationError("Cannot reference a document that has not been created yet")
+            return self.reference_cls(value.__class__, value.pk)
+        elif isinstance(value, dict):
+            if value.keys() != {'cls', 'id'}:
+                raise ValidationError("Generic reference must have `id` and `cls` fields")
+            try:
+                _id = ObjectId(super()._deserialize(value['id'], attr, data))
+            except ValueError:
+                raise ValidationError("Invalid `id` field")
+            return self._deserialize_from_mongo({
+                '_cls': value['cls'],
+                '_id': _id
+            })
+        else:
+            raise ValidationError("Invalid value for generic reference field")
+
+    def _serialize_to_mongo(self, obj):
+        return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
+
+    def _deserialize_from_mongo(self, value):
+        try:
+            document_cls = retrieve_document(value['_cls'])
+        except NotRegisteredDocumentError:
+            raise ValidationError('Unknown document `%s`' % value['_cls'])
+        return self.reference_cls(document_cls, value['_id'])
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):
@@ -262,6 +302,3 @@ class EmbeddedField(BaseField, ma_fields.Nested):
 
     def _deserialize_from_mongo(self, value):
         return self._embedded_document_cls.build_from_mongo(value)
-
-    def io_validate(self, obj, validate_all=False):
-        obj.io_validate(validate_all=validate_all)
