@@ -103,7 +103,8 @@ def change_password_user(nick_or_id):
     schema = PasswordSchema(strict=True)
     schema.fields['password'].required = True
     try:
-        # Validate the incoming payload outside of the document
+        # Validate the incoming payload outside of the document to process
+        # the `required` options
         data, _ = schema.load(payload)
         user.password = data['password']
         user.commit()
