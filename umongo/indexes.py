@@ -46,5 +46,4 @@ def parse_index(index, base_compound_field=None):
         raise TypeError('Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')
     if base_compound_field:
         keys.append(explicit_index(base_compound_field))
-    print(index, '------->', IndexModel(keys, **args).document)
     return IndexModel(keys, **args)
