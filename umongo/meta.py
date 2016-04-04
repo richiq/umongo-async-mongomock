@@ -131,6 +131,14 @@ class MetaDocument(type):
             nmspc['_cls'] = StrField(dump_only=True, missing=name)
         # Now that config is done, we can create the schema
         name, bases, nmspc = base_meta_document(name, bases, nmspc)
+        # Find back fields needing unique indexes
+        for key, field in nmspc['schema'].fields.items():
+            if field.unique:
+                index = {'unique': True, 'fields': [key or field.attribute]}
+                if is_child:
+                    index['fields'].append('_cls')
+                nmspc['config']['indexes'].append(parse_index(index))
+                print(parse_index(index).document)
         # If a collection has been defined, the document is not abstract.
         # Retrieve it corresponding DAL and make the document inherit it.
         collection = nmspc['config'].get('collection')

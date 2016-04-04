@@ -281,3 +281,106 @@ class TestPymongo(BaseTest):
         # Redoing indexes building should do nothing
         SimpleIndexDoc.ensure_indexes()
         assert indexes == expected_indexes
+
+    def test_unique_index(self, db):
+
+        class UniqueIndexDoc(Document):
+            not_unique = fields.StrField(unique=False)
+            unique = fields.IntField(unique=True)
+
+            class Config:
+                collection = db.unique_index_doc
+
+        UniqueIndexDoc.collection.drop_indexes()
+
+        # Now ask for indexes building
+        UniqueIndexDoc.ensure_indexes()
+        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': '%s.unique_index_doc' % TEST_DB,
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'unique': 1},
+                'name': 'unique_1',
+                'unique': True,
+                'ns': '%s.unique_index_doc' % TEST_DB
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        UniqueIndexDoc.ensure_indexes()
+        assert indexes == expected_indexes
+
+        UniqueIndexDoc(not_unique='a', unique=1).commit()
+        UniqueIndexDoc(not_unique='a', unique=1).commit()
+
+    @pytest.mark.xfail
+    def test_unique_index_inheritance(self, db):
+
+        class UniqueIndexParentDoc(Document):
+            not_unique = fields.StrField(unique=False)
+            unique = fields.IntField(unique=True)
+
+            class Config:
+                collection = db.unique_index_inheritance_doc
+                allow_inheritance = True
+
+        class UniqueIndexChildDoc(UniqueIndexParentDoc):
+            child_not_unique = fields.StrField(unique=False)
+            child_unique = fields.IntField(unique=True)
+            manual_index = fields.IntField()
+
+            class Config:
+                indexes = ['manual_index']
+
+        UniqueIndexChildDoc.collection.drop_indexes()
+
+        # Now ask for indexes building
+        UniqueIndexChildDoc.ensure_indexes()
+        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+        expected_indexes = [
+            {
+                'key': {'_id': 1},
+                'name': '_id_',
+                'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
+                'v': 1
+            },
+            {
+                'v': 1,
+                'key': {'unique': 1},
+                'name': 'unique_1',
+                'unique': True,
+                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+            },
+            {
+                'v': 1,
+                'key': {'manual_index': 1, '_cls': 1},
+                'name': 'manual_index_1__cls_1',
+                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+            },
+            {
+                'v': 1,
+                'key': {'_cls': 1},
+                'name': '_cls_1',
+                'unique': True,
+                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+            },
+            {
+                'v': 1,
+                'key': {'child_unique': 1, '_cls': 1},
+                'name': 'child_unique_1__cls_1',
+                'unique': True,
+                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+            }
+        ]
+        assert indexes == expected_indexes
+
+        # Redoing indexes building should do nothing
+        UniqueIndexChildDoc.ensure_indexes()
+        assert indexes == expected_indexes

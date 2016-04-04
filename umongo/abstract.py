@@ -3,9 +3,10 @@ from marshmallow import fields as ma_fields, missing
 
 class BaseField(ma_fields.Field):
 
-    def __init__(self, *args, io_validate=None, **kwargs):
+    def __init__(self, *args, io_validate=None, unique=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.io_validate = io_validate
+        self.unique = unique
 
     def __repr__(self):
         return ('<fields.{ClassName}(default={self.default!r}, '
