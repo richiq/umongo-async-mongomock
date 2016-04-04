@@ -1,7 +1,7 @@
 from itertools import zip_longest
 
 from umongo.indexes import (
-    parse_index, explicit_index, parse_index,
+    parse_index, explicit_key, parse_index,
     IndexModel, ASCENDING, DESCENDING, TEXT, HASHED)
 from umongo import Document, fields
 
@@ -42,7 +42,7 @@ class TestIndexes:
             ):
             assert_indexes(parse_index(value), expected)
 
-    def test_explicit_index(self):
+    def test_explicit_key(self):
         for value, expected in (
                 ('my_index', ('my_index', ASCENDING)),
                 ('+my_index', ('my_index', ASCENDING)),
@@ -52,7 +52,7 @@ class TestIndexes:
                 # No changes if not needed
                 (('my_index', ASCENDING), ('my_index', ASCENDING)),
             ):
-            assert explicit_index(value) == expected
+            assert explicit_key(value) == expected
 
     def test_inheritance(self):
 

@@ -11,7 +11,7 @@ except ImportError:
 from pymongo import ASCENDING, DESCENDING, TEXT, HASHED
 
 
-def explicit_index(index):
+def explicit_key(index):
     if isinstance(index, (list, tuple)):
         assert len(index) == 2, 'Must be a (`key`, `direction`) tuple'
         return index
@@ -35,15 +35,15 @@ def parse_index(index, base_compound_field=None):
         args = {k: v for k, v in index.document.items() if k != 'key'}
     elif isinstance(index, (tuple, list)):
         # Compound indexes
-        keys = [explicit_index(e) for e in index]
+        keys = [explicit_key(e) for e in index]
     elif isinstance(index, str):
-        keys = [explicit_index(index)]
+        keys = [explicit_key(index)]
     elif isinstance(index, dict):
         assert 'fields' in index, 'Index passed as dict must have a fields entry'
-        keys = [explicit_index(e) for e in index['fields']]
+        keys = [explicit_key(e) for e in index['fields']]
         args = {k: v for k, v in index.items() if k != 'fields'}
     else:
         raise TypeError('Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')
     if base_compound_field:
-        keys.append(explicit_index(base_compound_field))
+        keys.append(explicit_key(base_compound_field))
     return IndexModel(keys, **args)
