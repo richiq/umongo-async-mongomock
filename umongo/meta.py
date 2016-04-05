@@ -134,9 +134,11 @@ class MetaDocument(type):
         # Find back fields needing unique indexes
         for key, field in nmspc['schema'].fields.items():
             if field.unique:
-                index = {'unique': True, 'fields': [key or field.attribute]}
+                index = {'unique': True, 'key': [key or field.attribute]}
+                if not field.required or field.allow_none:
+                    index['sparse'] = True
                 if is_child:
-                    index['fields'].append('_cls')
+                    index['key'].append('_cls')
                 nmspc['config']['indexes'].append(parse_index(index))
                 print(parse_index(index).document)
         # If a collection has been defined, the document is not abstract.

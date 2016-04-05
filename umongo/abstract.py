@@ -4,6 +4,21 @@ from marshmallow import fields as ma_fields, missing
 class BaseField(ma_fields.Field):
 
     def __init__(self, *args, io_validate=None, unique=False, **kwargs):
+        """
+        Enabled flags                 | resulting index
+        ------------------------------+----------------
+        <no flags>                    |
+        allow_none                    |
+        required                      |
+        required, allow_none          |
+        required, unique, allow_none  | unique
+        unique                        | unique, sparse
+        unique, required              | unique
+        unique, allow_none            | unique, sparse
+
+        Note: Even with allow_none flag, the unique flag will refuse duplicated
+        `null` value (consider unsetting the field with `del` instead)
+        """
         super().__init__(*args, **kwargs)
         self.io_validate = io_validate
         self.unique = unique
@@ -15,7 +30,7 @@ class BaseField(ma_fields.Field):
                 'load_only={self.load_only}, dump_only={self.dump_only}, '
                 'missing={self.missing}, allow_none={self.allow_none}, '
                 'error_messages={self.error_messages}, '
-                'io_validate={self.io_validate})>'
+                'io_validate={self.io_validate}), unique={self.unique}>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def serialize(self, attr, obj, accessor=None):

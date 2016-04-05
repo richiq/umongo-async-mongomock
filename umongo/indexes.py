@@ -39,9 +39,10 @@ def parse_index(index, base_compound_field=None):
     elif isinstance(index, str):
         keys = [explicit_key(index)]
     elif isinstance(index, dict):
-        assert 'fields' in index, 'Index passed as dict must have a fields entry'
-        keys = [explicit_key(e) for e in index['fields']]
-        args = {k: v for k, v in index.items() if k != 'fields'}
+        assert 'key' in index, 'Index passed as dict must have a `key` entry'
+        assert hasattr(index['key'], '__iter__'), '`key` entry must be iterable'
+        keys = [explicit_key(e) for e in index['key']]
+        args = {k: v for k, v in index.items() if k != 'key'}
     else:
         raise TypeError('Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')
     if base_compound_field:

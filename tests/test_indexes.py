@@ -30,7 +30,7 @@ class TestIndexes:
                 # Custom index
                 ({
                     'name': 'my-custom-index',
-                    'fields': ['+index1', '-index2'],
+                    'key': ['+index1', '-index2'],
                     'sparse': True,
                     'unique': True,
                     'expireAfterSeconds': 42

@@ -1,5 +1,6 @@
 from pymongo.collection import Collection
 from pymongo.cursor import Cursor
+from pymongo.errors import DuplicateKeyError
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
@@ -56,17 +57,32 @@ class PyMongoDal(AbstractDal):
     def commit(self, io_validate_all=False):
         self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
-        if self.created:
-            if payload:
-                ret = self.collection.update_one(
-                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
-                if ret.modified_count != 1:
-                    raise UpdateError(ret.raw_result)
-        else:
-            ret = self.collection.insert_one(payload)
-            # TODO: check ret ?
-            self._data.set_by_mongo_name('_id', ret.inserted_id)
-            self.created = True
+        try:
+            if self.created:
+                if payload:
+                    ret = self.collection.update_one(
+                        {'_id': self._data.get_by_mongo_name('_id')}, payload)
+                    if ret.modified_count != 1:
+                        raise UpdateError(ret.raw_result)
+            else:
+                ret = self.collection.insert_one(payload)
+                # TODO: check ret ?
+                self._data.set_by_mongo_name('_id', ret.inserted_id)
+                self.created = True
+        except DuplicateKeyError as exc:
+            # Need to dig into error message to find faulting index
+            errmsg = exc.details['errmsg']
+            for index in self.config['indexes']:
+                if '.$%s' % index.document['name'] in errmsg:
+                    keys = index.document['key'].keys()
+                    if len(keys) == 1:
+                        msg = 'Field value must be unique'
+                    else:
+                        # Compound index
+                        msg = 'Values of fields %s must be unique together' % keys
+                    raise ValidationError({k: msg for k in keys})
+            # Unknown index, cannot wrap the error so just reraise it
+            raise
         self._data.clear_modified()
 
     def delete(self):
@@ -95,7 +111,7 @@ class PyMongoDal(AbstractDal):
 
     @classmethod
     def ensure_indexes(cls):
-        indexes = cls.config.get('indexes')
+        indexes = cls.config['indexes']
         if indexes:
             cls.collection.create_indexes(indexes)
 
