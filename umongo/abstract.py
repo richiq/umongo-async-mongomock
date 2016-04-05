@@ -30,7 +30,7 @@ class BaseField(ma_fields.Field):
                 'load_only={self.load_only}, dump_only={self.dump_only}, '
                 'missing={self.missing}, allow_none={self.allow_none}, '
                 'error_messages={self.error_messages}, '
-                'io_validate={self.io_validate}), unique={self.unique}>'
+                'io_validate={self.io_validate}, unique={self.unique})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def serialize(self, attr, obj, accessor=None):

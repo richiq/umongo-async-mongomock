@@ -14,7 +14,7 @@ class Student(Document):
     birthday = fields.DateTimeField()
     gpa = fields.FloatField()
 
-    class Config:
+    class Meta:
         allow_inheritance = True
 
 
@@ -129,7 +129,7 @@ class TestDocument(BaseTest):
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
-            class Config:
+            class Meta:
                 collection = collection_moke
 
         student = ConfiguredStudent()
@@ -149,7 +149,7 @@ class TestDocument(BaseTest):
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
-            class Config:
+            class Meta:
                 collection = collection_moke
 
         john_data = {
@@ -176,7 +176,7 @@ class TestDocument(BaseTest):
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
-            class Config:
+            class Meta:
                 collection = collection_moke
 
         newbie = ConfiguredStudent(name='Newbie')
@@ -223,10 +223,10 @@ class TestConfig:
         class Doc2(Document):
             pass
 
-        assert Doc2.config['collection'] is None
-        assert Doc2.config['lazy_collection'] is None
-        assert Doc2.config['dal'] is None
-        assert Doc2.config['register_document'] is True
+        assert Doc2.opts.collection is None
+        assert Doc2.opts.lazy_collection is None
+        assert Doc2.opts.dal is None
+        assert Doc2.opts.register_document is True
 
     def test_lazy_collection(self, dal_moke, collection_moke):
 
@@ -235,13 +235,13 @@ class TestConfig:
 
         class Doc3(Document):
 
-            class Config:
+            class Meta:
                 lazy_collection = lazy_factory
                 dal = dal_moke
 
-        assert Doc3.config['collection'] is None
-        assert Doc3.config['lazy_collection'] is lazy_factory
-        assert Doc3.config['dal'] is dal_moke
+        assert Doc3.opts.collection is None
+        assert Doc3.opts.lazy_collection is lazy_factory
+        assert Doc3.opts.dal is dal_moke
         assert issubclass(Doc3, dal_moke)
         # Try to do the dereferencing
         assert Doc3.collection is collection_moke
@@ -254,13 +254,13 @@ class TestConfig:
 
         class AbsDoc(Document):
 
-            class Config:
+            class Meta:
                 register_document = False
                 abstract = True
 
         class Doc4Child1(AbsDoc):
 
-            class Config:
+            class Meta:
                 collection = col1
                 allow_inheritance = True
                 register_document = False
@@ -270,16 +270,16 @@ class TestConfig:
 
         class Doc4Child2(AbsDoc):
 
-            class Config:
+            class Meta:
                 collection = col2
 
-        assert Doc4Child1.config['collection'] is col1
-        assert Doc4Child1Child.config['collection'] is col1
-        assert Doc4Child1Child.config['allow_inheritance'] is False
-        assert Doc4Child1.config['register_document'] is False
-        assert Doc4Child2.config['register_document'] is True
-        assert Doc4Child2.config['collection'] == col2
-        assert Doc4Child2.config['register_document'] is True
+        assert Doc4Child1.opts.collection is col1
+        assert Doc4Child1Child.opts.collection is col1
+        assert Doc4Child1Child.opts.allow_inheritance is False
+        assert Doc4Child1.opts.register_document is False
+        assert Doc4Child2.opts.register_document is True
+        assert Doc4Child2.opts.collection == col2
+        assert Doc4Child2.opts.register_document is True
 
     def test_no_collection(self):
 
@@ -299,7 +299,7 @@ class TestConfig:
 
             class Doc7(Document):
 
-                class Config:
+                class Meta:
                     lazy_collection = lambda: None
 
         # Bad `dal` attribute
@@ -307,7 +307,7 @@ class TestConfig:
 
             class Doc7(Document):
 
-                class Config:
+                class Meta:
                     lazy_collection = lambda: None
 
                     class dal:

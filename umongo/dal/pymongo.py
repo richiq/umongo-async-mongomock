@@ -72,7 +72,7 @@ class PyMongoDal(AbstractDal):
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
-            for index in self.config['indexes']:
+            for index in self.opts.indexes:
                 if '.$%s' % index.document['name'] in errmsg:
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
@@ -111,9 +111,8 @@ class PyMongoDal(AbstractDal):
 
     @classmethod
     def ensure_indexes(cls):
-        indexes = cls.config['indexes']
-        if indexes:
-            cls.collection.create_indexes(indexes)
+        if cls.opts.indexes:
+            cls.collection.create_indexes(cls.opts.indexes)
 
 
 # Run multiple validators and collect all errors in one

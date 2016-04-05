@@ -89,7 +89,7 @@ class MotorAsyncIODal(AbstractDal):
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
-            for index in self.config['indexes']:
+            for index in self.opts.indexes:
                 if '.$%s' % index.document['name'] in errmsg:
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
@@ -125,7 +125,7 @@ class MotorAsyncIODal(AbstractDal):
 
     @classmethod
     def ensure_indexes(cls):
-        for index in cls.config.get('indexes'):
+        for index in cls.opts.indexes:
             kwargs = index.document.copy()
             keys = [(k, d) for k, d in kwargs.pop('key').items()]
             yield from cls.collection.create_index(keys, **kwargs)

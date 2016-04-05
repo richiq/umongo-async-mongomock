@@ -9,6 +9,8 @@ from umongo import Document, fields
 def assert_indexes(indexes1, indexes2):
     if hasattr(indexes1, '__iter__'):
         for e1, e2 in zip_longest(indexes1, indexes2):
+            assert e1, "missing index %s" % e2.document
+            assert e2, "too much indexes: %s" % e1.document
             assert e1.document == e2.document
     else:
         assert indexes1.document == indexes2.document
@@ -59,19 +61,18 @@ class TestIndexes:
         class Parent(Document):
             last_name = fields.StrField()
 
-            class Config:
+            class Meta:
                 allow_inheritance = True
                 indexes = ['last_name']
 
         class Child(Parent):
             first_name = fields.StrField()
 
-            class Config:
+            class Meta:
                 indexes = ['-first_name']
 
-        assert_indexes(Parent.config['indexes'],
-            [IndexModel([('last_name', ASCENDING)])])
-        assert_indexes(Child.config['indexes'],
+        assert_indexes(Parent.opts.indexes, [IndexModel([('last_name', ASCENDING)])])
+        assert_indexes(Child.opts.indexes,
             [
                 IndexModel([('last_name', ASCENDING)]),
                 IndexModel([('first_name', DESCENDING), ('_cls', ASCENDING)]),

@@ -161,7 +161,7 @@ def classroom_model(db):
     class Teacher(Document):
         name = fields.StrField(required=True)
 
-        class Config:
+        class Meta:
             register_document = False
             collection = db.teacher
 
@@ -169,7 +169,7 @@ def classroom_model(db):
         name = fields.StrField(required=True)
         teacher = fields.ReferenceField(Teacher, required=True)
 
-        class Config:
+        class Meta:
             register_document = False
             collection = db.course
 
@@ -178,7 +178,7 @@ def classroom_model(db):
         birthday = fields.DateTimeField()
         courses = fields.ListField(fields.ReferenceField(Course))
 
-        class Config:
+        class Meta:
             register_document = False
             collection = db.student
             allow_inheritance = True

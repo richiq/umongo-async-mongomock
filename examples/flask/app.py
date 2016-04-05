@@ -15,7 +15,7 @@ class User(Document):
     birthday = fields.DateTimeField()
     password = fields.StrField()  # Don't store it in clear in real life !
 
-    class Config:
+    class Meta:
         collection = db.user
 
 

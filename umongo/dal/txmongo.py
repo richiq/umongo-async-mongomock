@@ -49,7 +49,7 @@ class TxMongoDal(AbstractDal):
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
-            for index in self.config['indexes']:
+            for index in self.opts.indexes:
                 if '.$%s' % index.document['name'] in errmsg:
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
@@ -100,8 +100,7 @@ class TxMongoDal(AbstractDal):
     @classmethod
     @inlineCallbacks
     def ensure_indexes(cls):
-        indexes = cls.config.get('indexes')
-        for index in indexes:
+        for index in cls.opts.indexes:
             kwargs = index.document.copy()
             keys = kwargs.pop('key')
             index = qf.sort([(k, d) for k, d in keys.items()])

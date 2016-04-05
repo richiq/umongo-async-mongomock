@@ -35,6 +35,19 @@ class BaseSchema(MaSchema):
             if key not in loadable_fields:
                 raise ValidationError('Unknown field name {}'.format(key))
 
+    def map_to_field(self, func):
+        """
+        Apply a function to every field in the schema
+
+        >>> def func(mongo_path, path, field):
+        ...     pass
+        """
+        for name, field in self.fields.items():
+            mongo_path = field.attribute or name
+            func(mongo_path, name, field)
+            if hasattr(field, 'map_to_field'):
+                field.map_to_field(mongo_path, name, func)
+
 
 class Schema(BaseSchema):
 

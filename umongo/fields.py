@@ -94,6 +94,13 @@ class ListField(BaseField, ma_fields.List):
         else:
             return List(self.container)
 
+    def map_to_field(self, mongo_path, path, func):
+        """Apply a function to every field in the schema
+        """
+        func(mongo_path, path, self.container)
+        if hasattr(self.container, 'map_to_field'):
+            self.container.map_to_field(mongo_path, path, func)
+
 
 class StringField(BaseField, ma_fields.String):
     pass
@@ -302,3 +309,13 @@ class EmbeddedField(BaseField, ma_fields.Nested):
 
     def _deserialize_from_mongo(self, value):
         return self._embedded_document_cls.build_from_mongo(value)
+
+    def map_to_field(self, mongo_path, path, func):
+        """Apply a function to every field in the schema
+        """
+        for name, field in self._embedded_document_cls.schema.fields.items():
+            cur_path = '%s.%s' % (path, name)
+            cur_mongo_path = '%s.%s' (mongo_path, field.attribute or name)
+            func(cur_mongo_path, cur_path, field)
+            if hasattr(field, 'map_to_field'):
+                field.map_to_field(cur_mongo_path, cur_path, func)

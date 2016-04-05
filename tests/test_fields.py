@@ -358,7 +358,7 @@ class TestFields:
 
         class MyReferencedDoc(Document):
 
-            class Config:
+            class Meta:
                 collection = collection_moke
 
         class OtherDoc(Document):

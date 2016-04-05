@@ -83,7 +83,7 @@ class TestTxMongo(BaseTest):
             name = fields.StrField(required=True)
             birthday = fields.DateTimeField()
 
-            class Config:
+            class Meta:
                 collection = db.student
 
         yield db.student.drop()
@@ -300,7 +300,7 @@ class TestTxMongo(BaseTest):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
-            class Config:
+            class Meta:
                 collection = db.simple_index_doc
                 indexes = ['indexed']
 
@@ -337,7 +337,7 @@ class TestTxMongo(BaseTest):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
-            class Config:
+            class Meta:
                 collection = db.simple_index_doc
                 indexes = ['indexed']
 
@@ -376,7 +376,7 @@ class TestTxMongo(BaseTest):
             sparse_unique = fields.IntField(unique=True)
             required_unique = fields.IntField(unique=True, required=True)
 
-            class Config:
+            class Meta:
                 collection = db.unique_index_doc
 
         yield UniqueIndexDoc.collection.drop()
@@ -432,7 +432,7 @@ class TestTxMongo(BaseTest):
             compound2 = fields.IntField()
             not_unique = fields.StrField()
 
-            class Config:
+            class Meta:
                 collection = db.unique_index_compound_doc
                 # Must define custom index to do that
                 indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
@@ -491,7 +491,7 @@ class TestTxMongo(BaseTest):
             not_unique = fields.StrField(unique=False)
             unique = fields.IntField(unique=True)
 
-            class Config:
+            class Meta:
                 collection = db.unique_index_inheritance_doc
                 allow_inheritance = True
 
@@ -500,7 +500,7 @@ class TestTxMongo(BaseTest):
             child_unique = fields.IntField(unique=True)
             manual_index = fields.IntField()
 
-            class Config:
+            class Meta:
                 indexes = ['manual_index']
 
         yield UniqueIndexChildDoc.collection.drop_indexes()
