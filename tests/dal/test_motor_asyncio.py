@@ -21,6 +21,12 @@ if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import motor_asyncio
 
 
+def _ns_stripped(indexes):
+    # With pymongo==2.8 a `ns` field is returned with Mongodb>=3 but
+    # not with MongoDB<2, thus we have to clean this before doing comparing
+    return {k: v for k, v in indexes.items() if k != 'ns'}
+
+
 @pytest.fixture
 def db():
     return AsyncIOMotorClient()[TEST_DB]
@@ -378,12 +384,12 @@ class TestMotorAsyncio(BaseTest):
                     'v': 1
                 }
             }
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from SimpleIndexDoc.ensure_indexes()
             indexes = yield from SimpleIndexDoc.collection.index_information()
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
         loop.run_until_complete(do_test())
 
@@ -415,12 +421,12 @@ class TestMotorAsyncio(BaseTest):
                     'v': 1
                 }
             }
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from SimpleIndexDoc.ensure_indexes()
             indexes = yield from SimpleIndexDoc.collection.index_information()
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
         loop.run_until_complete(do_test())
 
@@ -460,12 +466,12 @@ class TestMotorAsyncio(BaseTest):
                     'sparse': True
                 }
             }
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from UniqueIndexDoc.ensure_indexes()
             indexes = yield from UniqueIndexDoc.collection.index_information()
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             yield from UniqueIndexDoc(not_unique='a', required_unique=1).commit()
             yield from UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
@@ -512,14 +518,14 @@ class TestMotorAsyncio(BaseTest):
                     'unique': True
                 }
             }
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from UniqueIndexCompoundDoc.ensure_indexes()
             indexes = yield from UniqueIndexCompoundDoc.collection.index_information()
             # Must sort compound indexes to avoid random inconsistence
             indexes['compound1_1_compound2_1']['key'] = sorted(indexes['compound1_1_compound2_1']['key'])
-            assert indexes == expected_indexes
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Index is on the tuple (compound1, compound2)
             yield from UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()

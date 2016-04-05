@@ -21,7 +21,7 @@ before_install:
 install:
 - pip install -U tox
 - pip install -U coveralls
-script: tox -e $(echo py$TRAVIS_PYTHON_VERSION-$DRIVER | tr -d .)
+script: tox -e $(echo py$TRAVIS_PYTHON_VERSION-$DRIVER | tr -d .) -- -v
 after_success:
 - coveralls
 deploy:
