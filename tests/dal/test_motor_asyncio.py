@@ -24,7 +24,7 @@ if not dep_error:  # Make sure the module is valid by importing it
 def _ns_stripped(indexes):
     # With pymongo==2.8 a `ns` field is returned with Mongodb>=3 but
     # not with MongoDB<2, thus we have to clean this before doing comparing
-    return {k: v for k, v in indexes.items() if k != 'ns'}
+    return {k: {sk: sv for sk, sv in v.items() if sk != 'ns'} for k, v in indexes.items()}
 
 
 @pytest.fixture
