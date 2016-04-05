@@ -1,6 +1,7 @@
 from txmongo.collection import Collection
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
 from txmongo import filter as qf
+from pymongo.errors import DuplicateKeyError
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
@@ -33,17 +34,30 @@ class TxMongoDal(AbstractDal):
     def commit(self, io_validate_all=False):
         yield self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
-        if self.created:
-            if payload:
-                ret = yield self.collection.update_one(
-                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
-                if ret.modified_count != 1:
-                    raise UpdateError(ret.raw_result)
-        else:
-            ret = yield self.collection.insert_one(payload)
-            # TODO: check ret ?
-            self._data.set_by_mongo_name('_id', ret.inserted_id)
-            self.created = True
+        try:
+            if self.created:
+                if payload:
+                    ret = yield self.collection.update_one(
+                        {'_id': self._data.get_by_mongo_name('_id')}, payload)
+                    if ret.modified_count != 1:
+                        raise UpdateError(ret.raw_result)
+            else:
+                ret = yield self.collection.insert_one(payload)
+                # TODO: check ret ?
+                self._data.set_by_mongo_name('_id', ret.inserted_id)
+                self.created = True
+        except DuplicateKeyError as exc:
+            # Need to dig into error message to find faulting index
+            errmsg = exc.details['errmsg']
+            for index in self.config['indexes']:
+                if '.$%s' % index.document['name'] in errmsg:
+                    keys = index.document['key'].keys()
+                    if len(keys) == 1:
+                        msg = 'Field value must be unique'
+                    else:
+                        # Compound index (sort value to make testing easier)
+                        msg = 'Values of fields %s must be unique together' % sorted(keys)
+                    raise ValidationError({k: msg for k in keys})
         self._data.clear_modified()
 
     @inlineCallbacks

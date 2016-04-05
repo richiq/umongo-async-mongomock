@@ -140,7 +140,6 @@ class MetaDocument(type):
                 if is_child:
                     index['key'].append('_cls')
                 nmspc['config']['indexes'].append(parse_index(index))
-                print(parse_index(index).document)
         # If a collection has been defined, the document is not abstract.
         # Retrieve it corresponding DAL and make the document inherit it.
         collection = nmspc['config'].get('collection')

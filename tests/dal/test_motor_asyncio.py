@@ -423,3 +423,191 @@ class TestMotorAsyncio(BaseTest):
             assert indexes == expected_indexes
 
         loop.run_until_complete(do_test())
+
+    def test_unique_index(self, db, loop):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class UniqueIndexDoc(Document):
+                not_unique = fields.StrField(unique=False)
+                sparse_unique = fields.IntField(unique=True)
+                required_unique = fields.IntField(unique=True, required=True)
+
+                class Config:
+                    collection = db.unique_index_doc
+
+            yield from UniqueIndexDoc.collection.drop()
+            yield from UniqueIndexDoc.collection.drop_indexes()
+
+            # Now ask for indexes building
+            yield from UniqueIndexDoc.ensure_indexes()
+            indexes = yield from UniqueIndexDoc.collection.index_information()
+            expected_indexes = {
+                '_id_': {
+                    'key': [('_id', 1)],
+                    'v': 1
+                },
+                'required_unique_1': {
+                    'v': 1,
+                    'key': [('required_unique', 1)],
+                    'unique': True
+                },
+                'sparse_unique_1': {
+                    'v': 1,
+                    'key': [('sparse_unique', 1)],
+                    'unique': True,
+                    'sparse': True
+                }
+            }
+            assert indexes == expected_indexes
+
+            # Redoing indexes building should do nothing
+            yield from UniqueIndexDoc.ensure_indexes()
+            indexes = yield from UniqueIndexDoc.collection.index_information()
+            assert indexes == expected_indexes
+
+            yield from UniqueIndexDoc(not_unique='a', required_unique=1).commit()
+            yield from UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from UniqueIndexDoc(not_unique='a', required_unique=1).commit()
+            assert exc.value.messages == {'required_unique': 'Field value must be unique'}
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
+            assert exc.value.messages == {'sparse_unique': 'Field value must be unique'}
+
+        loop.run_until_complete(do_test())
+
+    def test_unique_index_compound(self, db, loop):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class UniqueIndexCompoundDoc(Document):
+                compound1 = fields.IntField()
+                compound2 = fields.IntField()
+                not_unique = fields.StrField()
+
+                class Config:
+                    collection = db.unique_index_compound_doc
+                    # Must define custom index to do that
+                    indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
+
+            yield from UniqueIndexCompoundDoc.collection.drop()
+            yield from UniqueIndexCompoundDoc.collection.drop_indexes()
+
+            # Now ask for indexes building
+            yield from UniqueIndexCompoundDoc.ensure_indexes()
+            indexes = yield from UniqueIndexCompoundDoc.collection.index_information()
+            # Must sort compound indexes to avoid random inconsistence
+            indexes['compound1_1_compound2_1']['key'] = sorted(indexes['compound1_1_compound2_1']['key'])
+            expected_indexes = {
+                '_id_': {
+                    'key': [('_id', 1)],
+                    'v': 1
+                },
+                'compound1_1_compound2_1': {
+                    'v': 1,
+                    'key': [('compound1', 1), ('compound2', 1)],
+                    'unique': True
+                }
+            }
+            assert indexes == expected_indexes
+
+            # Redoing indexes building should do nothing
+            yield from UniqueIndexCompoundDoc.ensure_indexes()
+            indexes = yield from UniqueIndexCompoundDoc.collection.index_information()
+            # Must sort compound indexes to avoid random inconsistence
+            indexes['compound1_1_compound2_1']['key'] = sorted(indexes['compound1_1_compound2_1']['key'])
+            assert indexes == expected_indexes
+
+            # Index is on the tuple (compound1, compound2)
+            yield from UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
+            yield from UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=2).commit()
+            yield from UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
+            yield from UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=2).commit()
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
+            assert exc.value.messages == {
+                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
+                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            }
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
+            assert exc.value.messages == {
+                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
+                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            }
+
+        loop.run_until_complete(do_test())
+
+    @pytest.mark.xfail
+    def test_unique_index_inheritance(self, db, loop):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class UniqueIndexParentDoc(Document):
+                not_unique = fields.StrField(unique=False)
+                unique = fields.IntField(unique=True)
+
+                class Config:
+                    collection = db.unique_index_inheritance_doc
+                    allow_inheritance = True
+
+            class UniqueIndexChildDoc(UniqueIndexParentDoc):
+                child_not_unique = fields.StrField(unique=False)
+                child_unique = fields.IntField(unique=True)
+                manual_index = fields.IntField()
+
+                class Config:
+                    indexes = ['manual_index']
+
+            UniqueIndexChildDoc.collection.drop_indexes()
+
+            # Now ask for indexes building
+            UniqueIndexChildDoc.ensure_indexes()
+            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+            expected_indexes = [
+                {
+                    'key': {'_id': 1},
+                    'name': '_id_',
+                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
+                    'v': 1
+                },
+                {
+                    'v': 1,
+                    'key': {'unique': 1},
+                    'name': 'unique_1',
+                    'unique': True,
+                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                },
+                {
+                    'v': 1,
+                    'key': {'manual_index': 1, '_cls': 1},
+                    'name': 'manual_index_1__cls_1',
+                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                },
+                {
+                    'v': 1,
+                    'key': {'_cls': 1},
+                    'name': '_cls_1',
+                    'unique': True,
+                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                },
+                {
+                    'v': 1,
+                    'key': {'child_unique': 1, '_cls': 1},
+                    'name': 'child_unique_1__cls_1',
+                    'unique': True,
+                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                }
+            ]
+            assert name_sorted(indexes) == name_sorted(expected_indexes)
+
+            # Redoing indexes building should do nothing
+            UniqueIndexChildDoc.ensure_indexes()
+            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+            assert name_sorted(indexes) == name_sorted(expected_indexes)
+
+        loop.run_until_complete(do_test())

@@ -78,8 +78,8 @@ class PyMongoDal(AbstractDal):
                     if len(keys) == 1:
                         msg = 'Field value must be unique'
                     else:
-                        # Compound index
-                        msg = 'Values of fields %s must be unique together' % keys
+                        # Compound index (sort value to make testing easier)
+                        msg = 'Values of fields %s must be unique together' % sorted(keys)
                     raise ValidationError({k: msg for k in keys})
             # Unknown index, cannot wrap the error so just reraise it
             raise

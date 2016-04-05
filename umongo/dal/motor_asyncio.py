@@ -1,5 +1,6 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
+from pymongo.errors import DuplicateKeyError
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
@@ -73,17 +74,32 @@ class MotorAsyncIODal(AbstractDal):
     def commit(self, io_validate_all=False):
         yield from self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
-        if self.created:
-            if payload:
-                ret = yield from self.collection.update(
-                    {'_id': self._data.get_by_mongo_name('_id')}, payload)
-                if ret.get('nModified') != 1:
-                    raise UpdateError(ret.raw_result)
-        else:
-            ret = yield from self.collection.insert(payload)
-            # TODO: check ret ?
-            self._data.set_by_mongo_name('_id', ret)
-            self.created = True
+        try:
+            if self.created:
+                if payload:
+                    ret = yield from self.collection.update(
+                        {'_id': self._data.get_by_mongo_name('_id')}, payload)
+                    if ret.get('nModified') != 1:
+                        raise UpdateError(ret.raw_result)
+            else:
+                ret = yield from self.collection.insert(payload)
+                # TODO: check ret ?
+                self._data.set_by_mongo_name('_id', ret)
+                self.created = True
+        except DuplicateKeyError as exc:
+            # Need to dig into error message to find faulting index
+            errmsg = exc.details['errmsg']
+            for index in self.config['indexes']:
+                if '.$%s' % index.document['name'] in errmsg:
+                    keys = index.document['key'].keys()
+                    if len(keys) == 1:
+                        msg = 'Field value must be unique'
+                    else:
+                        # Compound index (sort value to make testing easier)
+                        msg = 'Values of fields %s must be unique together' % sorted(keys)
+                    raise ValidationError({k: msg for k in keys})
+            # Unknown index, cannot wrap the error so just reraise it
+            raise
         self._data.clear_modified()
 
     def delete(self):
