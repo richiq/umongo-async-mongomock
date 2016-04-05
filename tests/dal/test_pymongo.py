@@ -22,6 +22,11 @@ if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import pymongo
 
 
+# Helper to sort indexes by name in order to have deterministic comparison
+def name_sorted(indexes):
+    return sorted(indexes, key=lambda x: x['name'])
+
+
 @pytest.fixture
 def db():
     return MongoClient()[TEST_DB]
@@ -321,11 +326,12 @@ class TestPymongo(BaseTest):
                 'ns': '%s.unique_index_doc' % TEST_DB
             },
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         UniqueIndexDoc(not_unique='a', required_unique=1).commit()
         UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
@@ -369,11 +375,12 @@ class TestPymongo(BaseTest):
                 'ns': '%s.unique_index_compound_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexCompoundDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = [e for e in UniqueIndexCompoundDoc.collection.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Index is on the tuple (compound1, compound2)
         UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
@@ -452,8 +459,9 @@ class TestPymongo(BaseTest):
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexChildDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)

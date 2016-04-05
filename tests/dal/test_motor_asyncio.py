@@ -371,19 +371,18 @@ class TestMotorAsyncio(BaseTest):
             expected_indexes = {
                 '_id_': {
                     'key': [('_id', 1)],
-                    'v': 1,
-                    'ns': '%s.simple_index_doc' % TEST_DB
+                    'v': 1
                 },
                 'indexed_1': {
                     'key': [('indexed', 1)],
-                    'v': 1,
-                    'ns': '%s.simple_index_doc' % TEST_DB
+                    'v': 1
                 }
             }
             assert indexes == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from SimpleIndexDoc.ensure_indexes()
+            indexes = yield from SimpleIndexDoc.collection.index_information()
             assert indexes == expected_indexes
 
         loop.run_until_complete(do_test())
@@ -409,19 +408,18 @@ class TestMotorAsyncio(BaseTest):
             expected_indexes = {
                 '_id_': {
                     'key': [('_id', 1)],
-                    'v': 1,
-                    'ns': '%s.simple_index_doc' % TEST_DB
+                    'v': 1
                 },
                 'indexed_1': {
                     'key': [('indexed', 1)],
-                    'v': 1,
-                    'ns': '%s.simple_index_doc' % TEST_DB
+                    'v': 1
                 }
             }
             assert indexes == expected_indexes
 
             # Redoing indexes building should do nothing
             yield from SimpleIndexDoc.ensure_indexes()
+            indexes = yield from SimpleIndexDoc.collection.index_information()
             assert indexes == expected_indexes
 
         loop.run_until_complete(do_test())

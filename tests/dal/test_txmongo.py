@@ -37,6 +37,11 @@ if not dep_error:  # Make sure the module is valid by importing it
     from umongo.dal import txmongo
 
 
+# Helper to sort indexes by name in order to have deterministic comparison
+def name_sorted(indexes):
+    return sorted(indexes, key=lambda x: x['name'])
+
+
 @pytest.fixture
 def db():
     return MongoConnection()[TEST_DB]
@@ -319,11 +324,12 @@ class TestTxMongo(BaseTest):
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
     def test_indexes_inheritance(self, db):
@@ -355,8 +361,9 @@ class TestTxMongo(BaseTest):
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
