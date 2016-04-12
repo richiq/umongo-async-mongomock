@@ -73,7 +73,8 @@ class PyMongoDal(AbstractDal):
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
             for index in self.opts.indexes:
-                if '.$%s' % index.document['name'] in errmsg:
+                if ('.$%s' % index.document['name'] in errmsg or
+                        ' %s ' % index.document['name'] in errmsg):
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
                         msg = 'Field value must be unique'
