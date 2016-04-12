@@ -90,11 +90,6 @@ class Document(metaclass=MetaDocument):
         # Cannot implicitly access to the class's property
         return type(self).collection
 
-    @property
-    def indexes(self):
-        # Cannot implicitly access to the class's property
-        return type(self).indexes
-
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):
