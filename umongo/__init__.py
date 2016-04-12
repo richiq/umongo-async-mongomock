@@ -14,6 +14,7 @@ from .exceptions import (
 from . import fields
 from .schema import BaseSchema, Schema, EmbeddedSchema
 from .data_objects import EmbeddedDocument, Reference
+from marshmallow import validate
 
 
 __author__ = 'Emmanuel Leblond'
@@ -40,5 +41,7 @@ __all__ = (
     'Schema',
     'EmbeddedSchema',
 
-    'Reference'
+    'Reference',
+
+    'validate'
 )

@@ -1,7 +1,9 @@
-from flask import Flask, abort, jsonify, request
-from umongo import Document, fields, ValidationError
-from pymongo import MongoClient
 from datetime import datetime
+from flask import Flask, abort, jsonify, request
+from bson import ObjectId
+from pymongo import MongoClient
+
+from umongo import Document, fields, ValidationError
 
 
 app = Flask(__name__)
@@ -9,7 +11,7 @@ db = MongoClient().demo_umongo
 
 
 class User(Document):
-    nick = fields.StrField()
+    nick = fields.StrField(required=True, unique=True)
     firstname = fields.StrField()
     lastname = fields.StrField()
     birthday = fields.DateTimeField()
@@ -21,6 +23,7 @@ class User(Document):
 
 def populate_db():
     User.collection.drop()
+    User.ensure_indexes()
     for data in [
         {
             'nick': 'mze', 'lastname': 'Mao', 'firstname': 'Zedong',
@@ -62,9 +65,31 @@ def dump_user_no_pass(u):
     return u.dump(schema=no_pass_schema)
 
 
+@app.route('/', methods=['GET'])
+def root():
+    return """<h1>Umongo flask example</h1>
+<br>
+<h3>routes:</h3><br>
+<ul>
+  <li><a href="/users">GET /users</a></li>
+  <li>POST /users</li>
+  <li>GET /users/&lt;nick_or_id&gt;</li>
+  <li>PATCH /users/&lt;nick_or_id&gt;</li>
+  <li>PUT /users/&lt;nick_or_id&gt;/password</li>
+</ul>
+"""
+
+
+def _to_objid(data):
+    try:
+        return ObjectId(data)
+    except ValueError:
+        return None
+
+
 @app.route('/users/<nick_or_id>', methods=['GET'])
 def get_user(nick_or_id):
-    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': nick_or_id}]})
+    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         abort(404)
     return jsonify(dump_user_no_pass(user))
@@ -73,7 +98,9 @@ def get_user(nick_or_id):
 @app.route('/users/<nick_or_id>', methods=['PATCH'])
 def update_user(nick_or_id):
     payload = request.get_json()
-    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': nick_or_id}]})
+    if payload is None:
+        abort(400, 'Request body must be json with Content-type: application/json')
+    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         abort(404)
     # Define a custom schema from the default one to ignore read-only fields
@@ -82,7 +109,7 @@ def update_user(nick_or_id):
         user.update(payload, schema=schema)
         user.commit()
     except ValidationError as ve:
-        resp = jsonify(message=str(ve))
+        resp = jsonify(message=ve.args[0])
         resp.status_code = 400
         return resp
     return jsonify(dump_user_no_pass(user))
@@ -91,7 +118,9 @@ def update_user(nick_or_id):
 @app.route('/users/<nick_or_id>/password', methods=['PUT'])
 def change_password_user(nick_or_id):
     payload = request.get_json()
-    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': nick_or_id}]})
+    if payload is None:
+        abort(400, 'Request body must be json with Content-type: application/json')
+    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         abort(404)
 
@@ -109,7 +138,7 @@ def change_password_user(nick_or_id):
         user.password = data['password']
         user.commit()
     except ValidationError as ve:
-        resp = jsonify(message=str(ve))
+        resp = jsonify(message=ve.args[0])
         resp.status_code = 400
         return resp
     return jsonify(dump_user_no_pass(user))
@@ -130,11 +159,13 @@ def list_users():
 @app.route('/users', methods=['POST'])
 def create_user():
     payload = request.get_json()
+    if payload is None:
+        abort(400, 'Request body must be json with Content-type: application/json')
     try:
         user = User(**payload)
         user.commit()
     except ValidationError as ve:
-        resp = jsonify(message=str(ve))
+        resp = jsonify(message=ve.args[0])
         resp.status_code = 400
         return resp
     return jsonify(dump_user_no_pass(user))
