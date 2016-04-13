@@ -9,6 +9,8 @@ from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
+from .tools import cook_find_filter
+
 
 class TxMongoDal(AbstractDal):
 
@@ -76,27 +78,31 @@ class TxMongoDal(AbstractDal):
 
     @classmethod
     @inlineCallbacks
-    def find_one(cls, *args, **kwargs):
-        ret = yield cls.collection.find_one(*args, **kwargs)
+    def find_one(cls, spec=None, *args, **kwargs):
+        # In txmongo, `spec` is for filtering and `filter` is for sorting
+        spec = cook_find_filter(cls, spec)
+        ret = yield cls.collection.find_one(*args, spec=spec, **kwargs)
         if ret is not None:
-            ret = cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
     @inlineCallbacks
-    def find(cls, *args, **kwargs):
-        raw_cursor_or_list = yield cls.collection.find(*args, **kwargs)
+    def find(cls, spec=None, *args, **kwargs):
+        # In txmongo, `spec` is for filtering and `filter` is for sorting
+        spec = cook_find_filter(cls, spec)
+        raw_cursor_or_list = yield cls.collection.find(*args, spec=spec, **kwargs)
         if isinstance(raw_cursor_or_list, tuple):
 
             def wrap_raw_results(result):
                 cursor = result[1]
                 if cursor is not None:
                     cursor.addCallback(wrap_raw_results)
-                return ([cls.build_from_mongo(e) for e in result[0]], cursor)
+                return ([cls.build_from_mongo(e, use_cls=True) for e in result[0]], cursor)
 
             return wrap_raw_results(raw_cursor_or_list)
         else:
-            return [cls.build_from_mongo(e) for e in raw_cursor_or_list]
+            return [cls.build_from_mongo(e, use_cls=True) for e in raw_cursor_or_list]
 
     @classmethod
     @inlineCallbacks

@@ -617,3 +617,48 @@ class TestMotorAsyncio(BaseTest):
             assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         loop.run_until_complete(do_test())
+
+    def test_inheritance_search(self, db, loop):
+
+        @asyncio.coroutine
+        def do_test():
+
+            class InheritanceSearchParent(Document):
+                pf = fields.IntField()
+
+                class Meta:
+                    collection = db.inheritance_search
+                    allow_inheritance = True
+
+            class InheritanceSearchChild1(InheritanceSearchParent):
+                c1f = fields.IntField()
+
+                class Meta:
+                    allow_inheritance = True
+
+            class InheritanceSearchChild1Child(InheritanceSearchChild1):
+                sc1f = fields.IntField()
+
+            class InheritanceSearchChild2(InheritanceSearchParent):
+                c2f = fields.IntField(required=True)
+
+            yield from InheritanceSearchParent.collection.drop()
+
+            yield from InheritanceSearchParent(pf=0).commit()
+            yield from InheritanceSearchChild1(pf=1, c1f=1).commit()
+            yield from InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
+            yield from InheritanceSearchChild2(pf=2, c2f=2).commit()
+
+            assert (yield from InheritanceSearchParent.find().count()) == 4
+            assert (yield from InheritanceSearchChild1.find().count()) == 2
+            assert (yield from InheritanceSearchChild1Child.find().count()) == 1
+            assert (yield from InheritanceSearchChild2.find().count()) == 1
+
+            res = yield from InheritanceSearchParent.find_one({'sc1f': 1})
+            assert isinstance(res, InheritanceSearchChild1Child)
+
+            cursor = InheritanceSearchParent.find({'pf': 1})
+            for r in (yield from cursor.to_list(length=100)):
+                assert isinstance(r, InheritanceSearchChild1)
+
+        loop.run_until_complete(do_test())

@@ -52,8 +52,9 @@ quit: leave the console"""
         vehicle = None
         try:
             vehicle = Vehicle.find_one({'_id': ObjectId(id)})
-        except (ValueError, TypeError):
-            pass
+        except Exception as exc:
+            print('Error: %s' % exc)
+            return
         if vehicle:
             print(vehicle)
         else:

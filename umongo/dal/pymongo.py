@@ -8,6 +8,8 @@ from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
+from .tools import cook_find_filter
+
 
 class WrappedCursor(Cursor):
 
@@ -28,11 +30,11 @@ class WrappedCursor(Cursor):
 
     def __next__(self):
         elem = next(self.raw_cursor)
-        return self.document_cls.build_from_mongo(elem)
+        return self.document_cls.build_from_mongo(elem, use_cls=True)
 
     def __iter__(self):
         for elem in self.raw_cursor:
-            yield self.document_cls.build_from_mongo(elem)
+            yield self.document_cls.build_from_mongo(elem, use_cls=True)
 
 
 class PyMongoDal(AbstractDal):
@@ -99,15 +101,17 @@ class PyMongoDal(AbstractDal):
                 self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
-    def find_one(cls, *args, **kwargs):
-        ret = cls.collection.find_one(*args, **kwargs)
+    def find_one(cls, filter=None, *args, **kwargs):
+        filter = cook_find_filter(cls, filter)
+        ret = cls.collection.find_one(*args, filter=filter, **kwargs)
         if ret is not None:
-            ret = cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
-    def find(cls, *args, **kwargs):
-        raw_cursor = cls.collection.find(*args, **kwargs)
+    def find(cls, filter=None, *args, **kwargs):
+        filter = cook_find_filter(cls, filter)
+        raw_cursor = cls.collection.find(*args, filter=filter, **kwargs)
         return WrappedCursor(cls, raw_cursor)
 
     @classmethod

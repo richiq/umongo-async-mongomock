@@ -8,6 +8,8 @@ from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
+from .tools import cook_find_filter
+
 
 class WrappedCursor(AsyncIOMotorCursor):
 
@@ -31,12 +33,12 @@ class WrappedCursor(AsyncIOMotorCursor):
 
     def next_object(self):
         raw = self.raw_cursor.next_object()
-        return self.document_cls.build_from_mongo(raw)
+        return self.document_cls.build_from_mongo(raw, use_cls=True)
 
     def each(self, callback):
         def wrapped_callback(result, error):
             if not error and result is not None:
-                result = self.document_cls.build_from_mongo(result)
+                result = self.document_cls.build_from_mongo(result, use_cls=True)
             return callback(result, error)
         return self.raw_cursor.each(wrapped_callback)
 
@@ -46,7 +48,7 @@ class WrappedCursor(AsyncIOMotorCursor):
         builder = self.document_cls.build_from_mongo
 
         def on_raw_done(fut):
-            cooked_future.set_result([builder(e) for e in fut.result()])
+            cooked_future.set_result([builder(e, use_cls=True) for e in fut.result()])
 
         raw_future.add_done_callback(on_raw_done)
         return cooked_future
@@ -114,15 +116,19 @@ class MotorAsyncIODal(AbstractDal):
                 self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
-    def find_one(cls, *args, **kwargs):
-        ret = yield from cls.collection.find_one(*args, **kwargs)
+    def find_one(cls, spec_or_id=None, *args, **kwargs):
+        # In pymongo<3, `spec_or_id` is for filtering and `filter` is for sorting
+        spec_or_id = cook_find_filter(cls, spec_or_id)
+        ret = yield from cls.collection.find_one(*args, spec_or_id=spec_or_id, **kwargs)
         if ret is not None:
-            ret = cls.build_from_mongo(ret)
+            ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
-    def find(cls, *args, **kwargs):
-        return WrappedCursor(cls, cls.collection.find(*args, **kwargs))
+    def find(cls, spec=None, *args, **kwargs):
+        # In pymongo<3, `spec` is for filtering and `filter` is for sorting
+        spec = cook_find_filter(cls, spec)
+        return WrappedCursor(cls, cls.collection.find(*args, spec=spec, **kwargs))
 
     @classmethod
     def ensure_indexes(cls):

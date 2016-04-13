@@ -465,3 +465,43 @@ class TestPymongo(BaseTest):
         UniqueIndexChildDoc.ensure_indexes()
         indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
+
+    def test_inheritance_search(self, db):
+
+        class InheritanceSearchParent(Document):
+            pf = fields.IntField()
+
+            class Meta:
+                collection = db.inheritance_search
+                allow_inheritance = True
+
+        class InheritanceSearchChild1(InheritanceSearchParent):
+            c1f = fields.IntField()
+
+            class Meta:
+                allow_inheritance = True
+
+        class InheritanceSearchChild1Child(InheritanceSearchChild1):
+            sc1f = fields.IntField()
+
+        class InheritanceSearchChild2(InheritanceSearchParent):
+            c2f = fields.IntField(required=True)
+
+        InheritanceSearchParent.collection.drop()
+
+        InheritanceSearchParent(pf=0).commit()
+        InheritanceSearchChild1(pf=1, c1f=1).commit()
+        InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
+        InheritanceSearchChild2(pf=2, c2f=2).commit()
+
+        assert InheritanceSearchParent.find().count() == 4
+        assert InheritanceSearchChild1.find().count() == 2
+        assert InheritanceSearchChild1Child.find().count() == 1
+        assert InheritanceSearchChild2.find().count() == 1
+
+        res = InheritanceSearchParent.find_one({'sc1f': 1})
+        assert isinstance(res, InheritanceSearchChild1Child)
+
+        res = InheritanceSearchParent.find({'pf': 1})
+        for r in res:
+            assert isinstance(r, InheritanceSearchChild1)

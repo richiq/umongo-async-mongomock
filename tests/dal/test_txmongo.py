@@ -549,3 +549,48 @@ class TestTxMongo(BaseTest):
         yield UniqueIndexChildDoc.ensure_indexes()
         indexes = [e for e in con[TEST_DB].unique_index_inheritance_doc.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
+
+    @pytest_inlineCallbacks
+    def test_inheritance_search(self, db):
+
+        class InheritanceSearchParent(Document):
+            pf = fields.IntField()
+
+            class Meta:
+                collection = db.inheritance_search
+                allow_inheritance = True
+
+        class InheritanceSearchChild1(InheritanceSearchParent):
+            c1f = fields.IntField()
+
+            class Meta:
+                allow_inheritance = True
+
+        class InheritanceSearchChild1Child(InheritanceSearchChild1):
+            sc1f = fields.IntField()
+
+        class InheritanceSearchChild2(InheritanceSearchParent):
+            c2f = fields.IntField(required=True)
+
+        yield InheritanceSearchParent.collection.drop()
+
+        yield InheritanceSearchParent(pf=0).commit()
+        yield InheritanceSearchChild1(pf=1, c1f=1).commit()
+        yield InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
+        yield InheritanceSearchChild2(pf=2, c2f=2).commit()
+
+        res = yield InheritanceSearchParent.find()
+        assert len(res) == 4
+        res = yield InheritanceSearchChild1.find()
+        assert len(res) == 2
+        res = yield InheritanceSearchChild1Child.find()
+        assert len(res) == 1
+        res = yield InheritanceSearchChild2.find()
+        assert len(res) == 1
+
+        res = yield InheritanceSearchParent.find_one({'sc1f': 1})
+        assert isinstance(res, InheritanceSearchChild1Child)
+
+        res = yield InheritanceSearchParent.find({'pf': 1})
+        for r in res:
+            assert isinstance(r, InheritanceSearchChild1)

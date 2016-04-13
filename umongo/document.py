@@ -2,12 +2,13 @@ from .data_proxy import DataProxy
 from .exceptions import NotCreatedError, AbstractDocumentError
 from .meta import MetaDocument, DocumentOpts
 from .data_objects import Reference
+from .registerer import retrieve_document
 
 from bson import DBRef
 
 
 def _base_opts():
-    opts = DocumentOpts({}, ())
+    opts = DocumentOpts('Document', {}, ())
     opts.abstract = True
     opts.allow_inheritance = True
     opts.register_document = False
@@ -60,7 +61,10 @@ class Document(metaclass=MetaDocument):
         return DBRef(collection=self.collection.name, id=self.pk)
 
     @classmethod
-    def build_from_mongo(cls, data, partial=False):
+    def build_from_mongo(cls, data, partial=False, use_cls=False):
+        # If a _cls is specified, we have to use this document class
+        if use_cls and '_cls' in data:
+            cls = retrieve_document(data['_cls'])
         doc = cls()
         doc.from_mongo(data, partial=partial)
         return doc

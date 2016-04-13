@@ -79,10 +79,11 @@ class DocumentOpts:
                 'custom_indexes={self.custom_indexes}, '
                 'collection={self.collection}, '
                 'lazy_collection={self.lazy_collection}, '
-                'dal={self.dal})>'
+                'dal={self.dal},'
+                'children={self.children})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def __init__(self, nmspc, bases):
+    def __init__(self, name, nmspc, bases):
         meta = nmspc.get('Meta')
         self.abstract = getattr(meta, 'abstract', False)
         self.allow_inheritance = getattr(meta, 'allow_inheritance', self.abstract)
@@ -92,11 +93,14 @@ class DocumentOpts:
         self.base_schema_cls = getattr(meta, 'base_schema_cls', Schema)
         self.indexes, self.custom_indexes = _collect_indexes(nmspc, bases)
         self.is_child = _is_child(bases)
+        self.children = set()
         if self.abstract and not self.allow_inheritance:
             raise DocumentDefinitionError("Abstract document cannot disable inheritance")
         # Handle option inheritance and integrity checks
         for base in bases:
             popts = base.opts
+            # Notify the parent of it newborn !
+            popts.children.add(name)
             if not popts.allow_inheritance:
                 raise DocumentDefinitionError("Document %r doesn't allow inheritance" % base)
             if self.abstract and not popts.abstract:
@@ -173,7 +177,7 @@ class MetaDocument(type):
         # Generic handling (i.e. for all other documents)
         assert '_cls' not in nmspc, '`_cls` is a reserved attribute'
         # Generate options from the Meta class and inheritance
-        opts = DocumentOpts(nmspc, bases)
+        opts = DocumentOpts(name, nmspc, bases)
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
             from .fields import StrField
