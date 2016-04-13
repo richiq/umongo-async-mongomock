@@ -136,11 +136,11 @@ class DocumentOpts:
                     "No DAL available for collection %s" % self.collection)
         elif self.lazy_collection:
             if not self.dal:
-                raise NoCollectionDefinedError(
-                    "`dal` attribute is required when using `lazy_collection`")
-            if not issubclass(self.dal, AbstractDal):
-                raise NoCollectionDefinedError(
-                    "`dal` attribute must be a subclass of %s" % AbstractDal)
+                self.dal = self.lazy_collection.dal
+
+        if self.dal and not issubclass(self.dal, AbstractDal):
+            raise NoCollectionDefinedError(
+                "`dal` attribute must be a subclass of %s" % AbstractDal)
 
 
 def _base_meta_document(name, bases, nmspc, base_schema_cls=Schema):
@@ -209,7 +209,7 @@ class MetaDocument(type):
                 lazy_collection = self.opts.lazy_collection
                 if not lazy_collection:
                     raise NoCollectionDefinedError("No collection nor lazy_collection defined")
-                self._collection = lazy_collection()
+                self._collection = lazy_collection.load()
                 if not self._collection:
                     raise NoCollectionDefinedError("lazy_collection didn't returned a collection")
         return self._collection

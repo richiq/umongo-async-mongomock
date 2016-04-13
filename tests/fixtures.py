@@ -5,7 +5,7 @@ from bson import ObjectId
 
 from umongo import Document, Schema, fields, dal
 from umongo.abstract import AbstractDal
-from umongo.dal import register_dal, unregister_dal
+from umongo.dal import register_dal, unregister_dal, lazy_loader_factory
 
 
 class BaseMokedDal(AbstractDal):
@@ -184,3 +184,8 @@ def classroom_model(db):
             allow_inheritance = True
 
     return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
+
+
+@pytest.fixture
+def moked_lazy_loader(dal_moke):
+    return lazy_loader_factory(lambda: dal_moke)

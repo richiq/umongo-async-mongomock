@@ -3,7 +3,7 @@ from datetime import datetime
 from bson import ObjectId, DBRef
 
 from .common import BaseTest
-from .fixtures import collection_moke, dal_moke
+from .fixtures import collection_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
 
@@ -228,7 +228,7 @@ class TestConfig:
         assert Doc2.opts.dal is None
         assert Doc2.opts.register_document is True
 
-    def test_lazy_collection(self, dal_moke, collection_moke):
+    def test_lazy_collection(self, moked_lazy_loader, collection_moke):
 
         def lazy_factory():
             return collection_moke
@@ -236,17 +236,32 @@ class TestConfig:
         class Doc3(Document):
 
             class Meta:
-                lazy_collection = lazy_factory
-                dal = dal_moke
+                lazy_collection = moked_lazy_loader(lazy_factory)
 
         assert Doc3.opts.collection is None
-        assert Doc3.opts.lazy_collection is lazy_factory
-        assert Doc3.opts.dal is dal_moke
-        assert issubclass(Doc3, dal_moke)
+        assert Doc3.opts.dal is Doc3.Meta.lazy_collection.dal
+        assert issubclass(Doc3, Doc3.Meta.lazy_collection.dal)
         # Try to do the dereferencing
         assert Doc3.collection is collection_moke
         d = Doc3()
         assert d.collection is collection_moke
+
+    def test_custom_dal_lazy_collection(self, request, moked_lazy_loader, collection_moke):
+
+        dal_moke_2 = dal_moke(request, collection_moke)
+
+        def lazy_factory():
+            return collection_moke
+
+        class Doc3(Document):
+
+            class Meta:
+                lazy_collection = moked_lazy_loader(lazy_factory)
+                dal = dal_moke_2
+                register_document = False
+
+        assert Doc3.opts.dal is dal_moke_2
+        assert issubclass(Doc3, dal_moke_2)
 
     def test_inheritance(self, request):
         col1 = collection_moke(request, name='col1')
@@ -293,14 +308,6 @@ class TestConfig:
             Doc5().collection
 
     def test_bad_lazy_collection(self, dal_moke):
-
-        # Missing `dal` attribute
-        with pytest.raises(exceptions.NoCollectionDefinedError):
-
-            class Doc7(Document):
-
-                class Meta:
-                    lazy_collection = lambda: None
 
         # Bad `dal` attribute
         with pytest.raises(exceptions.NoCollectionDefinedError):

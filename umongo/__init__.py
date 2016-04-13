@@ -11,6 +11,12 @@ from .exceptions import (
     NoCollectionDefinedError,
     FieldNotLoadedError
 )
+from .dal import (
+    pymongo_lazy_loader,
+    txmongo_lazy_loader,
+    motor_asyncio_lazy_loader,
+    motor_tornado_lazy_loader
+)
 from . import fields
 from .schema import BaseSchema, Schema, EmbeddedSchema
 from .data_objects import EmbeddedDocument, Reference
@@ -34,6 +40,11 @@ __all__ = (
     'NotCreatedError',
     'NoCollectionDefinedError',
     'FieldNotLoadedError',
+
+    'pymongo_lazy_loader',
+    'txmongo_lazy_loader',
+    'motor_asyncio_lazy_loader',
+    'motor_tornado_lazy_loader',
 
     'fields',
 
