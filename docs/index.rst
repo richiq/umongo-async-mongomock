@@ -3,25 +3,31 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to uMongo's documentation!
-======================================
+.. include:: ../README.rst
 
 Contents:
+---------
 
 .. toctree::
    :maxdepth: 2
 
-   readme
-   installation
-   usage
+   tutorial
+   apireference
    contributing
    authors
    history
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
+Misc
+----
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage

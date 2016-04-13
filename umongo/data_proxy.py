@@ -70,7 +70,7 @@ class DataProxy:
         self.clear_modified()
         self.partial = partial
 
-    def dump(self, schema=None, **kwargs):
+    def dump(self, schema=None):
         schema = schema or self._schema
         data, err = schema.dump(self._data)
         if err:

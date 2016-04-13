@@ -25,6 +25,11 @@ __all__ = (
 
 
 class DalRegisterer:
+    """
+    Keep trace of the defined class::`umongo.Document` children.
+    This is usefull to retrieve a document class from it name to avoid
+    recursive referencing and tricky imports.
+    """
 
     def __init__(self):
         self._dals = set()
@@ -53,7 +58,8 @@ find_dal_from_collection = default_dal_registerer.find_from_collection
 
 
 def lazy_loader_factory(get_dal_cls):
-    """Create a lazy loader for the given DAL. Lazy loader should be used
+    """
+    Create a lazy loader for the given DAL. Lazy loader should be used
     when the collection to use with a document is not available when the
     document is defined
 

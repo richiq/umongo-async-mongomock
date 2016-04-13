@@ -24,7 +24,7 @@ class Document(metaclass=MetaDocument):
 
     def __init__(self, **kwargs):
         if self.opts.abstract:
-            raise AbstractDocumentError("Cannot instaciate an abstract Document")
+            raise AbstractDocumentError("Cannot instantiate an abstract Document")
         super().__init__()
         self.created = False
         self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
@@ -46,14 +46,16 @@ class Document(metaclass=MetaDocument):
 
     @property
     def pk(self):
-        """Return the document's primary key (i.e. `_id` in mongo notation) or
+        """
+        Return the document's primary key (i.e. `_id` in mongo notation) or
         None if not available yet
         """
         return self._data.get_by_mongo_name('_id')
 
     @property
     def dbref(self):
-        """Return a pymongo DBRef instance related to the document
+        """
+        Return a pymongo DBRef instance related to the document
         """
         if not self.created:
             raise NotCreatedError('Must create the document before'
@@ -62,6 +64,13 @@ class Document(metaclass=MetaDocument):
 
     @classmethod
     def build_from_mongo(cls, data, partial=False, use_cls=False):
+        """
+        Create a document instance from MongoDB data
+
+        :param data: data as retrieved from MongoDB
+        :param use_cls: if the data contains a ``_cls`` field,
+            use it determine the Document class to instanciate
+        """
         # If a _cls is specified, we have to use this document class
         if use_cls and '_cls' in data:
             cls = retrieve_document(data['_cls'])
@@ -70,27 +79,51 @@ class Document(metaclass=MetaDocument):
         return doc
 
     def from_mongo(self, data, partial=False):
+        """
+        Update the document with the MongoDB data
+
+        :param data: data as retrieved from MongoDB
+        """
         # TODO: handle partial
         self._data.from_mongo(data, partial=partial)
         self.created = True
 
     def to_mongo(self, update=False):
+        """
+
+        """
         if update and not self.created:
             raise NotCreatedError('Must create the document before'
                                   ' using update')
         return self._data.to_mongo(update=update)
 
-    def update(self, data, **kwargs):
-        return self._data.update(data, **kwargs)
+    def update(self, data, schema=None):
+        """
+        Update the document with the given data
 
-    def dump(self, **kwargs):
-        return self._data.dump(**kwargs)
+        :param schema: use this schema for the load instead of the default one
+        """
+        return self._data.update(data, schema=schema)
+
+    def dump(self, schema=None):
+        """
+        Dump the document: return a ``dict``
+
+        :param schema: use this schema for the dump instead of the default one
+        """
+        return self._data.dump(schema=schema)
 
     def clear_modified(self):
+        """
+        Reset the list of document's modified items
+        """
         self._data.clear_modified()
 
     @property
     def collection(self):
+        """
+        Return the collection used by this Document class
+        """
         # Cannot implicitly access to the class's property
         return type(self).collection
 

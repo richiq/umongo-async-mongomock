@@ -1,6 +1,6 @@
-======
-μMongo
-======
+======================
+μMongo: sync/async ODM
+======================
 
 .. image:: https://img.shields.io/pypi/v/umongo.svg
         :target: https://pypi.python.org/pypi/umongo
@@ -16,21 +16,55 @@
     :target: https://coveralls.io/github/Scille/umongo?branch=master
     :alt: Code coverage
 
-Both sync/async MongoDB ODM
+μMongo is a Python MongoDB ODM. It inception comes from two needs:
+the lack of async ODM and the difficulty to do document (un)serialization
+with existing ODMs.
 
-* Free software: MIT license
-* Documentation: https://umongo.readthedocs.org.
+From this point, μMongo made a few design choices:
 
-Features
---------
+- Stay close to the standards MongoDB driver to keep the same API when possible:
+  use ``find({"field": "value"})`` like usual but retrieve your data nicely OO wrapped !
+- Work with multiple drivers (PyMongo_, TxMongo_ and motor_asyncio_ for the moment)
+- Tight integration with Marshmallow_ serialization library to easily
+  dump and load your data with the outside world
+- Free software: MIT license
+- Test with 90%+ coverage ;-)
 
-- Small wrapper around your mongo driver to add enough OO goodness without beeing to cumbersome
-- Support PyMongo, motor-asyncio and TxMongo
+.. _PyMongo: https://api.mongodb.org/python/current/
+.. _TxMongo: https://txmongo.readthedocs.org/en/latest/
+.. _motor_asyncio: https://motor.readthedocs.org/en/stable/
+.. _Marshmallow: http://marshmallow.readthedocs.org
 
-Credits
----------
+Quick example::
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+    from datetime import datetime
+    from pymongo import MongoClient
+    from umongo import Document, fields, validate
 
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+    db = MongoClient().test
+
+    class User(Document):
+        email = fields.EmailField(required=True, unique=True)
+        birthday = fields.DateTimeField(validate=validate.Range(min=datetime(1900, 1, 1)))
+        friends = fields.ListField(fields.ReferenceField("User"))
+
+        class Meta:
+            collection = db.user
+
+    goku = User(email='goku@sayen.com', birthday=datetime(1984, 11, 20))
+    goku.commit()
+    vegeta = User(email='vegeta@over9000.com', friends=[goku])
+    vegeta.commit()
+
+    vegeta.friends
+    # [ObjectId('570ddb311d41c89cabceeddb')]
+    vegeta.dump()
+    # {id': '570ddb311d41c89cabceeddc', 'email': 'vegeta@over9000.com', friends': ['570ddb2a1d41c89cabceeddb']}
+
+    User.find_one({"email": 'goku@sayen.com'})
+    # <object Document __main__.User({'_id': ObjectId('570ddb2a1d41c89cabceeddb'), 'friends': <object umongo.data_objects.List([])>,
+    #                                 'email': 'goku@sayen.com', 'birthday': datetime.datetime(1984, 11, 20, 0, 0)})>
+
+Get it now::
+
+    $ pip install umongo

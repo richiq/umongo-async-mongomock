@@ -79,7 +79,7 @@ class DocumentOpts:
                 'custom_indexes={self.custom_indexes}, '
                 'collection={self.collection}, '
                 'lazy_collection={self.lazy_collection}, '
-                'dal={self.dal},'
+                'dal={self.dal}, '
                 'children={self.children})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
