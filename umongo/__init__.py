@@ -25,7 +25,7 @@ from marshmallow import validate
 
 __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 __all__ = (
     'Document',
     'EmbeddedDocument',
