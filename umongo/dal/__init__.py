@@ -20,7 +20,8 @@ __all__ = (
     'pymongo_lazy_loader',
     'txmongo_lazy_loader',
     'motor_asyncio_lazy_loader',
-    'motor_tornado_lazy_loader'
+    'motor_tornado_lazy_loader',
+    'mongomock_lazy_loader'
 )
 
 
@@ -90,6 +91,8 @@ motor_asyncio_lazy_loader = lazy_loader_factory(
     lambda: import_module('umongo.dal.motor_asyncio').MotorAsyncIODal)
 motor_tornado_lazy_loader = lazy_loader_factory(
     lambda: import_module('umongo.dal.motor_tornado').MotorTornadoDal)
+mongomock_lazy_loader = lazy_loader_factory(
+    lambda: import_module('umongo.dal.mongomock').MongoMockDal)
 
 
 # try to load all the dals by default
@@ -111,5 +114,10 @@ except ImportError:
 try:
     from .motor_tornado import MotorTornadoDal
     register_dal(MotorTornadoDal)
+except ImportError:
+    pass
+try:
+    from .mongomock import MongoMockDal
+    register_dal(MongoMockDal)
 except ImportError:
     pass

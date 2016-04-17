@@ -15,7 +15,8 @@ from .dal import (
     pymongo_lazy_loader,
     txmongo_lazy_loader,
     motor_asyncio_lazy_loader,
-    motor_tornado_lazy_loader
+    motor_tornado_lazy_loader,
+    mongomock_lazy_loader
 )
 from . import fields
 from .schema import BaseSchema, Schema, EmbeddedSchema
@@ -45,6 +46,7 @@ __all__ = (
     'txmongo_lazy_loader',
     'motor_asyncio_lazy_loader',
     'motor_tornado_lazy_loader',
+    'mongomock_lazy_loader',
 
     'fields',
 

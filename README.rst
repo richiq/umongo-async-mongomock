@@ -24,7 +24,7 @@ From this point, μMongo made a few design choices:
 
 - Stay close to the standards MongoDB driver to keep the same API when possible:
   use ``find({"field": "value"})`` like usual but retrieve your data nicely OO wrapped !
-- Work with multiple drivers (PyMongo_, TxMongo_ and motor_asyncio_ for the moment)
+- Work with multiple drivers (PyMongo_, TxMongo_, motor_asyncio_ and mongomock_ for the moment)
 - Tight integration with Marshmallow_ serialization library to easily
   dump and load your data with the outside world
 - Free software: MIT license
@@ -33,6 +33,7 @@ From this point, μMongo made a few design choices:
 .. _PyMongo: https://api.mongodb.org/python/current/
 .. _TxMongo: https://txmongo.readthedocs.org/en/latest/
 .. _motor_asyncio: https://motor.readthedocs.org/en/stable/
+.. _mongomock: https://github.com/vmalloc/mongomock
 .. _Marshmallow: http://marshmallow.readthedocs.org
 
 Quick example
