@@ -35,7 +35,9 @@ From this point, μMongo made a few design choices:
 .. _motor_asyncio: https://motor.readthedocs.org/en/stable/
 .. _Marshmallow: http://marshmallow.readthedocs.org
 
-Quick example::
+Quick example
+
+.. code-block:: python
 
     from datetime import datetime
     from pymongo import MongoClient
