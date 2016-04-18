@@ -9,7 +9,7 @@
         :target: https://travis-ci.org/Scille/umongo
 
 .. image:: https://readthedocs.org/projects/umongo/badge/?version=latest
-        :target: https://readthedocs.org/projects/umongo/?badge=latest
+        :target: http://umongo.readthedocs.org/en/latest/?badge=latest
         :alt: Documentation Status
 
 .. image:: https://coveralls.io/repos/github/Scille/umongo/badge.svg?branch=master
