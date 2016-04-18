@@ -45,10 +45,10 @@ The unserialization operation is done automatically when instantiating a
 Object Oriented world
 ---------------------
 
-So what's good about :class:`umongo.Document` ? Well it's allow you to work
+So what's good about :class:`umongo.Document` ? Well it allows you to work
 with your data as Objects and to guarantee there validity against a model.
 
-First define a document with few :mod:`umongo.fields`
+First let's define a document with few :mod:`umongo.fields`
 
 .. code-block:: python
 
@@ -59,9 +59,9 @@ First define a document with few :mod:`umongo.fields`
 
 Note that each field can be customized with special attributes like
 ``required`` (which is pretty self-explanatory) or ``missing`` (if the
-field is missing it will take this value).
+field is missing during unserialization it will take this value).
 
-Now we can take play back and forth between OO and client worlds
+Now we can play back and forth between OO and client worlds
 
 .. code-block:: python
 
@@ -109,16 +109,17 @@ Object orientation means inheritance, of course you can do that
     class Duck(Animal):
         pass
 
-Note the ``Meta`` subclass, it is used (along with inherited Meta classes)
-to configure the document class, you can access this final config through
-the ``opts`` attribute.
+Note the ``Meta`` subclass, it is used (along with inherited Meta classes from
+parent documents) to configure the document class, you can access this final
+config through the ``opts`` attribute.
+
 Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
 
 .. code-block:: python
 
     >>> Animal.opts
     <DocumentOpts(abstract=True, allow_inheritance=True, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], custom_indexes=[], collection=None, lazy_collection=None, dal=None, children={'Duck', 'Dog'})>
-    >>> NotAllowedSubDog.opts
+    >>> Dog.opts
     <DocumentOpts(abstract=False, allow_inheritance=False, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], custom_indexes=[], collection=None, lazy_collection=None, dal=None, children={})>
     >>> class NotAllowedSubDog(Dog): pass
     [...]
@@ -134,7 +135,7 @@ Mongo world
 
 What the point of a MongoDB ODM without MongoDB ? So here it is !
 
-Mongo world consist of data returned in a format comprehensible by a mongodb
+Mongo world consist of data returned in a format comprehensible by a MongoDB
 driver (`pymongo <https://api.mongodb.org/python/current/>`_ for instance).
 
 .. code-block:: python
@@ -149,7 +150,7 @@ Well it our case the data haven't change much (if any !). Let's consider somethi
     class Dog(Document):
         name = fields.StrField(attribute='_id')
 
-Here we use decide to use the name of the dog as our ``_id`` key, but for
+Here we decided to use the name of the dog as our ``_id`` key, but for
 readability we keep it as ``name`` inside our document.
 
 .. code-block:: python
@@ -162,8 +163,18 @@ readability we keep it as ``name`` inside our document.
     >>> Dog.build_from_mongo({'_id': 'Scruffy'}).dump()
     {'name': 'Scruffy'}
 
+.. note:: If no field refers to ``_id`` in the document, a dump-only field ``id``
+          will be automatically added:
+
+          .. code-block:: python
+
+            >>> class AutoId(Document):
+            ...     pass
+            >>> AutoId.find_one()
+            <object Document __main__.AutoId({'_id': ObjectId('5714b9a61d41c8feb01222c8')})>
+
 But what about if we what to retrieve the ``_id`` field whatever it name is ?
-No problem, use the ``pk`` attribute:
+No problem, use the ``pk`` property:
 
 .. code-block:: python
 
@@ -218,9 +229,13 @@ You get also access to Object Oriented version of your driver methods:
     <object Document __main__.Dog({'_id': 'Odwin', 'breed': 'Labrador'})>
     Dog.find_one({'_id': 'Odwin'})
     <object Document __main__.Dog({'_id': 'Odwin', 'breed': 'Labrador'})>
- 
+
+
+Multi-driver support
+====================
+
 For the moment all examples has been done with pymongo, but thing are
-pretty the same with other drivers:
+pretty the same with other drivers, just change the ``collection`` and you're good to go:
 
 .. code-block:: python
 
@@ -240,5 +255,107 @@ Of course the way you'll be calling methods will differ:
     >>> dogs = yield from Dog.find()
 
 .. note:: Be careful not to mix documents with different collection type
-          defined or unexpected thing could happened (and furthermore there is no
-          practical reason to do that !)
+          defined or unexpected thing could happened (and furthermore there
+          is no practical reason to do that !)
+
+
+Going further
+=============
+
+Inheritance
+-----------
+
+Inheritance inside the same collection is achieve by adding a ``_cls`` field
+(accessible in the document as ``cls``) in the document stored in MongoDB
+
+.. code-block:: python
+
+    >>> class Parent(Document):
+    ...     unique_in_parent = fields.IntField(unique=True)
+    ...     class Meta:
+    ...         allow_inheritance = True
+    >>> class Child(Parent):
+    ...     unique_in_child = fields.StrField(unique=True)
+    >>> child = Child(unique_in_parent=42, unique_in_child='forty_two')
+    >>> child.cls
+    'Child'
+    >>> child.dump()
+    {'cls': 'Child', 'unique_in_parent': 42, 'unique_in_child': 'forty_two'}
+    >>> Parent().dump(unique_in_parent=22)
+    {'unique_in_parent': 22}
+    >>> [x.document for x in Parent.opts.indexes]
+    [{'key': SON([('unique_in_parent', 1)]), 'name': 'unique_in_parent_1', 'sparse': True, 'unique': True}]
+
+
+Indexes
+-------
+
+.. warning:: Indexes must be first submitted to MongoDB. To do so you should
+             call :meth:`umongo.Document.ensure_indexes` once for each document
+
+
+In fields, ``unique`` attribute is implicitly handled by an index:
+
+.. code-block:: python
+
+    >>> class WithUniqueEmail(Document):
+    ...     email = fields.StrField(unique=True)
+    >>> [x.document for x in WithUniqueEmail.opts.indexes]
+    [{'key': SON([('email', 1)]), 'name': 'email_1', 'sparse': True, 'unique': True}]
+    >>> WithUniqueEmail.ensure_indexes()
+    >>> WithUniqueEmail().commit()
+    >>> WithUniqueEmail().commit()
+    [...]
+    ValidationError: {'email': 'Field value must be unique'}
+
+.. note:: The index params also depend of the ``required``, ``null`` field attributes
+
+For more custom indexes, the ``Meta.indexes`` attribute should be used:
+
+.. code-block:: python
+
+    >>> class CustomIndexes(Document):
+    ...     name = fields.StrField()
+    ...     age = fields.Int()
+    ...     class Meta:
+    ...         indexes = ('#name', 'age', ('-age', 'name'))
+    >>> [x.document for x in CustomIndexes.opts.indexes]
+    [{'key': SON([('name', 'hashed')]), 'name': 'name_hashed'},
+     {'key': SON([('age', 1), ]), 'name': 'age_1'},
+     {'key': SON([('age', -1), ('name', 1)]), 'name': 'age_-1_name_1'}
+
+Indexes can be passed as:
+
+- a string with an optional direction prefix (i.g. ``"my_field"``)
+- a list of string with optional direction prefix for compound indexes
+  (i.g. ``["field1", "-field2"]``)
+- a :class:`pymongo.IndexModel` object
+- a dict used to instantiate an :class:`pymongo.IndexModel` for custom configuration
+  (i.g. ``{'key': ['field1', 'field2'], 'expireAfterSeconds': 42}``)
+
+Allowed direction prefix are:
+ - ``+`` for ascending
+ - ``-`` for descending
+ - ``$`` for text
+ - ``#`` for hashed
+
+.. note:: If no direction prefix is passed, ascending is assumed
+
+In case of a field defined in a child document, it index is automatically
+compounded with the ``_cls``
+
+.. code-block:: python
+
+      >>> class Parent(Document):
+      ...     unique_in_parent = fields.IntField(unique=True)
+      ...     class Meta:
+      ...         allow_inheritance = True
+      >>> class Child(Parent):
+      ...     unique_in_child = fields.StrField(unique=True)
+      ...     class Meta:
+      ...         indexes = ['#unique_in_parent']
+      >>> [x.document for x in Child.opts.indexes]
+      [{'name': 'unique_in_parent_1', 'sparse': True, 'unique': True, 'key': SON([('unique_in_parent', 1)])},
+       {'name': 'unique_in_parent_hashed__cls_1', 'key': SON([('unique_in_parent', 'hashed'), ('_cls', 1)])},
+       {'name': '_cls_1', 'key': SON([('_cls', 1)])},
+       {'name': 'unique_in_child_1__cls_1', 'sparse': True, 'unique': True, 'key': SON([('unique_in_child', 1), ('_cls', 1)])}]

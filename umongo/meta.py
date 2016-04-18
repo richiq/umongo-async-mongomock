@@ -2,7 +2,7 @@ from marshmallow.fields import Field
 
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError, DocumentDefinitionError
-from .schema import Schema, EmbeddedSchema
+from .schema import Schema, EmbeddedSchema, on_need_add_id_field
 from .abstract import AbstractDal
 from .indexes import parse_index
 
@@ -143,12 +143,14 @@ class DocumentOpts:
                 "`dal` attribute must be a subclass of %s" % AbstractDal)
 
 
-def _base_meta_document(name, bases, nmspc, base_schema_cls=Schema):
+def _base_meta_document(name, bases, nmspc, auto_id_field=False, base_schema_cls=Schema):
     # Retrieve inherited schema classes
     schema_bases = tuple([getattr(base, 'Schema') for base in bases if hasattr(base, 'Schema')])
     if not schema_bases:
         schema_bases = (base_schema_cls,)
     doc_nmspc, schema_nmspc = _collect_fields(nmspc)
+    if auto_id_field:
+        on_need_add_id_field(schema_nmspc)
     # Need to create a custom Schema class to use the provided fields
     schema_cls = type('%sSchema' % name, schema_bases, schema_nmspc)
     doc_nmspc['Schema'] = schema_cls
@@ -181,10 +183,10 @@ class MetaDocument(type):
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
             from .fields import StrField
-            nmspc['_cls'] = StrField(dump_only=True, missing=name)
+            nmspc['cls'] = StrField(dump_only=True, missing=name, attribute='_cls')
         # Extract fields and generate the schema
         name, bases, nmspc = _base_meta_document(
-            name, bases, nmspc, base_schema_cls=opts.base_schema_cls)
+            name, bases, nmspc, auto_id_field=True, base_schema_cls=opts.base_schema_cls)
         # Don't alter nmspc before defining schema to avoid shadowing fields
         nmspc['opts'] = opts
         nmspc['_collection'] = None

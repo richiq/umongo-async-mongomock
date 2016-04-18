@@ -206,6 +206,54 @@ class TestDocument(BaseTest):
         student = Student(gpa=2.8)
         # Required check is done in `io_validate`, cannot go further without a dal
 
+    def test_auto_id_field(self):
+        my_id = ObjectId('5672d47b1d41c88dcd37ef05')
+
+        class AutoId(Document):
+
+            class Meta:
+                register = False
+                allow_inheritance = True
+
+        assert 'id' in AutoId.schema.fields
+
+        # default id field is only dumpable
+        with pytest.raises(exceptions.ValidationError):
+            AutoId(id=my_id)
+
+        autoid = AutoId.build_from_mongo({'_id': my_id})
+        assert autoid.id == my_id
+        assert autoid.pk == autoid.id
+        assert autoid.dump() == {'id': '5672d47b1d41c88dcd37ef05'}
+
+        class AutoIdInheritance(AutoId):
+            pass
+
+        assert 'id' in AutoIdInheritance.schema.fields
+
+    def test_custom_id_field(self):
+        my_id = ObjectId('5672d47b1d41c88dcd37ef05')
+
+        class CustomId(Document):
+            int_id = fields.IntField(attribute='_id')
+
+            class Meta:
+                register = False
+                allow_inheritance = True
+
+        assert 'id' not in CustomId.schema.fields
+        with pytest.raises(exceptions.ValidationError):
+            CustomId(id=my_id)
+        customid = CustomId(int_id=42)
+        assert customid.int_id == 42
+        assert customid.pk == customid.int_id
+        assert customid.to_mongo() == {'_id': 42}
+
+        class CustomIdInheritance(CustomId):
+            pass
+
+        assert 'id' in CustomIdInheritance.schema.fields
+
 
 class TestConfig:
 

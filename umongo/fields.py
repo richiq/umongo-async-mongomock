@@ -1,7 +1,7 @@
 from datetime import datetime
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
-from bson import DBRef, ObjectId
+from bson import DBRef, ObjectId, errors as bson_errors
 
 from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
@@ -192,8 +192,23 @@ IntField = IntegerField
 # Bonus: new fields !
 
 
-# ObjectIdField is declared in schema to prevent recursive import error
-from .schema import ObjectIdField  # noqa
+class ObjectIdField(BaseField, ma_fields.Field):
+    """
+    Marshmallow field for :class:`bson.ObjectId`
+    """
+
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        return str(value)
+
+    def _deserialize(self, value, attr, data):
+        if value is None:
+            return None
+        try:
+            return ObjectId(value)
+        except bson_errors.InvalidId:
+            raise ValidationError('Invalid ObjectId')
 
 
 class ReferenceField(ObjectIdField):

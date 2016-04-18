@@ -1,32 +1,14 @@
-import bson
 from marshmallow import validates_schema, ValidationError
 from marshmallow import Schema as MaSchema
-from marshmallow import fields as ma_fields
-
-from .abstract import BaseField
 
 
-__all__ = ('BaseSchema', 'Schema', 'EmbeddedSchema')
-
-
-# Declare the ObjectIdField here to prevent recursive import error with fields
-class ObjectIdField(BaseField, ma_fields.Field):
-
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        return str(value)
-
-    def _deserialize(self, value, attr, data):
-        if value is None:
-            return None
-        try:
-            return bson.ObjectId(value)
-        except bson.errors.InvalidId:
-            raise ValidationError('Invalid ObjectId')
+__all__ = ('BaseSchema', 'Schema', 'EmbeddedSchema', 'on_need_add_id_field')
 
 
 class BaseSchema(MaSchema):
+    """
+    All schema used in umongo should inherit from this base schema
+    """
 
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
@@ -49,10 +31,29 @@ class BaseSchema(MaSchema):
                 field.map_to_field(mongo_path, name, func)
 
 
-class Schema(BaseSchema):
+def on_need_add_id_field(fields):
+    """
+    If the given fields make no reference to `_id`, add an `id` field
+    (type ObjectId, dump_only=True, attribute=`_id`) to handle it
+    """
+    for name, field in fields.items():
+        if (name == '_id' and not field.attribute) or field.attribute == '_id':
+            return
+    from .fields import ObjectIdField
+    fields['id'] = ObjectIdField(attribute='_id', dump_only=True)
 
-    id = ObjectIdField(attribute='_id')
+
+class Schema(BaseSchema):
+    """
+    Base schema class used by :class:`umongo.Document`
+    """
+
+    pass
 
 
 class EmbeddedSchema(BaseSchema):
+    """
+    Base schema class used by :class:`umongo.EmbeddedDocument`
+    """
+
     pass

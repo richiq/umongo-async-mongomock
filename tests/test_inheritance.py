@@ -18,10 +18,14 @@ class TestInheritance:
         class Child1(Parent1):
             first_name = fields.StrField()
 
-        assert '_cls' in Child1.schema.fields
-        cls_field = Child1.schema.fields['_cls']
-        assert not hasattr(Parent1(), '_cls')
-        assert Child1()._cls == 'Child1'
+        assert 'cls' in Child1.schema.fields
+        cls_field = Child1.schema.fields['cls']
+        assert not hasattr(Parent1(), 'cls')
+        assert Child1().cls == 'Child1'
+
+        loaded = Parent1.build_from_mongo(
+            {'_cls': 'Child1', 'first_name': 'John', 'last_name': 'Doe'}, use_cls=True)
+        assert loaded.cls == 'Child1'
 
     def test_simple(self, collection_moke, dal_moke):
 
