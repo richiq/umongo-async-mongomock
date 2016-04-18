@@ -89,6 +89,8 @@ class PyMongoDal(AbstractDal):
         self._data.clear_modified()
 
     def delete(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)

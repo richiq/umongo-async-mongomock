@@ -64,6 +64,8 @@ class TestPymongo(BaseTest):
         Student = classroom_model.Student
         Student.collection.drop()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        with pytest.raises(exceptions.NotCreatedError):
+            john.delete()
         john.commit()
         assert Student.collection.find().count() == 1
         john.delete()

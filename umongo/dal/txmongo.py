@@ -65,6 +65,8 @@ class TxMongoDal(AbstractDal):
 
     @inlineCallbacks
     def delete(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
         ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)

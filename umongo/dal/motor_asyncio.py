@@ -5,7 +5,7 @@ from pymongo.errors import DuplicateKeyError
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
 from ..data_objects import Reference
-from ..exceptions import NotCreatedError, UpdateError, ValidationError
+from ..exceptions import NotCreatedError, UpdateError, ValidationError, DeleteError
 from ..fields import ReferenceField, ListField, EmbeddedField
 
 from .tools import cook_find_filter
@@ -105,8 +105,13 @@ class MotorAsyncIODal(AbstractDal):
             raise
         self._data.clear_modified()
 
-    def delete(self):
-        raise NotImplementedError()
+    def remove(self):
+        if not self.created:
+            raise NotCreatedError("Document doesn't exists in database")
+        ret = yield from self.collection.remove({'_id': self.pk})
+        if ret.get('ok') != 1 or ret.get('n') != 1:
+            raise DeleteError(ret)
+        return ret
 
     def io_validate(self, validate_all=False):
         if validate_all:

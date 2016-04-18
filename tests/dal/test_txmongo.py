@@ -77,22 +77,17 @@ class TestTxMongo(BaseTest):
         assert john2._data == john._data
 
     @pytest_inlineCallbacks
-    def test_delete(self, db):
-
-        class Student(Document):
-            name = fields.StrField(required=True)
-            birthday = fields.DateTimeField()
-
-            class Meta:
-                collection = db.student
-
-        yield db.student.drop()
+    def test_delete(self, classroom_model):
+        Student = classroom_model.Student
+        yield Student.collection.drop()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        with pytest.raises(exceptions.NotCreatedError):
+            yield john.delete()
         yield john.commit()
-        students = yield db.student.find()
+        students = yield Student.find()
         assert len(students) == 1
         yield john.delete()
-        students = yield db.student.find()
+        students = yield Student.find()
         assert len(students) == 0
         with pytest.raises(exceptions.DeleteError):
            yield john.delete()

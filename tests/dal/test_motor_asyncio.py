@@ -74,19 +74,24 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_delete(self, classroom_model):
+    def test_remove(self, loop, classroom_model):
         Student = classroom_model.Student
 
         @asyncio.coroutine
         def do_test():
-            yield from db.student.drop()
+            yield from Student.collection.drop()
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            with pytest.raises(exceptions.NotCreatedError):
+                yield from john.remove()
             yield from john.commit()
-            assert (yield from db.student.find()).count() == 1
-            yield from john.delete()
-            assert (yield from db.student.find()).count() == 0
+            assert (yield from Student.find().count()) == 1
+            ret = yield from john.remove()
+            assert ret == {'ok': 1, 'n': 1}
+            assert (yield from Student.find().count()) == 0
             with pytest.raises(exceptions.DeleteError):
-               yield from john.delete()
+               yield from john.remove()
+
+        loop.run_until_complete(do_test())
 
     def test_reload(self, loop, classroom_model):
         Student = classroom_model.Student
