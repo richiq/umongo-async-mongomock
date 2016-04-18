@@ -8,11 +8,11 @@ except ImportError:
     from distutils.core import setup, find_packages
 
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
+with open('README.rst', 'rb') as readme_file:
+    readme = readme_file.read().decode('utf8')
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+with open('HISTORY.rst', 'rb') as history_file:
+    history = history_file.read().decode('utf8')
 
 requirements = [
     "marshmallow>=2.6.0",
