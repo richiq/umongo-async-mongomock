@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'uMongo'
-copyright = u'2016, Emmanuel Leblond'
+copyright = u'2016, Scille SAS'
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -210,7 +210,7 @@ latex_elements = {
 latex_documents = [
     ('index', 'umongo.tex',
      u'uMongo Documentation',
-     u'Emmanuel Leblond', 'manual'),
+     u'Scille SAS', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -241,7 +241,7 @@ latex_documents = [
 man_pages = [
     ('index', 'umongo',
      u'uMongo Documentation',
-     [u'Emmanuel Leblond'], 1)
+     [u'Scille SAS'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -256,7 +256,7 @@ man_pages = [
 texinfo_documents = [
     ('index', 'umongo',
      u'uMongo Documentation',
-     u'Emmanuel Leblond',
+     u'Scille SAS',
      'umongo',
      'One line description of project.',
      'Miscellaneous'),
