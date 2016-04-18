@@ -27,6 +27,7 @@ class Document(metaclass=MetaDocument):
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         super().__init__()
         self.created = False
+        "Return True if the document has been commited to database"  # created's docstring
         self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
 
     def __repr__(self):
@@ -47,8 +48,12 @@ class Document(metaclass=MetaDocument):
     @property
     def pk(self):
         """
-        Return the document's primary key (i.e. `_id` in mongo notation) or
+        Return the document's primary key (i.e. ``_id`` in mongo notation) or
         None if not available yet
+
+        .. warning:: Use ``created`` field instead to test if the document
+                     has already been commited to database given ``_id``
+                     field could be generated before insertion
         """
         return self._data.get_by_mongo_name('_id')
 
@@ -90,7 +95,10 @@ class Document(metaclass=MetaDocument):
 
     def to_mongo(self, update=False):
         """
+        Return the document as a dict compatible with MongoDB driver
 
+        :param update: if True the return dict should be used as an
+                       update payload instead of containing the entire document
         """
         if update and not self.created:
             raise NotCreatedError('Must create the document before'
@@ -107,9 +115,10 @@ class Document(metaclass=MetaDocument):
 
     def dump(self, schema=None):
         """
-        Dump the document: return a ``dict``
+        Dump the document
 
         :param schema: use this schema for the dump instead of the default one
+        :return: a JSON compatible ``dict`` representing the document
         """
         return self._data.dump(schema=schema)
 
@@ -122,7 +131,7 @@ class Document(metaclass=MetaDocument):
     @property
     def collection(self):
         """
-        Return the collection used by this Document class
+        Return the collection used by this document class
         """
         # Cannot implicitly access to the class's property
         return type(self).collection
