@@ -1,11 +1,19 @@
 import pytest
 
-from umongo import Document
+from umongo import Document, exceptions
 
 from .test_pymongo import dep_error as pymongo_dep_error
 from .test_txmongo import dep_error as txmongo_dep_error
 from .test_motor_asyncio import dep_error as motor_asyncio_dep_error
 from .test_mongomock import dep_error as mongomock_dep_error
+
+
+def test_bad_dal():
+    with pytest.raises(exceptions.NoCompatibleDalError):
+        class MyDoc(Document):
+
+            class Meta:
+                collection = object()
 
 
 def lazy_loader_tester(lazy_loader, dal_cls):

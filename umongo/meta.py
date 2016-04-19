@@ -131,9 +131,6 @@ class DocumentOpts:
                 # Try to determine dal from the collection itself
                 from .dal import find_dal_from_collection
                 self.dal = find_dal_from_collection(self.collection)
-            if not self.dal:
-                raise NoCollectionDefinedError(
-                    "No DAL available for collection %s" % self.collection)
         elif self.lazy_collection:
             if not self.dal:
                 self.dal = self.lazy_collection.dal

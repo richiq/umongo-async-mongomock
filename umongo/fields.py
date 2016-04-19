@@ -257,6 +257,9 @@ class ReferenceField(ObjectIdField):
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
 
+    def fetch(self):
+        raise NotImplementedError
+
 
 class GenericReferenceField(BaseField):
 
@@ -302,6 +305,9 @@ class GenericReferenceField(BaseField):
         except NotRegisteredDocumentError:
             raise ValidationError('Unknown document `%s`' % value['_cls'])
         return self.reference_cls(document_cls, value['_id'])
+
+    def fetch(self):
+        raise NotImplementedError
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):

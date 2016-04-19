@@ -99,25 +99,25 @@ mongomock_lazy_loader = lazy_loader_factory(
 try:
     from .pymongo import PyMongoDal
     register_dal(PyMongoDal)
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 try:
     from .txmongo import TxMongoDal
     register_dal(TxMongoDal)
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 try:
     from .motor_asyncio import MotorAsyncIODal
     register_dal(MotorAsyncIODal)
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 try:
     from .motor_tornado import MotorTornadoDal
     register_dal(MotorTornadoDal)
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 try:
     from .mongomock import MongoMockDal
     register_dal(MongoMockDal)
-except ImportError:
+except ImportError:  # pragma: no cover
     pass

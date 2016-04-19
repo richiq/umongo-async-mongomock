@@ -1,3 +1,4 @@
+import pytest
 from itertools import zip_longest
 
 from umongo.indexes import (
@@ -78,3 +79,10 @@ class TestIndexes:
                 IndexModel([('first_name', DESCENDING), ('_cls', ASCENDING)]),
                 IndexModel([('_cls', ASCENDING)])
             ])
+
+    def test_bad_index(self):
+        for bad in [1, None, object()]:
+            with pytest.raises(TypeError) as exc:
+                parse_index(1)
+            assert exc.value.args[0] == (
+                'Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')

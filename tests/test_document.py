@@ -1,11 +1,13 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
+from functools import namedtuple
 
 from .common import BaseTest
 from .fixtures import collection_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
+from umongo.abstract import AbstractDal
 
 
 class Student(Document):
@@ -344,6 +346,64 @@ class TestConfig:
         assert Doc4Child2.opts.collection == col2
         assert Doc4Child2.opts.register_document is True
 
+    def test_bad_inheritance(self, request):
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            class BadAbstractDoc(Document):
+                class Meta:
+                    allow_inheritance = False
+                    abstract = True
+        assert exc.value.args[0] == "Abstract document cannot disable inheritance"
+
+        class NotParent(Document):
+            pass
+
+        assert not NotParent.opts.allow_inheritance
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            class ImpossibleChildDoc(NotParent):
+                pass
+        assert exc.value.args[0] == ("Document"
+            " <class 'tests.test_document.TestConfig.test_bad_inheritance.<locals>.NotParent'>"
+            " doesn't allow inheritance")
+
+        class NotAbstractParent(Document):
+            class Meta:
+                allow_inheritance = True
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            class ImpossibleChildDoc(NotAbstractParent):
+                class Meta:
+                    abstract = True
+        assert exc.value.args[0] == "Abstract document should have all it parents abstract"
+
+        col1 = collection_moke(request, name='col1')
+        col2 = collection_moke(request, name='col2')
+
+        class ParentWithCol1(Document):
+            class Meta:
+                allow_inheritance = True
+                collection = col1
+
+        class ParentWithCol2(Document):
+            class Meta:
+                allow_inheritance = True
+                collection = col2
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            class ImpossibleChildDoc(ParentWithCol1, ParentWithCol2):
+                pass
+        assert exc.value.args[0].startswith("collection cannot be defined multiple times")
+
+
+    def test_bad_config(self):
+        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
+            class BadConf(Document):
+                class Meta:
+                    collection = object()
+                    lazy_collection = lambda: None
+        assert exc.value.args[0] == (
+            "Cannot define at the same time `collection` and `lazy_collection`")
+
     def test_no_collection(self):
 
         class Doc5(Document):
@@ -358,7 +418,7 @@ class TestConfig:
     def test_bad_lazy_collection(self, dal_moke):
 
         # Bad `dal` attribute
-        with pytest.raises(exceptions.NoCollectionDefinedError):
+        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
 
             class Doc7(Document):
 
@@ -367,3 +427,35 @@ class TestConfig:
 
                     class dal:
                         pass
+        assert exc.value.args[0] == (
+            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
+
+        # Invalid lazy_collection's dal
+        LazyCollection = namedtuple('LazyCollection', ('dal', 'load'))
+
+        class BadDal:
+            pass
+
+        def load_collection():
+            pass
+
+        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
+            class Doc8(Document):
+                class Meta:
+                    lazy_collection = LazyCollection(BadDal, load_collection)
+        assert exc.value.args[0] == (
+            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
+
+        # Invalid lazy_collection's load
+        class GoodDal(AbstractDal):
+            @staticmethod
+            def io_validate_patch_schema(schema):
+                pass
+
+        class Doc9(Document):
+            class Meta:
+                lazy_collection = LazyCollection(GoodDal, load_collection)
+
+        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
+            Doc9.collection
+        assert exc.value.args[0] == "lazy_collection didn't returned a collection"
