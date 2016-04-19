@@ -7,6 +7,7 @@ from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
 from .data_objects import Reference, List, Dict
 from .abstract import BaseField
+from .i18n import gettext as _
 
 
 __all__ = (
@@ -208,7 +209,7 @@ class ObjectIdField(BaseField, ma_fields.Field):
         try:
             return ObjectId(value)
         except bson_errors.InvalidId:
-            raise ValidationError('Invalid ObjectId')
+            raise ValidationError(_('Invalid ObjectId.'))
 
 
 class ReferenceField(ObjectIdField):
@@ -233,21 +234,24 @@ class ReferenceField(ObjectIdField):
         from .document import Document
         if isinstance(value, DBRef):
             if self._document_cls.collection.name != value.collection:
-                raise ValidationError("DBRef must be on collection `%s`" %
-                                      self._document_cls.collection.name)
+                raise ValidationError(_("DBRef must be on collection `{collection}`.").format(
+                    self._document_cls.collection.name))
             value = value.id
         elif isinstance(value, Reference):
             if value.document_cls != self.document_cls:
-                raise ValidationError("`%s` reference expected" % self.document_cls.__name__)
+                raise ValidationError(_("`{document}` reference expected.").format(
+                    document=self.document_cls.__name__))
             if type(value) is not self.reference_cls:
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
         elif isinstance(value, self.document_cls):
             if not value.created:
-                raise ValidationError("Cannot reference a document that has not been created yet")
+                raise ValidationError(
+                    _("Cannot reference a document that has not been created yet."))
             value = value.pk
         elif isinstance(value, Document):
-            raise ValidationError("`%s` reference expected" % self.document_cls.__name__)
+            raise ValidationError(_("`{document}` reference expected.").format(
+                document=self.document_cls.__name__))
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
 
@@ -258,6 +262,9 @@ class ReferenceField(ObjectIdField):
         return self.reference_cls(self.document_cls, value)
 
     def fetch(self):
+        """
+        Retrieve in database the document referenced.
+        """
         raise NotImplementedError
 
 
@@ -280,21 +287,22 @@ class GenericReferenceField(BaseField):
             return value
         elif isinstance(value, Document):
             if not value.created:
-                raise ValidationError("Cannot reference a document that has not been created yet")
+                raise ValidationError(
+                    _("Cannot reference a document that has not been created yet."))
             return self.reference_cls(value.__class__, value.pk)
         elif isinstance(value, dict):
             if value.keys() != {'cls', 'id'}:
-                raise ValidationError("Generic reference must have `id` and `cls` fields")
+                raise ValidationError(_("Generic reference must have `id` and `cls` fields."))
             try:
                 _id = ObjectId(super()._deserialize(value['id'], attr, data))
             except ValueError:
-                raise ValidationError("Invalid `id` field")
+                raise ValidationError(_("Invalid `id` field."))
             return self._deserialize_from_mongo({
                 '_cls': value['cls'],
                 '_id': _id
             })
         else:
-            raise ValidationError("Invalid value for generic reference field")
+            raise ValidationError(_("Invalid value for generic reference field."))
 
     def _serialize_to_mongo(self, obj):
         return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
@@ -303,11 +311,9 @@ class GenericReferenceField(BaseField):
         try:
             document_cls = retrieve_document(value['_cls'])
         except NotRegisteredDocumentError:
-            raise ValidationError('Unknown document `%s`' % value['_cls'])
+            raise ValidationError(_('Unknown document `{document}`.').format(
+                document=value['_cls']))
         return self.reference_cls(document_cls, value['_id'])
-
-    def fetch(self):
-        raise NotImplementedError
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):

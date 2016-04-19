@@ -1,6 +1,6 @@
 from bson import DBRef
 
-from .abstract import BaseDataObject
+from .abstract import BaseDataObject, I18nErrorDict
 from .data_proxy import DataProxy
 from .meta import MetaEmbeddedDocument
 
@@ -126,12 +126,21 @@ class Dict(BaseDataObject, dict):
 
 class Reference:
 
+    error_messages = I18nErrorDict(not_found='Reference not found for document {document}.')
+
     def __init__(self, document_cls, pk):
         self.document_cls = document_cls
         self.pk = pk
         self._document = None
 
-    def io_fetch(self, no_data=False):
+    def fetch(self, no_data=False):
+        """
+        Retrieve from the database the referenced document
+
+        :param no_data: if True, the caller is only interested in whether or
+            not the document is present in database. This means the
+            implementation may not retrieve document's data to save bandwidth.
+        """
         raise NotImplementedError
 
     def __repr__(self):

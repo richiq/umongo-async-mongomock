@@ -2,7 +2,7 @@ from marshmallow import ValidationError, missing
 import pytest
 
 from umongo.data_proxy import DataProxy
-from umongo import EmbeddedSchema, fields, EmbeddedDocument
+from umongo import EmbeddedSchema, fields, EmbeddedDocument, validate
 
 
 class TestDataProxy:
@@ -221,3 +221,16 @@ class TestDataProxy:
         assert d.get('with_missing') == 'missing_value'
         assert d.to_mongo() == {'with_missing': 'missing_value'}
         assert d.dump() == {'with_default': 'default_value', 'with_missing': 'missing_value'}
+
+    def test_validate(self):
+
+        class MySchema(EmbeddedSchema):
+            with_max = fields.IntField(validate=validate.Range(max=99))
+
+        d = DataProxy(MySchema(), data={})
+        with pytest.raises(ValidationError) as exc:
+            DataProxy(MySchema(), data={'with_max': 100})
+        assert exc.value.args[0] == {'with_max': ['Must be at most 99.']}
+        with pytest.raises(ValidationError) as exc:
+            d.set('with_max', 100)
+        assert exc.value.args[0] == ['Must be at most 99.']

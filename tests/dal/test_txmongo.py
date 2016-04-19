@@ -163,7 +163,7 @@ class TestTxMongo(BaseTest):
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
         yield course.commit()
         assert isinstance(course.teacher, Reference)
-        teacher_fetched = yield course.teacher.io_fetch()
+        teacher_fetched = yield course.teacher.fetch()
         assert teacher_fetched == teacher
         # Test bad ref as well
         course.teacher = Reference(classroom_model.Teacher, ObjectId())
@@ -237,7 +237,6 @@ class TestTxMongo(BaseTest):
 
         @inlineCallbacks
         def io_validate11(field, value):
-            print('io_validate11')
             called.append(1)
             defer1.callback(None)
             yield defer3
@@ -246,20 +245,17 @@ class TestTxMongo(BaseTest):
 
         @inlineCallbacks
         def io_validate12(field, value):
-            print('io_validate12')
             yield defer4
             called.append(5)
 
         @inlineCallbacks
         def io_validate21(field, value):
-            print('io_validate21')
             yield defer2
             called.append(3)
             defer3.callback(None)
 
         @inlineCallbacks
         def io_validate22(field, value):
-            print('io_validate22')
             yield defer1
             called.append(2)
             defer2.callback(None)
@@ -414,10 +410,10 @@ class TestTxMongo(BaseTest):
         yield UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
         with pytest.raises(exceptions.ValidationError) as exc:
             yield UniqueIndexDoc(not_unique='a', required_unique=1).commit()
-        assert exc.value.messages == {'required_unique': 'Field value must be unique'}
+        assert exc.value.messages == {'required_unique': 'Field value must be unique.'}
         with pytest.raises(exceptions.ValidationError) as exc:
             yield UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
-        assert exc.value.messages == {'sparse_unique': 'Field value must be unique'}
+        assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
     @pytest_inlineCallbacks
     def test_unique_index_compound(self, db):
@@ -468,14 +464,14 @@ class TestTxMongo(BaseTest):
         with pytest.raises(exceptions.ValidationError) as exc:
             yield UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
         assert exc.value.messages == {
-            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
         with pytest.raises(exceptions.ValidationError) as exc:
             yield UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
         assert exc.value.messages == {
-            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
 
     @pytest.mark.xfail

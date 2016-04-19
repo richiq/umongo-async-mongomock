@@ -1,0 +1,188 @@
+# Translations template for umongo&marshmallow.
+# Copyright (C) 2016 Scille SAS
+# This file is distributed under the same license as the umongo project.
+# Emmanuel Leblond <emmanuel.leblond@gmail.com>, 2016.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: emmanuel.leblond@gmail.com\n"
+"POT-Creation-Date: 2016-04-19 11:56+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Emmanuel Leblond <emmanuel.leblond@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.3\n"
+
+#: umongo/fields.py:212
+msgid "Invalid ObjectId."
+msgstr ""
+
+#: umongo/fields.py:237
+#, python-format
+msgid "DBRef must be on collection `{collection}`."
+msgstr ""
+
+#: umongo/fields.py:242 umongo/fields.py:251
+#, python-format
+msgid "`{document}` reference expected."
+msgstr ""
+
+#: umongo/fields.py:248 umongo/fields.py:284
+msgid "Cannot reference a document that has not been created yet."
+msgstr ""
+
+#: umongo/fields.py:288
+msgid "Generic reference must have `id` and `cls` fields."
+msgstr ""
+
+#: umongo/fields.py:292
+msgid "Invalid `id` field."
+msgstr ""
+
+#: umongo/fields.py:298
+msgid "Invalid value for generic reference field."
+msgstr ""
+
+#: umongo/fields.py:307
+#, python-format
+msgid "Unknown document `{document}`."
+msgstr ""
+
+#: umongo/schema.py:19
+msgid "Unknown field name {field}."
+msgstr ""
+
+#: umongo/dal/motor_asyncio.py:100 umongo/dal/pymongo.py:83
+#: umongo/dal/txmongo.py:60
+msgid "Field value must be unique."
+msgstr ""
+
+#: umongo/dal/motor_asyncio.py:103 umongo/dal/pymongo.py:86
+#: umongo/dal/txmongo.py:63
+#, python-format
+msgid "Values of fields {fields} must be unique together."
+msgstr ""
+
+#: umongo/dal/motor_asyncio.py:258 umongo/dal/pymongo.py:221
+#: umongo/dal/txmongo.py:238
+msgid "Reference not found for document {document}."
+msgstr ""
+
+# Marshmallow fields #
+
+msgid "Missing data for required field."
+msgstr ""
+
+msgid "Invalid input type."
+msgstr ""
+
+msgid "Field may not be null."
+msgstr ""
+
+msgid "Invalid value."
+msgstr ""
+
+msgid "Invalid type."
+msgstr ""
+
+msgid "Not a valid list."
+msgstr ""
+
+msgid "Not a valid string."
+msgstr ""
+
+msgid "Not a valid number."
+msgstr ""
+
+msgid "Not a valid integer."
+msgstr ""
+
+msgid "Special numeric values are not permitted."
+msgstr ""
+
+msgid "Not a valid boolean."
+msgstr ""
+
+msgid "Cannot format string with given data."
+msgstr ""
+
+msgid "Not a valid datetime."
+msgstr ""
+
+msgid "\"{input}\" cannot be formatted as a datetime."
+msgstr ""
+
+msgid "Not a valid time."
+msgstr ""
+
+msgid "\"{input}\" cannot be formatted as a time."
+msgstr ""
+
+msgid "Not a valid date."
+msgstr ""
+
+msgid "\"{input}\" cannot be formatted as a date."
+msgstr ""
+
+msgid "Not a valid period of time."
+msgstr ""
+
+msgid "{input!r} cannot be formatted as a timedelta."
+msgstr ""
+
+msgid "Not a valid mapping type."
+msgstr ""
+
+msgid "Not a valid URL."
+msgstr ""
+
+msgid "Not a valid email address."
+msgstr ""
+
+# Marshmallow validate #
+msgid "Not a valid URL."
+msgstr ""
+
+msgid "Not a valid email address."
+msgstr ""
+
+msgid "Must be at least {min}."
+msgstr ""
+
+msgid "Must be at most {max}."
+msgstr ""
+
+msgid "Must be between {min} and {max}."
+msgstr ""
+
+msgid "Shorter than minimum length {min}."
+msgstr ""
+
+msgid "Longer than maximum length {max}."
+msgstr ""
+
+msgid "Length must be between {min} and {max}."
+msgstr ""
+
+msgid "Length must be {equal}."
+msgstr ""
+
+msgid "Must be equal to {other}."
+msgstr ""
+
+msgid "String does not match expected pattern."
+msgstr ""
+
+msgid "Invalid input."
+msgstr ""
+
+msgid "Not a valid choice."
+msgstr ""
+
+msgid "One or more of the choices you made was not acceptable."
+msgstr ""
+

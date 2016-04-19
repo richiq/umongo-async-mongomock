@@ -1,13 +1,28 @@
 from datetime import datetime
 from flask import Flask, abort, jsonify, request
+from flask.ext.babel import Babel, gettext
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Document, fields, ValidationError
+from umongo import Document, fields, ValidationError, set_gettext
 
 
 app = Flask(__name__)
 db = MongoClient().demo_umongo
+babel = Babel(app)
+set_gettext(gettext)
+
+
+# available languages
+LANGUAGES = {
+    'en': 'English',
+    'fr': 'Français'
+}
+
+
+@babel.localeselector
+def get_locale():
+    return request.accept_languages.best_match(LANGUAGES.keys())
 
 
 class User(Document):

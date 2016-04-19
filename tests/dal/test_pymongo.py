@@ -129,7 +129,7 @@ class TestPymongo(BaseTest):
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
         course.commit()
         assert isinstance(course.teacher, Reference)
-        teacher_fetched = course.teacher.io_fetch()
+        teacher_fetched = course.teacher.fetch()
         assert teacher_fetched == teacher
         # Test bad ref as well
         course.teacher = Reference(classroom_model.Teacher, ObjectId())
@@ -339,10 +339,10 @@ class TestPymongo(BaseTest):
         UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
         with pytest.raises(exceptions.ValidationError) as exc:
             UniqueIndexDoc(not_unique='a', required_unique=1).commit()
-        assert exc.value.messages == {'required_unique': 'Field value must be unique'}
+        assert exc.value.messages == {'required_unique': 'Field value must be unique.'}
         with pytest.raises(exceptions.ValidationError) as exc:
             UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
-        assert exc.value.messages == {'sparse_unique': 'Field value must be unique'}
+        assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
     def test_unique_index_compound(self, db):
 
@@ -392,14 +392,14 @@ class TestPymongo(BaseTest):
         with pytest.raises(exceptions.ValidationError) as exc:
             UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
         assert exc.value.messages == {
-            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
         with pytest.raises(exceptions.ValidationError) as exc:
             UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
         assert exc.value.messages == {
-            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+            'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+            'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
 
     @pytest.mark.xfail

@@ -18,10 +18,10 @@ from .dal import (
     motor_tornado_lazy_loader,
     mongomock_lazy_loader
 )
-from . import fields
+from . import fields, validate
 from .schema import BaseSchema, Schema, EmbeddedSchema
 from .data_objects import EmbeddedDocument, Reference
-from marshmallow import validate
+from .i18n import set_gettext
 
 
 __author__ = 'Emmanuel Leblond'
@@ -55,6 +55,8 @@ __all__ = (
     'EmbeddedSchema',
 
     'Reference',
+
+    'set_gettext',
 
     'validate'
 )

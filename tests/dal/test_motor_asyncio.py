@@ -210,7 +210,7 @@ class TestMotorAsyncio(BaseTest):
             course = classroom_model.Course(name='Overboard 101', teacher=teacher)
             yield from course.commit()
             assert isinstance(course.teacher, Reference)
-            teacher_fetched = yield from course.teacher.io_fetch()
+            teacher_fetched = yield from course.teacher.fetch()
             assert teacher_fetched == teacher
             # Test bad ref as well
             course.teacher = Reference(classroom_model.Teacher, ObjectId())
@@ -482,10 +482,10 @@ class TestMotorAsyncio(BaseTest):
             yield from UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
             with pytest.raises(exceptions.ValidationError) as exc:
                 yield from UniqueIndexDoc(not_unique='a', required_unique=1).commit()
-            assert exc.value.messages == {'required_unique': 'Field value must be unique'}
+            assert exc.value.messages == {'required_unique': 'Field value must be unique.'}
             with pytest.raises(exceptions.ValidationError) as exc:
                 yield from UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
-            assert exc.value.messages == {'sparse_unique': 'Field value must be unique'}
+            assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
         loop.run_until_complete(do_test())
 
@@ -540,14 +540,14 @@ class TestMotorAsyncio(BaseTest):
             with pytest.raises(exceptions.ValidationError) as exc:
                 yield from UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
             assert exc.value.messages == {
-                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
             }
             with pytest.raises(exceptions.ValidationError) as exc:
                 yield from UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
             assert exc.value.messages == {
-                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together",
-                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together"
+                'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
+                'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
             }
 
         loop.run_until_complete(do_test())

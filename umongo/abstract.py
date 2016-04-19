@@ -1,7 +1,51 @@
-from marshmallow import fields as ma_fields, missing
+from marshmallow import (Schema as MaSchema, fields as ma_fields,
+                         validate as ma_validate, missing, validates_schema)
+
+from .exceptions import ValidationError
+from .i18n import gettext as _
+
+
+__all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject', 'AbstractDal')
+
+
+class BaseSchema(MaSchema):
+    """
+    All schema used in umongo should inherit from this base schema
+    """
+
+    @validates_schema(pass_original=True)
+    def check_unknown_fields(self, data, original_data):
+        loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
+        for key in original_data:
+            if key not in loadable_fields:
+                raise ValidationError(_('Unknown field name {field}.').format(field=key))
+
+    def map_to_field(self, func):
+        """
+        Apply a function to every field in the schema
+
+        >>> def func(mongo_path, path, field):
+        ...     pass
+        """
+        for name, field in self.fields.items():
+            mongo_path = field.attribute or name
+            func(mongo_path, name, field)
+            if hasattr(field, 'map_to_field'):
+                field.map_to_field(mongo_path, name, func)
+
+
+class I18nErrorDict(dict):
+    def __getitem__(self, name):
+        raw_msg = dict.__getitem__(self, name)
+        return _(raw_msg)
 
 
 class BaseField(ma_fields.Field):
+
+    default_error_messages = {
+        'unique': 'Field value must be unique.',
+        'unique_compound': 'Values of fields {fields} must be unique together.'
+    }
 
     def __init__(self, *args, io_validate=None, unique=False, **kwargs):
         """
@@ -20,6 +64,8 @@ class BaseField(ma_fields.Field):
         `null` value (consider unsetting the field with `del` instead)
         """
         super().__init__(*args, **kwargs)
+        # Overwrite error_messages to handle i18n translation
+        self.error_messages = I18nErrorDict(self.error_messages)
         self.io_validate = io_validate
         self.unique = unique
 
@@ -63,6 +109,38 @@ class BaseField(ma_fields.Field):
 
     def _deserialize_from_mongo(self, value):
         return value
+
+    # # Hat tip to django-rest-framework.
+    # def fail(self, key, **kwargs):
+    #     """A helper method that simply raises a `ValidationError`.
+    #     """
+    #     from .exceptions import ValidationError
+    #     try:
+    #         error = self.error_messages[key]
+    #         msg = error if not callable(error) else error(self.context)
+    #     except KeyError:
+    #         class_name = self.__class__.__name__
+    #         from marshmallow.fields import MISSING_ERROR_MESSAGE
+    #         msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
+    #         raise AssertionError(msg)
+    #     if isinstance(msg, str):
+    #         msg = msg.format(**kwargs)
+    #     raise ValidationError(msg)
+
+
+class BaseValidator(ma_validate.Validator):
+
+    def __init__(self, *args, **kwargs):
+        self._error = None
+        super().__init__(*args, **kwargs)
+
+    @property
+    def error(self):
+        return _(self._error)
+
+    @error.setter
+    def error(self, value):
+        self._error = value
 
 
 class BaseDataObject:

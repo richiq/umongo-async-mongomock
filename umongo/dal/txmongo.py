@@ -56,11 +56,14 @@ class TxMongoDal(AbstractDal):
                         ' %s ' % index.document['name'] in errmsg):
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
-                        msg = 'Field value must be unique'
+                        msg = self.schema.fields[keys[0]].error_messages['unique']
+                        raise ValidationError({keys[0]: msg})
                     else:
+                        fields = self.schema.fields
                         # Compound index (sort value to make testing easier)
-                        msg = 'Values of fields %s must be unique together' % sorted(keys)
-                    raise ValidationError({k: msg for k in keys})
+                        keys = sorted(keys)
+                        raise ValidationError({k: fields[k].error_messages[
+                            'unique_compound'].format(fields=keys) for k in keys})
         self._data.clear_modified()
 
     @inlineCallbacks
@@ -170,7 +173,7 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 
 def _reference_io_validate(field, value):
-    return value.io_fetch(no_data=True)
+    return value.fetch(no_data=True)
 
 
 @inlineCallbacks
@@ -228,12 +231,12 @@ class TxMongoReference(Reference):
         self._document = None
 
     @inlineCallbacks
-    def io_fetch(self, no_data=False):
+    def fetch(self, no_data=False):
         if not self._document:
             if self.pk is None:
                 raise ReferenceError('Cannot retrieve a None Reference')
             self._document = yield self.document_cls.find_one(self.pk)
             if not self._document:
-                raise ValidationError(
-                    'Reference not found for document %s.' % self.document_cls.__name__)
+                raise ValidationError(self.error_messages['not_found'].format(
+                    document=self.document_cls.__name__))
         returnValue(self._document)
