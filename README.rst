@@ -61,7 +61,7 @@ Quick example
     vegeta.commit()
 
     vegeta.friends
-    # <object umongo.data_objects.List([<object Reference umongo.dal.pymongo.PyMongoReference(document=User, id=ObjectId('5717568613adf27be6363f78'))>])>
+    # <object umongo.data_objects.List([<object Reference umongo.dal.pymongo.PyMongoReference(document=User, pk=ObjectId('5717568613adf27be6363f78'))>])>
     vegeta.dump()
     # {id': '570ddb311d41c89cabceeddc', 'email': 'vegeta@over9000.com', friends': ['570ddb2a1d41c89cabceeddb']}
     User.find_one({"email": 'goku@sayen.com'})
