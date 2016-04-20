@@ -27,6 +27,7 @@ From this point, μMongo made a few design choices:
 - Work with multiple drivers (PyMongo_, TxMongo_, motor_asyncio_ and mongomock_ for the moment)
 - Tight integration with Marshmallow_ serialization library to easily
   dump and load your data with the outside world
+- i18n integration to localize validation error messages
 - Free software: MIT license
 - Test with 90%+ coverage ;-)
 
