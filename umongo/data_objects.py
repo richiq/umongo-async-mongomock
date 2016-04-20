@@ -144,8 +144,8 @@ class Reference:
         raise NotImplementedError
 
     def __repr__(self):
-        return '<object Reference %s.%s(document=%s, id=%s)>' % (
-            self.__module__, self.__class__.__name__, self.pk, self.document_cls.__name__)
+        return '<object Reference %s.%s(document=%s, id=%r)>' % (
+            self.__module__, self.__class__.__name__, self.document_cls.__name__, self.pk)
 
     def __eq__(self, other):
         if isinstance(other, self.document_cls):
