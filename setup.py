@@ -21,12 +21,12 @@ requirements = [
 
 test_requirements = [
     "txmongo",
-    "motor>=0.7.1"
+    "motor>=0.7.2"
 ]
 
 setup(
     name='umongo',
-    version='0.7.1',
+    version='0.7.2',
     description="Small but efficient MongoDB ODM",
     long_description=readme + '\n\n' + history,
     author="Emmanuel Leblond",
