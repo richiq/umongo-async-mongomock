@@ -19,11 +19,6 @@ requirements = [
     "pymongo"  # needed for bson module
 ]
 
-test_requirements = [
-    "txmongo",
-    "motor>=0.7.4"
-]
-
 setup(
     name='umongo',
     version='0.7.4',
@@ -47,6 +42,4 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    test_suite='tests',
-    tests_require=test_requirements
 )
