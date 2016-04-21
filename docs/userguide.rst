@@ -321,6 +321,10 @@ For more custom indexes, the ``Meta.indexes`` attribute should be used:
      {'key': SON([('age', 1), ]), 'name': 'age_1'},
      {'key': SON([('age', -1), ('name', 1)]), 'name': 'age_-1_name_1'}
 
+.. note:: ``Meta.indexes`` should use the names of the fields as they appear
+          in database (i.g. given a field ``nick = StrField(attribute='nk')``,
+          you refer to it in ``Meta.indexes`` as ``nk``)
+
 Indexes can be passed as:
 
 - a string with an optional direction prefix (i.g. ``"my_field"``)

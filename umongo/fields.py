@@ -342,7 +342,7 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         """
         for name, field in self._embedded_document_cls.schema.fields.items():
             cur_path = '%s.%s' % (path, name)
-            cur_mongo_path = '%s.%s' (mongo_path, field.attribute or name)
+            cur_mongo_path = '%s.%s' % (mongo_path, field.attribute or name)
             func(cur_mongo_path, cur_path, field)
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(cur_mongo_path, cur_path, func)

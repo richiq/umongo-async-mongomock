@@ -4,7 +4,7 @@ from itertools import zip_longest
 from umongo.indexes import (
     parse_index, explicit_key, parse_index,
     IndexModel, ASCENDING, DESCENDING, TEXT, HASHED)
-from umongo import Document, fields
+from umongo import Document, EmbeddedDocument, fields
 
 
 def assert_indexes(indexes1, indexes2):
@@ -86,3 +86,25 @@ class TestIndexes:
                 parse_index(1)
             assert exc.value.args[0] == (
                 'Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')
+
+    def test_nested_indexes(self):
+
+        class NestedDoc(EmbeddedDocument):
+            simple = fields.StrField()
+            listed = fields.ListField(fields.StrField())
+
+        class Doc(Document):
+            nested = fields.EmbeddedField(NestedDoc)
+            listed = fields.ListField(fields.EmbeddedField(NestedDoc))
+
+            class Meta:
+                indexes = ['nested', 'nested.simple', 'listed', 'listed.simple', 'listed.listed']
+
+        assert_indexes(Doc.opts.indexes,
+            [
+                IndexModel([('nested', ASCENDING)]),
+                IndexModel([('nested.simple', ASCENDING)]),
+                IndexModel([('listed', ASCENDING)]),
+                IndexModel([('listed.simple', ASCENDING)]),
+                IndexModel([('listed.listed', ASCENDING)]),
+            ])
