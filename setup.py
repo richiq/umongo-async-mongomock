@@ -3,9 +3,9 @@
 
 
 try:
-    from setuptools import setup, find_packages
+    from setuptools import setup
 except ImportError:
-    from distutils.core import setup, find_packages
+    from distutils.core import setup
 
 
 with open('README.rst', 'rb') as readme_file:

@@ -2,6 +2,11 @@
 History
 =======
 
+0.7.3 (2016-4-21)
+-----------------
+
+* Fix setup.py style preventing from release
+
 0.7.2 (2016-4-21)
 -----------------
 
