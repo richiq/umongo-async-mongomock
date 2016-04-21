@@ -2,6 +2,13 @@
 History
 =======
 
+0.7.0 (2016-4-21)
+-----------------
+
+* Add i18n support
+* Add MongoMock support
+* Documentation has been a lot extended
+
 0.6.1 (2016-4-13)
 -----------------
 
@@ -16,3 +23,4 @@ History
 -----------------
 
 * First release on PyPI.
+
