@@ -32,7 +32,7 @@ setup(
     author="Emmanuel Leblond",
     author_email='emmanuel.leblond@gmail.com',
     url='https://github.com/touilleMan/umongo',
-    packages=['umongo'],
+    packages=['umongo', 'umongo.dal'],
     include_package_data=True,
     install_requires=requirements,
     license="MIT",
