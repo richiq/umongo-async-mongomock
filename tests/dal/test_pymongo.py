@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 from ..common import BaseTest, get_pymongo_version, TEST_DB
 from ..test_indexes import assert_indexes
-from ..fixtures import classroom_model
+from ..fixtures import classroom_model, ConfiguredDoc
 
 from umongo import Document, fields, exceptions, Reference
 
@@ -219,14 +219,13 @@ class TestPymongo(BaseTest):
         student.io_validate()
         assert called == values
 
-    def test_indexes(self, db):
+    def test_indexes(self, ConfiguredDoc):
 
-        class SimpleIndexDoc(Document):
+        class SimpleIndexDoc(ConfiguredDoc):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
                 indexes = ['indexed']
 
         SimpleIndexDoc.collection.drop_indexes()
@@ -254,14 +253,13 @@ class TestPymongo(BaseTest):
         SimpleIndexDoc.ensure_indexes()
         assert indexes == expected_indexes
 
-    def test_indexes_inheritance(self, db):
+    def test_indexes_inheritance(self, ConfiguredDoc):
 
-        class SimpleIndexDoc(Document):
+        class SimpleIndexDoc(ConfiguredDoc):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
                 indexes = ['indexed']
 
         SimpleIndexDoc.collection.drop_indexes()
@@ -289,15 +287,12 @@ class TestPymongo(BaseTest):
         SimpleIndexDoc.ensure_indexes()
         assert indexes == expected_indexes
 
-    def test_unique_index(self, db):
+    def test_unique_index(self, ConfiguredDoc):
 
-        class UniqueIndexDoc(Document):
+        class UniqueIndexDoc(ConfiguredDoc):
             not_unique = fields.StrField(unique=False)
             sparse_unique = fields.IntField(unique=True)
             required_unique = fields.IntField(unique=True, required=True)
-
-            class Meta:
-                collection = db.unique_index_doc
 
         UniqueIndexDoc.collection.drop()
         UniqueIndexDoc.collection.drop_indexes()
@@ -344,15 +339,14 @@ class TestPymongo(BaseTest):
             UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
         assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
-    def test_unique_index_compound(self, db):
+    def test_unique_index_compound(self, ConfiguredDoc):
 
-        class UniqueIndexCompoundDoc(Document):
+        class UniqueIndexCompoundDoc(ConfiguredDoc):
             compound1 = fields.IntField()
             compound2 = fields.IntField()
             not_unique = fields.StrField()
 
             class Meta:
-                collection = db.unique_index_compound_doc
                 # Must define custom index to do that
                 indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
@@ -403,14 +397,13 @@ class TestPymongo(BaseTest):
         }
 
     @pytest.mark.xfail
-    def test_unique_index_inheritance(self, db):
+    def test_unique_index_inheritance(self, ConfiguredDoc):
 
-        class UniqueIndexParentDoc(Document):
+        class UniqueIndexParentDoc(ConfiguredDoc):
             not_unique = fields.StrField(unique=False)
             unique = fields.IntField(unique=True)
 
             class Meta:
-                collection = db.unique_index_inheritance_doc
                 allow_inheritance = True
 
         class UniqueIndexChildDoc(UniqueIndexParentDoc):
@@ -468,13 +461,12 @@ class TestPymongo(BaseTest):
         indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
-    def test_inheritance_search(self, db):
+    def test_inheritance_search(self, ConfiguredDoc):
 
-        class InheritanceSearchParent(Document):
+        class InheritanceSearchParent(ConfiguredDoc):
             pf = fields.IntField()
 
             class Meta:
-                collection = db.inheritance_search
                 allow_inheritance = True
 
         class InheritanceSearchChild1(InheritanceSearchParent):

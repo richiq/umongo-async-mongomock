@@ -12,6 +12,8 @@ def _base_opts():
     opts.abstract = True
     opts.allow_inheritance = True
     opts.register_document = False
+    opts.collection_name = None
+    opts.db = None
     return opts
 
 
@@ -135,6 +137,14 @@ class Document(metaclass=MetaDocument):
         """
         # Cannot implicitly access to the class's property
         return type(self).collection
+
+    @property
+    def db(self):
+        """
+        Return the database used by this document class
+        """
+        # Cannot implicitly access to the class's property
+        return type(self).db
 
     # Data-proxy accessor shortcuts
 

@@ -4,7 +4,7 @@ from bson import ObjectId
 from functools import namedtuple, wraps
 
 from ..common import BaseTest, get_pymongo_version, TEST_DB, con
-from ..fixtures import classroom_model
+from ..fixtures import classroom_model, ConfiguredDoc
 
 # Check if the required dependancies are met to run this driver's tests
 try:
@@ -286,13 +286,13 @@ class TestTxMongo(BaseTest):
         assert called == values
 
     @pytest_inlineCallbacks
-    def test_indexes(self, db):
-        class SimpleIndexDoc(Document):
+    def test_indexes(self, ConfiguredDoc):
+
+        class SimpleIndexDoc(ConfiguredDoc):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
                 indexes = ['indexed']
 
         yield SimpleIndexDoc.collection.drop_indexes()
@@ -323,13 +323,13 @@ class TestTxMongo(BaseTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
-    def test_indexes_inheritance(self, db):
-        class SimpleIndexDoc(Document):
+    def test_indexes_inheritance(self, ConfiguredDoc):
+
+        class SimpleIndexDoc(ConfiguredDoc):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
                 indexes = ['indexed']
 
         yield SimpleIndexDoc.collection.drop_indexes()
@@ -360,15 +360,12 @@ class TestTxMongo(BaseTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
-    def test_unique_index(self, db):
+    def test_unique_index(self, ConfiguredDoc):
 
-        class UniqueIndexDoc(Document):
+        class UniqueIndexDoc(ConfiguredDoc):
             not_unique = fields.StrField(unique=False)
             sparse_unique = fields.IntField(unique=True)
             required_unique = fields.IntField(unique=True, required=True)
-
-            class Meta:
-                collection = db.unique_index_doc
 
         yield UniqueIndexDoc.collection.drop()
         yield UniqueIndexDoc.collection.drop_indexes()
@@ -416,15 +413,14 @@ class TestTxMongo(BaseTest):
         assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
     @pytest_inlineCallbacks
-    def test_unique_index_compound(self, db):
+    def test_unique_index_compound(self, ConfiguredDoc):
 
-        class UniqueIndexCompoundDoc(Document):
+        class UniqueIndexCompoundDoc(ConfiguredDoc):
             compound1 = fields.IntField()
             compound2 = fields.IntField()
             not_unique = fields.StrField()
 
             class Meta:
-                collection = db.unique_index_compound_doc
                 # Must define custom index to do that
                 indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
@@ -476,14 +472,13 @@ class TestTxMongo(BaseTest):
 
     @pytest.mark.xfail
     @pytest_inlineCallbacks
-    def test_unique_index_inheritance(self, db):
+    def test_unique_index_inheritance(self, ConfiguredDoc):
 
-        class UniqueIndexParentDoc(Document):
+        class UniqueIndexParentDoc(ConfiguredDoc):
             not_unique = fields.StrField(unique=False)
             unique = fields.IntField(unique=True)
 
             class Meta:
-                collection = db.unique_index_inheritance_doc
                 allow_inheritance = True
 
         class UniqueIndexChildDoc(UniqueIndexParentDoc):
@@ -542,13 +537,12 @@ class TestTxMongo(BaseTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
-    def test_inheritance_search(self, db):
+    def test_inheritance_search(self, ConfiguredDoc):
 
-        class InheritanceSearchParent(Document):
+        class InheritanceSearchParent(ConfiguredDoc):
             pf = fields.IntField()
 
             class Meta:
-                collection = db.inheritance_search
                 allow_inheritance = True
 
         class InheritanceSearchChild1(InheritanceSearchParent):

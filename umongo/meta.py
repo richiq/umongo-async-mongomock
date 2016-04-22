@@ -1,10 +1,16 @@
+import re
 from marshmallow.fields import Field
 
 from .registerer import register_document
 from .exceptions import NoCollectionDefinedError, DocumentDefinitionError
 from .schema import Schema, EmbeddedSchema, on_need_add_id_field
-from .abstract import AbstractDal
+from .abstract import AbstractDal, BaseLazyLoader
 from .indexes import parse_index
+
+
+def _convert_snake_case(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def _is_child(bases):
@@ -77,8 +83,8 @@ class DocumentOpts:
                 'base_schema_cls={self.base_schema_cls}, '
                 'indexes={self.indexes}, '
                 'custom_indexes={self.custom_indexes}, '
-                'collection={self.collection}, '
-                'lazy_collection={self.lazy_collection}, '
+                'db={self.db}, '
+                'collection_name={self.collection_name}, '
                 'dal={self.dal}, '
                 'children={self.children})>'
                 .format(ClassName=self.__class__.__name__, self=self))
@@ -88,7 +94,7 @@ class DocumentOpts:
         self.abstract = getattr(meta, 'abstract', False)
         self.allow_inheritance = getattr(meta, 'allow_inheritance', self.abstract)
         self.register_document = getattr(meta, 'register_document', True)
-        for field in ('collection', 'lazy_collection', 'dal'):
+        for field in ('collection_name', 'db', 'dal'):
             setattr(self, field, getattr(meta, field, None))
         self.base_schema_cls = getattr(meta, 'base_schema_cls', Schema)
         self.indexes, self.custom_indexes = _collect_indexes(nmspc, bases)
@@ -107,7 +113,7 @@ class DocumentOpts:
                 raise DocumentDefinitionError(
                     "Abstract document should have all it parents abstract")
             # Retrieve collection related stuff by inheritance
-            for field in ('collection', 'lazy_collection', 'dal'):
+            for field in ('db', 'dal', 'collection_name'):
                 candidate = getattr(popts, field)
                 curr = getattr(self, field)
                 if candidate:
@@ -118,23 +124,16 @@ class DocumentOpts:
                     else:
                         setattr(self, field, candidate)
         # Handle collection & dal configuration
-        if self.abstract:
-            not_allowed = [f for f in ('collection', 'lazy_collection', 'dal')
-                           if getattr(self, f)]
-            if not_allowed:
-                raise DocumentDefinitionError("Fields %s are not allowed in abstract document")
-        elif self.collection:
-            if self.lazy_collection:
-                raise NoCollectionDefinedError("Cannot define at the same"
-                    " time `collection` and `lazy_collection`")
-            if not self.dal:
-                # Try to determine dal from the collection itself
-                from .dal import find_dal_from_collection
-                self.dal = find_dal_from_collection(self.collection)
-        elif self.lazy_collection:
-            if not self.dal:
-                self.dal = self.lazy_collection.dal
-
+        if not self.abstract:
+            if not self.collection_name:
+                self.collection_name = _convert_snake_case(name)
+            if self.db and not self.dal:
+                if isinstance(self.db, BaseLazyLoader):
+                    self.dal = self.db.dal
+                else:
+                    # Try to determine dal from the database type itself
+                    from .dal import find_dal_from_db
+                    self.dal = find_dal_from_db(self.db)
         if self.dal and not issubclass(self.dal, AbstractDal):
             raise NoCollectionDefinedError(
                 "`dal` attribute must be a subclass of %s" % AbstractDal)
@@ -186,6 +185,7 @@ class MetaDocument(type):
             name, bases, nmspc, auto_id_field=True, base_schema_cls=opts.base_schema_cls)
         # Don't alter nmspc before defining schema to avoid shadowing fields
         nmspc['opts'] = opts
+        nmspc['_db'] = None
         nmspc['_collection'] = None
         # Non-abstract document inherit a dal to implement driver-related stuff
         if opts.dal:
@@ -199,16 +199,25 @@ class MetaDocument(type):
         return gen_cls
 
     @property
-    def collection(self):
+    def db(cls):
         # This is defined inside the metaclass to give property
         # access to the generated class
-        if not self._collection:
-            self._collection = self.opts.collection
-            if not self._collection:
-                lazy_collection = self.opts.lazy_collection
-                if not lazy_collection:
-                    raise NoCollectionDefinedError("No collection nor lazy_collection defined")
-                self._collection = lazy_collection.load()
-                if not self._collection:
-                    raise NoCollectionDefinedError("lazy_collection didn't returned a collection")
-        return self._collection
+        if not cls._db:
+            db = cls.opts.db
+            if not db:
+                raise NoCollectionDefinedError("No db defined")  # TODO: rename exception
+            elif isinstance(db, BaseLazyLoader):
+                db = db.load()
+                if not db:
+                    raise NoCollectionDefinedError(
+                        "lazy_loader didn't return a valid db")
+            cls._db = db
+        return cls._db
+
+    @property
+    def collection(cls):
+        # This is defined inside the metaclass to give property
+        # access to the generated class
+        if not cls._collection:
+            cls._collection = cls.db[cls.opts.collection_name]
+        return cls._collection

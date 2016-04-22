@@ -1,4 +1,4 @@
-from txmongo.collection import Collection
+from txmongo.database import Database
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
 from txmongo import filter as qf
 from pymongo.errors import DuplicateKeyError
@@ -15,8 +15,8 @@ from .tools import cook_find_filter
 class TxMongoDal(AbstractDal):
 
     @staticmethod
-    def is_compatible_with(collection):
-        return isinstance(collection, Collection)
+    def is_compatible_with(db):
+        return isinstance(db, Database)
 
     @staticmethod
     def io_validate_patch_schema(schema):

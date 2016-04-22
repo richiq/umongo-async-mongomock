@@ -79,14 +79,14 @@ class CallTracerMoke:
 
 
 @pytest.fixture
-def dal_moke(request, collection_moke):
+def dal_moke(request, db_moke):
 
-    # Really simple DAL: just proxy to the collection_moke for everything
+    # Really simple DAL: just proxy to the collection for everything
     class MokedDal(BaseMokedDal):
 
         @staticmethod
-        def is_compatible_with(collection):
-            return collection is collection_moke
+        def is_compatible_with(db):
+            return db is db_moke
 
         def reload(self):
             self._pass_to_collection("reload", self)
@@ -119,11 +119,15 @@ def dal_moke(request, collection_moke):
 
 
 @pytest.fixture
-def db_moke(request, name='my_moked_db'):
+def db_moke(request, name='my_moked_db', collection_cls=None):
 
-    class MokedCollection():
-        def __init__(self, name):
-            self.name = name
+    if not collection_cls:
+
+        class MokedCollection():
+            def __init__(self, name):
+                self.name = name
+
+        collection_cls = MokedCollection
 
     class MokedDB:
         def __init__(self, name):
@@ -131,16 +135,21 @@ def db_moke(request, name='my_moked_db'):
             self.cols = {}
 
         def __getattr__(self, name):
+            return self[name]
+
+        def __getitem__(self, name):
             if name not in self.cols:
-                self.cols[name] = MokedCollection(name)
+                self.cols[name] = collection_cls(name)
                 dal_moke(request, self.cols[name])
             return self.cols[name]
 
-    return MokedDB(name)
+    db = MokedDB(name)
+    dal_moke(request, db)
+    return db
 
 
 @pytest.fixture
-def collection_moke(request, name='my_moked_col'):
+def tracer_db_moke(request):
 
     class MokedCollection(CallTracerMoke):
 
@@ -149,38 +158,39 @@ def collection_moke(request, name='my_moked_col'):
             super().__init__()
             self.__callbacks = deque()
 
-    my_collection_moke = MokedCollection(name)
-    dal_moke(request, my_collection_moke)
-    return my_collection_moke
+    return db_moke(request, collection_cls=MokedCollection)
 
 
 @pytest.fixture
 def classroom_model(db):
     # `db` should be a fixture provided by the current dal testbench
+    _db = db
+    class Base(Document):
+        class Meta:
+            register_document = False
+            abstract = True
+            db = _db
 
-    class Teacher(Document):
+    class Teacher(Base):
         name = fields.StrField(required=True)
 
         class Meta:
             register_document = False
-            collection = db.teacher
 
-    class Course(Document):
+    class Course(Base):
         name = fields.StrField(required=True)
         teacher = fields.ReferenceField(Teacher, required=True)
 
         class Meta:
             register_document = False
-            collection = db.course
 
-    class Student(Document):
+    class Student(Base):
         name = fields.StrField(required=True)
         birthday = fields.DateTimeField()
         courses = fields.ListField(fields.ReferenceField(Course))
 
         class Meta:
             register_document = False
-            collection = db.student
             allow_inheritance = True
 
     return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
@@ -189,3 +199,16 @@ def classroom_model(db):
 @pytest.fixture
 def moked_lazy_loader(dal_moke):
     return lazy_loader_factory(lambda: dal_moke)
+
+
+@pytest.fixture
+def ConfiguredDoc(db):
+    _db = db
+
+    class ConfiguredDoc(Document):
+        class Meta:
+            abstract = True
+            register_document = False
+            db = _db
+
+    return ConfiguredDoc

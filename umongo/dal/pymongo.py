@@ -1,4 +1,4 @@
-from pymongo.collection import Collection
+from pymongo.database import Database
 from pymongo.cursor import Cursor
 from pymongo.errors import DuplicateKeyError
 
@@ -40,8 +40,8 @@ class WrappedCursor(Cursor):
 class PyMongoDal(AbstractDal):
 
     @staticmethod
-    def is_compatible_with(collection):
-        return isinstance(collection, Collection)
+    def is_compatible_with(db):
+        return isinstance(db, Database)
 
     @staticmethod
     def io_validate_patch_schema(schema):

@@ -8,7 +8,7 @@ from umongo.data_proxy import DataProxy
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
 from umongo.data_objects import List, Dict
 
-from .fixtures import collection_moke, db_moke
+from .fixtures import db_moke
 
 
 class TestFields:
@@ -354,12 +354,12 @@ class TestFields:
         with pytest.raises(ValidationError):
             d.set('objid', 'notanid')
 
-    def test_reference(self, collection_moke):
+    def test_reference(self, db_moke):
 
         class MyReferencedDoc(Document):
 
             class Meta:
-                collection = collection_moke
+                db = db_moke
 
         class OtherDoc(Document):
             pass
@@ -367,7 +367,7 @@ class TestFields:
         to_refer_doc = MyReferencedDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
         ref = Reference(MyReferencedDoc, to_refer_doc.pk)
-        dbref = DBRef(collection_moke.name, to_refer_doc.pk)
+        dbref = DBRef(MyReferencedDoc.collection.name, to_refer_doc.pk)
         other_doc = OtherDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef07")})
 

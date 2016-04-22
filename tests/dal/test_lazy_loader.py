@@ -13,21 +13,21 @@ def test_bad_dal():
         class MyDoc(Document):
 
             class Meta:
-                collection = object()
+                db = object()
 
 
 def lazy_loader_tester(lazy_loader, dal_cls):
-    my_collection = object()
+    my_db = object()
 
     class MyDoc(Document):
 
         class Meta:
-            lazy_collection = lazy_loader(lambda: my_collection)
+            db = lazy_loader(lambda: my_db)
             register_document = False
 
-    assert MyDoc.Meta.lazy_collection.dal is dal_cls
+    assert MyDoc.Meta.db.dal is dal_cls
     assert issubclass(MyDoc, dal_cls)
-    MyDoc.collection is my_collection
+    MyDoc.db is my_db
 
 
 @pytest.mark.skipif(pymongo_dep_error is not None, reason=pymongo_dep_error)

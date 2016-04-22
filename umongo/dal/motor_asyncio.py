@@ -1,5 +1,5 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
 from pymongo.errors import DuplicateKeyError
 
 from ..abstract import AbstractDal
@@ -57,8 +57,8 @@ class WrappedCursor(AsyncIOMotorCursor):
 class MotorAsyncIODal(AbstractDal):
 
     @staticmethod
-    def is_compatible_with(collection):
-        return isinstance(collection, AsyncIOMotorCollection)
+    def is_compatible_with(db):
+        return isinstance(db, AsyncIOMotorDatabase)
 
     @staticmethod
     def io_validate_patch_schema(schema):

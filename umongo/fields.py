@@ -193,7 +193,7 @@ IntField = IntegerField
 # Bonus: new fields !
 
 
-class ObjectIdField(BaseField, ma_fields.Field):
+class ObjectIdField(BaseField):
     """
     Marshmallow field for :class:`bson.ObjectId`
     """
@@ -346,3 +346,21 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             func(cur_mongo_path, cur_path, field)
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(cur_mongo_path, cur_path, func)
+
+
+class FileField(BaseField):
+    """
+    """
+
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        return str(value)
+
+    def _deserialize(self, value, attr, data):
+        if value is None:
+            return None
+        try:
+            return ObjectId(value)
+        except bson_errors.InvalidId:
+            raise ValidationError(_('Invalid ObjectId.'))

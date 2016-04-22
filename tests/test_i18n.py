@@ -4,8 +4,6 @@ from umongo import Document, fields, set_gettext, ValidationError, validate
 from umongo.i18n import gettext
 from umongo.abstract import BaseField
 
-from .fixtures import collection_moke
-
 
 class TestI18N:
     def teardown_method(self, method):

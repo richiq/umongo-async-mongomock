@@ -2,6 +2,13 @@
 History
 =======
 
+dev
+---
+
+* Replace collection configuration by db to simplify gridfs support
+* Add collection_name opts
+* abstract Document can receive db/collection
+
 0.7.4 (2016-4-21)
 -----------------
 

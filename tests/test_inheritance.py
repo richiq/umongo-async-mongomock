@@ -2,7 +2,7 @@ import pytest
 
 from umongo import Document, fields, exceptions
 
-from .fixtures import collection_moke, dal_moke
+from .fixtures import db_moke, dal_moke
 
 
 class TestInheritance:
@@ -27,14 +27,14 @@ class TestInheritance:
             {'_cls': 'Child1', 'first_name': 'John', 'last_name': 'Doe'}, use_cls=True)
         assert loaded.cls == 'Child1'
 
-    def test_simple(self, collection_moke, dal_moke):
+    def test_simple(self, db_moke, dal_moke):
 
         class Parent2(Document):
             last_name = fields.StrField()
 
             class Meta:
                 allow_inheritance = True
-                collection = collection_moke
+                db = db_moke
 
         assert Parent2.opts.abstract == False
         assert Parent2.opts.allow_inheritance == True
@@ -44,17 +44,11 @@ class TestInheritance:
 
         assert Child2.opts.abstract == False
         assert Child2.opts.allow_inheritance == False
-        assert Child2.collection == collection_moke
+        assert Child2.db is db_moke
+        assert Child2.collection is Parent2.collection
         child = Child2(first_name='John', last_name='Doe')
 
-    def test_abstract(self, collection_moke, dal_moke):
-
-        # Cannot define a collection for an abstract doc !
-        with pytest.raises(exceptions.DocumentDefinitionError):
-            class BadAbstractDoc(Document):
-                class Meta:
-                    abstract = True
-                    collection = collection_moke
+    def test_abstract(self, db_moke, dal_moke):
 
         class AbstractDoc(Document):
             abs_field = fields.StrField(missing='from abstract')
@@ -75,6 +69,7 @@ class TestInheritance:
 
         class ConcreteDoc(AbstractDoc):
             pass
+
         assert ConcreteDoc.opts.abstract == False
         assert ConcreteDoc.opts.allow_inheritance == False
         assert ConcreteDoc().abs_field == 'from abstract'

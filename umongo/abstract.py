@@ -5,7 +5,17 @@ from .exceptions import ValidationError
 from .i18n import gettext as _
 
 
-__all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject', 'AbstractDal')
+__all__ = ('BaseLazyLoader', 'BaseSchema', 'BaseField',
+           'BaseValidator', 'BaseDataObject', 'AbstractDal')
+
+
+class BaseLazyLoader:
+    @property
+    def dal(self):
+        raise NotImplementedError
+
+    def load(self):
+        raise NotImplementedError
 
 
 class BaseSchema(MaSchema):

@@ -13,7 +13,7 @@ else:
     dep_error = None
 
 from ..common import BaseTest, TEST_DB
-from ..fixtures import classroom_model
+from ..fixtures import classroom_model, ConfiguredDoc
 
 from umongo import Document, fields, exceptions, Reference
 
@@ -361,17 +361,16 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_indexes(self, loop, db):
+    def test_indexes(self, loop, ConfiguredDoc):
 
         @asyncio.coroutine
         def do_test():
 
-            class SimpleIndexDoc(Document):
+            class SimpleIndexDoc(ConfiguredDoc):
                 indexed = fields.StrField()
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = db.simple_index_doc
                     indexes = ['indexed']
 
             yield from SimpleIndexDoc.collection.drop_indexes()
@@ -398,17 +397,16 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_indexes_inheritance(self, loop, db):
+    def test_indexes_inheritance(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
         def do_test():
 
-            class SimpleIndexDoc(Document):
+            class SimpleIndexDoc(ConfiguredDoc):
                 indexed = fields.StrField()
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = db.simple_index_doc
                     indexes = ['indexed']
 
             yield from SimpleIndexDoc.collection.drop_indexes()
@@ -435,18 +433,15 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_unique_index(self, db, loop):
+    def test_unique_index(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
         def do_test():
 
-            class UniqueIndexDoc(Document):
+            class UniqueIndexDoc(ConfiguredDoc):
                 not_unique = fields.StrField(unique=False)
                 sparse_unique = fields.IntField(unique=True)
                 required_unique = fields.IntField(unique=True, required=True)
-
-                class Meta:
-                    collection = db.unique_index_doc
 
             yield from UniqueIndexDoc.collection.drop()
             yield from UniqueIndexDoc.collection.drop_indexes()
@@ -489,18 +484,17 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_unique_index_compound(self, db, loop):
+    def test_unique_index_compound(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
         def do_test():
 
-            class UniqueIndexCompoundDoc(Document):
+            class UniqueIndexCompoundDoc(ConfiguredDoc):
                 compound1 = fields.IntField()
                 compound2 = fields.IntField()
                 not_unique = fields.StrField()
 
                 class Meta:
-                    collection = db.unique_index_compound_doc
                     # Must define custom index to do that
                     indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
@@ -553,17 +547,16 @@ class TestMotorAsyncio(BaseTest):
         loop.run_until_complete(do_test())
 
     @pytest.mark.xfail
-    def test_unique_index_inheritance(self, db, loop):
+    def test_unique_index_inheritance(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
         def do_test():
 
-            class UniqueIndexParentDoc(Document):
+            class UniqueIndexParentDoc(ConfiguredDoc):
                 not_unique = fields.StrField(unique=False)
                 unique = fields.IntField(unique=True)
 
                 class Meta:
-                    collection = db.unique_index_inheritance_doc
                     allow_inheritance = True
 
             class UniqueIndexChildDoc(UniqueIndexParentDoc):
@@ -623,16 +616,15 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    def test_inheritance_search(self, db, loop):
+    def test_inheritance_search(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
         def do_test():
 
-            class InheritanceSearchParent(Document):
+            class InheritanceSearchParent(ConfiguredDoc):
                 pf = fields.IntField()
 
                 class Meta:
-                    collection = db.inheritance_search
                     allow_inheritance = True
 
             class InheritanceSearchChild1(InheritanceSearchParent):

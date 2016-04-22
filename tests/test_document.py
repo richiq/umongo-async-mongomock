@@ -4,10 +4,11 @@ from bson import ObjectId, DBRef
 from functools import namedtuple
 
 from .common import BaseTest
-from .fixtures import collection_moke, dal_moke, moked_lazy_loader
+from .fixtures import db_moke, tracer_db_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
 from umongo.abstract import AbstractDal
+from umongo.dal import lazy_loader_factory
 
 
 class Student(Document):
@@ -126,13 +127,13 @@ class TestDocument(BaseTest):
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
 
-    def test_dbref(self, collection_moke):
+    def test_dbref(self, db_moke):
 
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
             class Meta:
-                collection = collection_moke
+                db = db_moke
 
         student = ConfiguredStudent()
 
@@ -144,15 +145,15 @@ class TestDocument(BaseTest):
         student.created = True
         student.clear_modified()
 
-        assert student.dbref == DBRef(collection=collection_moke.name, id=1)
+        assert student.dbref == DBRef(collection=ConfiguredStudent.collection.name, id=1)
 
-    def test_equality(self, collection_moke):
+    def test_equality(self, db_moke):
 
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
             class Meta:
-                collection = collection_moke
+                db = db_moke
 
         john_data = {
             '_id': 42, 'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0
@@ -164,7 +165,7 @@ class TestDocument(BaseTest):
 
         assert john != phillipe
         assert john2 == john
-        assert john == DBRef(collection=collection_moke.name, id=john.pk)
+        assert john == DBRef(collection=ConfiguredStudent.collection.name, id=john.pk)
 
         john.name = 'William Doe'
         assert john == john2
@@ -173,19 +174,20 @@ class TestDocument(BaseTest):
         newbie2 = ConfiguredStudent(name='Newbie')
         assert newbie != newbie2
 
-    def test_dal_connection(self, collection_moke):
+    def test_dal_connection(self, tracer_db_moke):
 
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
             class Meta:
-                collection = collection_moke
+                db = tracer_db_moke
 
         newbie = ConfiguredStudent(name='Newbie')
 
         def commiter(doc, io_validate_all=False):
             doc.created = True
 
+        collection_moke = ConfiguredStudent.collection
         collection_moke.push_callback('commit', callback=commiter)
         collection_moke.push_callback('reload')
         collection_moke.push_callback('delete')
@@ -273,40 +275,34 @@ class TestConfig:
         class Doc2(Document):
             pass
 
-        assert Doc2.opts.collection is None
-        assert Doc2.opts.lazy_collection is None
+        assert Doc2.opts.db is None
+        assert Doc2.opts.collection_name == 'doc2'
         assert Doc2.opts.dal is None
         assert Doc2.opts.register_document is True
 
-    def test_lazy_collection(self, moked_lazy_loader, collection_moke):
-
-        def lazy_factory():
-            return collection_moke
+    def test_lazy_collection(self, moked_lazy_loader, db_moke):
+        loader = moked_lazy_loader(lambda: db_moke)
 
         class Doc3(Document):
 
             class Meta:
-                lazy_collection = moked_lazy_loader(lazy_factory)
+                db = loader
 
-        assert Doc3.opts.collection is None
-        assert Doc3.opts.dal is Doc3.Meta.lazy_collection.dal
-        assert issubclass(Doc3, Doc3.Meta.lazy_collection.dal)
+        assert Doc3.opts.db is loader
+        assert Doc3.opts.dal is loader.dal
+        assert issubclass(Doc3, loader.dal)
         # Try to do the dereferencing
-        assert Doc3.collection is collection_moke
+        assert Doc3.db is db_moke
         d = Doc3()
-        assert d.collection is collection_moke
+        assert d.db is db_moke
 
-    def test_custom_dal_lazy_collection(self, request, moked_lazy_loader, collection_moke):
-
-        dal_moke_2 = dal_moke(request, collection_moke)
-
-        def lazy_factory():
-            return collection_moke
+    def test_custom_dal_lazy_collection(self, request, moked_lazy_loader, db_moke):
+        dal_moke_2 = dal_moke(request, db_moke)
 
         class Doc3(Document):
 
             class Meta:
-                lazy_collection = moked_lazy_loader(lazy_factory)
+                db = moked_lazy_loader(lambda: db_moke)
                 dal = dal_moke_2
                 register_document = False
 
@@ -314,8 +310,8 @@ class TestConfig:
         assert issubclass(Doc3, dal_moke_2)
 
     def test_inheritance(self, request):
-        col1 = collection_moke(request, name='col1')
-        col2 = collection_moke(request, name='col2')
+        db1 = db_moke(request, name='db1')
+        db2 = db_moke(request, name='db2')
 
         class AbsDoc(Document):
 
@@ -326,7 +322,7 @@ class TestConfig:
         class Doc4Child1(AbsDoc):
 
             class Meta:
-                collection = col1
+                db = db1
                 allow_inheritance = True
                 register_document = False
 
@@ -336,14 +332,14 @@ class TestConfig:
         class Doc4Child2(AbsDoc):
 
             class Meta:
-                collection = col2
+                db = db2
 
-        assert Doc4Child1.opts.collection is col1
-        assert Doc4Child1Child.opts.collection is col1
+        assert Doc4Child1.opts.db is db1
+        assert Doc4Child1Child.opts.db is db1
         assert Doc4Child1Child.opts.allow_inheritance is False
         assert Doc4Child1.opts.register_document is False
         assert Doc4Child2.opts.register_document is True
-        assert Doc4Child2.opts.collection == col2
+        assert Doc4Child2.opts.db == db2
         assert Doc4Child2.opts.register_document is True
 
     def test_bad_inheritance(self, request):
@@ -376,38 +372,34 @@ class TestConfig:
                     abstract = True
         assert exc.value.args[0] == "Abstract document should have all it parents abstract"
 
-        col1 = collection_moke(request, name='col1')
-        col2 = collection_moke(request, name='col2')
+        db1 = db_moke(request, name='db1')
+        db2 = db_moke(request, name='db2')
 
         class ParentWithCol1(Document):
             class Meta:
                 allow_inheritance = True
-                collection = col1
+                db = db1
 
         class ParentWithCol2(Document):
             class Meta:
                 allow_inheritance = True
-                collection = col2
+                db = db2
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             class ImpossibleChildDoc(ParentWithCol1, ParentWithCol2):
                 pass
-        assert exc.value.args[0].startswith("collection cannot be defined multiple times")
+        assert exc.value.args[0].startswith("db cannot be defined multiple times")
 
-
-    def test_bad_config(self):
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-            class BadConf(Document):
-                class Meta:
-                    collection = object()
-                    lazy_collection = lambda: None
-        assert exc.value.args[0] == (
-            "Cannot define at the same time `collection` and `lazy_collection`")
-
-    def test_no_collection(self):
+    def test_no_db(self):
 
         class Doc5(Document):
             pass
+
+        with pytest.raises(exceptions.NoCollectionDefinedError):
+            Doc5.db
+
+        with pytest.raises(exceptions.NoCollectionDefinedError):
+            Doc5().db
 
         with pytest.raises(exceptions.NoCollectionDefinedError):
             Doc5.collection
@@ -415,47 +407,34 @@ class TestConfig:
         with pytest.raises(exceptions.NoCollectionDefinedError):
             Doc5().collection
 
-    def test_bad_lazy_collection(self, dal_moke):
+    def test_bad_lazy_collection(self, moked_lazy_loader, dal_moke):
+
+        def tester(exception=exceptions.NoCollectionDefinedError, **meta_kwargs):
+            with pytest.raises(exception) as exc:
+                class Doc7(Document):
+                    Meta = type('Meta', (), meta_kwargs)
+            return exc.value.args[0]
+
+
+        # Bad lazy_loader type make it think we provided a db object
+        assert tester(exceptions.NoCompatibleDalError,
+                      db=object()).startswith("Cannot find a umongo dal compatible with")
+
+        # Good lazy_loader type but returns None instead of dal class
+        class DummyDal:
+            pass
+        assert tester(db=lazy_loader_factory(lambda: DummyDal)(object)) == (
+            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
 
         # Bad `dal` attribute
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-
-            class Doc7(Document):
-
-                class Meta:
-                    lazy_collection = lambda: None
-
-                    class dal:
-                        pass
-        assert exc.value.args[0] == (
+        assert tester(db=object(), dal=DummyDal) == (
             "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
 
-        # Invalid lazy_collection's dal
-        LazyCollection = namedtuple('LazyCollection', ('dal', 'load'))
-
-        class BadDal:
-            pass
-
-        def load_collection():
-            pass
-
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-            class Doc8(Document):
-                class Meta:
-                    lazy_collection = LazyCollection(BadDal, load_collection)
-        assert exc.value.args[0] == (
-            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
-
-        # Invalid lazy_collection's load
-        class GoodDal(AbstractDal):
-            @staticmethod
-            def io_validate_patch_schema(schema):
-                pass
-
+        # Lazy loader didn't returned a db
         class Doc9(Document):
             class Meta:
-                lazy_collection = LazyCollection(GoodDal, load_collection)
+                db = moked_lazy_loader(lambda: None)
 
         with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
             Doc9.collection
-        assert exc.value.args[0] == "lazy_collection didn't returned a collection"
+        assert exc.value.args[0] == "lazy_loader didn't return a valid db"
