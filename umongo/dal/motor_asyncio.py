@@ -64,6 +64,7 @@ class MotorAsyncIODal(AbstractDal):
     def io_validate_patch_schema(schema):
         _io_validate_patch_schema(schema)
 
+    @asyncio.coroutine
     def reload(self):
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
@@ -73,6 +74,7 @@ class MotorAsyncIODal(AbstractDal):
         self._data = DataProxy(self.schema)
         self._data.from_mongo(ret)
 
+    @asyncio.coroutine
     def commit(self, io_validate_all=False):
         yield from self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
@@ -109,6 +111,7 @@ class MotorAsyncIODal(AbstractDal):
             raise
         self._data.clear_modified()
 
+    @asyncio.coroutine
     def remove(self):
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
@@ -125,6 +128,7 @@ class MotorAsyncIODal(AbstractDal):
                 self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
+    @asyncio.coroutine
     def find_one(cls, spec_or_id=None, *args, **kwargs):
         # In pymongo<3, `spec_or_id` is for filtering and `filter` is for sorting
         spec_or_id = cook_find_filter(cls, spec_or_id)
@@ -140,6 +144,7 @@ class MotorAsyncIODal(AbstractDal):
         return WrappedCursor(cls, cls.collection.find(*args, spec=spec, **kwargs))
 
     @classmethod
+    @asyncio.coroutine
     def ensure_indexes(cls):
         for index in cls.opts.indexes:
             kwargs = index.document.copy()

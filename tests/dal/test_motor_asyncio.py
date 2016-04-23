@@ -667,3 +667,15 @@ class TestMotorAsyncio(BaseTest):
                 assert isinstance(r, InheritanceSearchChild1)
 
         loop.run_until_complete(do_test())
+
+
+@pytest.mark.skipif(dep_error is not None, reason=dep_error)
+class TestAwaitSyntax(BaseTest):
+
+    def test_base(self, loop, db):
+        try:
+            from .await_syntax import test_await_syntax
+            loop.run_until_complete(test_await_syntax(db))
+        except SyntaxError:
+            # Await syntax not supported (Python < 3.5)
+            pass
