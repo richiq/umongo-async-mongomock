@@ -2,8 +2,8 @@
 History
 =======
 
-dev
----
+0.7.5 (2016-4-23)
+-----------------
 
 * Fixing await (Python >= 3.5) support for motor-asyncio
 
