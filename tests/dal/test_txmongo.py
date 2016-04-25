@@ -470,16 +470,16 @@ class TestTxMongo(BaseTest):
             'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
 
-    @pytest.mark.xfail
     @pytest_inlineCallbacks
     def test_unique_index_inheritance(self, ConfiguredDoc):
 
         class UniqueIndexParentDoc(ConfiguredDoc):
             not_unique = fields.StrField(unique=False)
-            unique = fields.IntField(unique=True)
+            unique = fields.IntField(unique=True, required=True)
 
             class Meta:
                 allow_inheritance = True
+                collection_name = 'unique_index_inheritance'
 
         class UniqueIndexChildDoc(UniqueIndexParentDoc):
             child_not_unique = fields.StrField(unique=False)
@@ -493,12 +493,12 @@ class TestTxMongo(BaseTest):
 
         # Now ask for indexes building
         yield UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in con[TEST_DB].unique_index_inheritance_doc.list_indexes()]
+        indexes = [e for e in con[TEST_DB].unique_index_inheritance.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
+                'ns': '%s.unique_index_inheritance' % TEST_DB,
                 'v': 1
             },
             {
@@ -506,34 +506,34 @@ class TestTxMongo(BaseTest):
                 'key': {'unique': 1},
                 'name': 'unique_1',
                 'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                'ns': '%s.unique_index_inheritance' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'manual_index': 1, '_cls': 1},
                 'name': 'manual_index_1__cls_1',
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                'ns': '%s.unique_index_inheritance' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'_cls': 1},
                 'name': '_cls_1',
-                'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                'ns': '%s.unique_index_inheritance' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'child_unique': 1, '_cls': 1},
                 'name': 'child_unique_1__cls_1',
                 'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                'sparse': True,
+                'ns': '%s.unique_index_inheritance' % TEST_DB
             }
         ]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in con[TEST_DB].unique_index_inheritance_doc.list_indexes()]
+        indexes = [e for e in con[TEST_DB].unique_index_inheritance.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks

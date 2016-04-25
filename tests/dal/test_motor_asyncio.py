@@ -546,7 +546,6 @@ class TestMotorAsyncio(BaseTest):
 
         loop.run_until_complete(do_test())
 
-    @pytest.mark.xfail
     def test_unique_index_inheritance(self, ConfiguredDoc, loop):
 
         @asyncio.coroutine
@@ -554,10 +553,11 @@ class TestMotorAsyncio(BaseTest):
 
             class UniqueIndexParentDoc(ConfiguredDoc):
                 not_unique = fields.StrField(unique=False)
-                unique = fields.IntField(unique=True)
+                unique = fields.IntField(unique=True, required=True)
 
                 class Meta:
                     allow_inheritance = True
+                    collection_name = 'unique_index_inheritance'
 
             class UniqueIndexChildDoc(UniqueIndexParentDoc):
                 child_not_unique = fields.StrField(unique=False)
@@ -570,49 +570,45 @@ class TestMotorAsyncio(BaseTest):
             UniqueIndexChildDoc.collection.drop_indexes()
 
             # Now ask for indexes building
-            UniqueIndexChildDoc.ensure_indexes()
-            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
-            expected_indexes = [
-                {
-                    'key': {'_id': 1},
-                    'name': '_id_',
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
+            yield from UniqueIndexChildDoc.ensure_indexes()
+            indexes = yield from UniqueIndexChildDoc.collection.index_information()
+            # Must sort compound indexes to avoid random inconsistence
+            indexes['_cls_1_manual_index_1']['key'] = sorted(indexes['_cls_1_manual_index_1']['key'])
+            indexes['_cls_1_child_unique_1']['key'] = sorted(indexes['_cls_1_child_unique_1']['key'])
+            expected_indexes = {
+                '_id_': {
+                    'key': [('_id', 1)],
                     'v': 1
                 },
-                {
+                'unique_1': {
                     'v': 1,
-                    'key': {'unique': 1},
-                    'name': 'unique_1',
-                    'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                    'key': [('unique', 1)],
+                    'unique': True
                 },
-                {
+                '_cls_1_manual_index_1': {
                     'v': 1,
-                    'key': {'manual_index': 1, '_cls': 1},
-                    'name': 'manual_index_1__cls_1',
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                    'key': [('_cls', 1), ('manual_index', 1)]
                 },
-                {
+                '_cls_1': {
                     'v': 1,
-                    'key': {'_cls': 1},
-                    'name': '_cls_1',
-                    'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                    'key': [('_cls', 1)]
                 },
-                {
+                '_cls_1_child_unique_1': {
                     'v': 1,
-                    'key': {'child_unique': 1, '_cls': 1},
-                    'name': 'child_unique_1__cls_1',
+                    'key': [('_cls', 1), ('child_unique', 1)],
                     'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
+                    'sparse': True
                 }
-            ]
-            assert name_sorted(indexes) == name_sorted(expected_indexes)
+            }
+            assert _ns_stripped(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
-            UniqueIndexChildDoc.ensure_indexes()
-            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
-            assert name_sorted(indexes) == name_sorted(expected_indexes)
+            yield from UniqueIndexChildDoc.ensure_indexes()
+            indexes = yield from UniqueIndexChildDoc.collection.index_information()
+            # Must sort compound indexes to avoid random inconsistence
+            indexes['_cls_1_manual_index_1']['key'] = sorted(indexes['_cls_1_manual_index_1']['key'])
+            indexes['_cls_1_child_unique_1']['key'] = sorted(indexes['_cls_1_child_unique_1']['key'])
+            assert _ns_stripped(indexes) == expected_indexes
 
         loop.run_until_complete(do_test())
 
