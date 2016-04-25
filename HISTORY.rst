@@ -2,6 +2,11 @@
 History
 =======
 
+dev
+---
+
+* Use extras_require to install driver along with umongo
+
 0.7.5 (2016-4-23)
 -----------------
 

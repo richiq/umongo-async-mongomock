@@ -30,6 +30,11 @@ setup(
     packages=['umongo', 'umongo.dal'],
     include_package_data=True,
     install_requires=requirements,
+    extras_require={
+        'pymongo': ['pymongo>=3.2.1'],
+        'motor': ['motor>=0.6.2'],
+        'txmongo': ['txmongo>=16.0.1']
+    },
     license="MIT",
     zip_safe=False,
     keywords='umongo mongodb pymongo txmongo motor mongomock asyncio twisted',
