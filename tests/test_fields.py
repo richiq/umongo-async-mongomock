@@ -173,7 +173,7 @@ class TestFields:
         assert d.to_mongo(update=True) == None
 
         del embedded.a
-        assert embedded.to_mongo(update=True) == {'$unset': ['in_mongo_a']}
+        assert embedded.to_mongo(update=True) == {'$unset': {'in_mongo_a': ''}}
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'b': 2}}}
 
         d.set('embedded', MyEmbeddedDocument(a=4))
@@ -248,7 +248,7 @@ class TestFields:
         d.clear_modified()
         d.get('list').clear()
         assert d.dump() == {'list': []}
-        assert d.to_mongo(update=True) == {'$unset': ['in_mongo_list']}
+        assert d.to_mongo(update=True) == {'$unset': {'in_mongo_list': ''}}
 
         d.set('list', [1, 2, 3])
         d.clear_modified()

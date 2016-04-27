@@ -8,6 +8,7 @@ dev
 * Replace collection configuration by db to simplify gridfs support
 * Add collection_name opts
 * abstract Document can receive db/collection
+* correct $unset handling
 
 0.7.4 (2016-4-21)
 -----------------
