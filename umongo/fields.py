@@ -5,7 +5,7 @@ from bson import DBRef, ObjectId, errors as bson_errors
 
 from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
-from .data_objects import Reference, List, Dict
+from .data_objects import Reference, List, Dict, GridFSReference
 from .abstract import BaseField
 from .i18n import gettext as _
 
@@ -38,7 +38,8 @@ __all__ = (
     'ObjectIdField',
     'ReferenceField',
     'GenericReferenceField',
-    'EmbeddedField'
+    'EmbeddedField',
+    'GridFSField'
 )
 
 
@@ -261,12 +262,6 @@ class ReferenceField(ObjectIdField):
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
 
-    def fetch(self):
-        """
-        Retrieve in database the document referenced.
-        """
-        raise NotImplementedError
-
 
 class GenericReferenceField(BaseField):
 
@@ -348,19 +343,39 @@ class EmbeddedField(BaseField, ma_fields.Nested):
                 field.map_to_field(cur_mongo_path, cur_path, func)
 
 
-class FileField(BaseField):
-    """
-    """
+class GridFSField(ObjectIdField):
+
+    def __init__(self, db, collection_name='fs', reference_cls=Reference, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.db = db
+        self.collection_name = collection_name
+        self.reference_cls = reference_cls
 
     def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        return str(value)
+        return super()._serialize(value.pk, attr, obj)
 
     def _deserialize(self, value, attr, data):
         if value is None:
             return None
-        try:
-            return ObjectId(value)
-        except bson_errors.InvalidId:
-            raise ValidationError(_('Invalid ObjectId.'))
+        if isinstance(value, DBRef):
+            if self.collection_name != value.collection:
+                raise ValidationError(_("DBRef must be on collection `{collection}`.").format(
+                    self.collection_name))
+            value = value.id
+        elif isinstance(value, GridFSReference):
+            if self.db != value.db or self.collection_name != value.collection_name:
+                raise ValidationError(_("`{db}:{collection_name}` reference expected.").format(
+                    db=self.db, collection_name=self.collection_name))
+            if type(value) is not self.reference_cls:
+                value = self.reference_cls(value.db, value.collection_name, value.pk)
+            return value
+        elif hasattr(value, '_id'):
+            value = value._id
+        value = super()._deserialize(value, attr, data)
+        return self._deserialize_from_mongo(value)
+
+    def _serialize_to_mongo(self, obj):
+        return obj.pk
+
+    def _deserialize_from_mongo(self, value):
+        return self.reference_cls(self.db, self.collection_name, value)

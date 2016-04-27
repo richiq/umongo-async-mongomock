@@ -3,6 +3,7 @@ from datetime import datetime
 from functools import namedtuple
 from bson import ObjectId
 from pymongo import MongoClient
+from gridfs import GridFS
 
 from ..common import BaseTest, get_pymongo_version, TEST_DB
 from ..test_indexes import assert_indexes
@@ -28,7 +29,11 @@ def name_sorted(indexes):
 
 
 @pytest.fixture
-def db():
+def db(request):
+    def drop_db():
+        MongoClient().drop_database(TEST_DB)
+
+    request.addfinalizer(drop_db)
     return MongoClient()[TEST_DB]
 
 
@@ -499,3 +504,41 @@ class TestPymongo(BaseTest):
         res = InheritanceSearchParent.find({'pf': 1})
         for r in res:
             assert isinstance(r, InheritanceSearchChild1)
+
+    def test_gridfs(self, db):
+        gfs = GridFS(db)
+        data = b'Na ' * 1024 + b'Batman !'
+        file_id = gfs.put(data, filename='dark_knight.txt', encoding='utf-8')
+
+        _db = db
+        class WithFileDoc(Document):
+            file = fields.GridFSField(db=db)
+
+            class Meta:
+                db = _db
+
+        doc = WithFileDoc()
+        doc.file = file_id
+        doc.commit()
+        assert doc.file.exists()
+
+        gridout = doc.file.fetch()
+        assert file_id == gridout._id
+        assert gridout.read() == data
+
+        doc.file.delete()
+        assert not doc.file.exists()
+
+        gridout = gfs.new_file(filename='dark_knight_returns.txt', encoding='utf-8')
+        gridout.write(data)
+        gridout.close()
+        doc.file = gridout
+        doc.commit()
+
+        assert doc.file.exists()
+        assert doc.file.fetch()._id  == gridout._id
+
+        # Remove reference doesn't delete the file from gridfs
+        del doc.file
+        doc.commit()
+        assert gfs.exists(gridout._id)

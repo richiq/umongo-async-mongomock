@@ -9,6 +9,7 @@ from ..fixtures import classroom_model, ConfiguredDoc
 # Check if the required dependancies are met to run this driver's tests
 try:
     from txmongo import MongoConnection
+    from txmongo._gridfs import GridFS
     major, minor, _ = get_pymongo_version()
     if major != 3 or minor < 2:
         dep_error = "txmongo requires pymongo>=3.2.0"
@@ -43,7 +44,13 @@ def name_sorted(indexes):
 
 
 @pytest.fixture
-def db():
+def db(request):
+
+    def drop_db():
+        import pymongo
+        pymongo.MongoClient().drop_database(TEST_DB)
+
+    request.addfinalizer(drop_db)
     return MongoConnection()[TEST_DB]
 
 
@@ -579,3 +586,43 @@ class TestTxMongo(BaseTest):
         res = yield InheritanceSearchParent.find({'pf': 1})
         for r in res:
             assert isinstance(r, InheritanceSearchChild1)
+
+    @pytest.mark.xfail(info='GridFS.put is buggy, wait for >16.0.1')
+    @pytest_inlineCallbacks
+    def test_gridfs(self, db):
+        gfs = GridFS(db)
+        data = b'Na ' * 1024 + b'Batman !'
+        file_id = yield gfs.put(data, filename='dark_knight.txt', encoding='utf-8')
+
+        _db = db
+        class WithFileDoc(Document):
+            file = fields.GridFSField(db=db)
+
+            class Meta:
+                db = _db
+
+        doc = WithFileDoc()
+        doc.file = file_id
+        yield doc.commit()
+        assert (yield doc.file.exists())
+
+        gridout = yield doc.file.fetch()
+        assert file_id == gridout._id
+        assert (yield gridout.read()) == data
+
+        yield doc.file.delete()
+        assert not (yield doc.file.exists())
+
+        gridout = yield gfs.new_file(filename='dark_knight_returns.txt', encoding='utf-8')
+        yield gridout.write(data)
+        yield gridout.close()
+        doc.file = gridout
+        yield doc.commit()
+
+        assert (yield doc.file.exists())
+        assert (yield doc.file.fetch())._id  == gridout._id
+
+        # Remove reference doesn't delete the file from gridfs
+        del doc.file
+        yield doc.commit()
+        assert (yield gfs.get(gridout._id))

@@ -6,7 +6,7 @@ from bson import ObjectId
 
 # Check if the required dependancies are met to run this driver's tests
 try:
-    from motor.motor_asyncio import AsyncIOMotorClient
+    from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFS
 except ImportError as e:
     dep_error = str(e)
 else:
@@ -28,7 +28,12 @@ def _ns_stripped(indexes):
 
 
 @pytest.fixture
-def db():
+def db(request):
+    def drop_db():
+        import pymongo
+        pymongo.MongoClient().drop_database(TEST_DB)
+
+    request.addfinalizer(drop_db)
     return AsyncIOMotorClient()[TEST_DB]
 
 
@@ -653,5 +658,49 @@ class TestMotorAsyncio(BaseTest):
             cursor = InheritanceSearchParent.find({'pf': 1})
             for r in (yield from cursor.to_list(length=100)):
                 assert isinstance(r, InheritanceSearchChild1)
+
+        loop.run_until_complete(do_test())
+
+    def test_gridfs(self, loop, db):
+
+        @asyncio.coroutine
+        def do_test():
+
+            gfs = AsyncIOMotorGridFS(db)
+            data = b'Na ' * 1024 + b'Batman !'
+            file_id = yield from gfs.put(data, filename='dark_knight.txt', encoding='utf-8')
+
+            _db = db
+            class WithFileDoc(Document):
+                file = fields.GridFSField(db=db)
+
+                class Meta:
+                    db = _db
+
+            doc = WithFileDoc()
+            doc.file = file_id
+            yield from doc.commit()
+            assert (yield from doc.file.exists())
+
+            gridout = yield from doc.file.fetch()
+            assert file_id == gridout._id
+            assert (yield from gridout.read()) == data
+
+            yield from doc.file.delete()
+            assert not (yield from doc.file.exists())
+
+            gridout = yield from gfs.new_file(filename='dark_knight_returns.txt', encoding='utf-8')
+            yield from gridout.write(data)
+            yield from gridout.close()
+            doc.file = gridout
+            yield from doc.commit()
+
+            assert (yield from doc.file.exists())
+            assert (yield from doc.file.fetch())._id  == gridout._id
+
+            # Remove reference doesn't delete the file from gridfs
+            del doc.file
+            yield from doc.commit()
+            assert (yield from gfs.get(gridout._id))
 
         loop.run_until_complete(do_test())

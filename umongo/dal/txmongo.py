@@ -1,13 +1,14 @@
 from txmongo.database import Database
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
 from txmongo import filter as qf
+from txmongo._gridfs import GridFS
 from pymongo.errors import DuplicateKeyError
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
-from ..data_objects import Reference
+from ..data_objects import Reference, GridFSReference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
-from ..fields import ReferenceField, ListField, EmbeddedField
+from ..fields import ReferenceField, ListField, EmbeddedField, GridFSField
 
 from .tools import cook_find_filter
 
@@ -176,6 +177,10 @@ def _reference_io_validate(field, value):
     return value.fetch(no_data=True)
 
 
+def _gridfs_reference_io_validate(field, value):
+    return value.exists()
+
+
 @inlineCallbacks
 def _list_io_validate(field, value):
     validators = field.container.io_validate
@@ -216,6 +221,9 @@ def _io_validate_patch_schema(schema):
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = TxMongoReference
+        if isinstance(field, GridFSField):
+            field.io_validate.append(_gridfs_reference_io_validate)
+            field.reference_cls = TxMongoGridFSReference
         if isinstance(field, EmbeddedField):
             field.io_validate.append(_embedded_document_io_validate)
             _io_validate_patch_schema(field.schema)
@@ -240,3 +248,47 @@ class TxMongoReference(Reference):
                 raise ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
         returnValue(self._document)
+
+
+class TxMongoGridFSReference(GridFSReference):
+
+    def __init__(self, db, collection_name='fs', pk=None):
+        self._gridout = None
+        self._gridfs = None
+        self.db = db
+        self.collection_name = collection_name
+        self.pk = pk
+
+    @property
+    def gridfs(self):
+        if not self._gridfs:
+            self._gridfs = GridFS(self.db, self.collection_name)
+        return self._gridfs
+
+    @inlineCallbacks
+    def fetch(self):
+        """
+        Retrieve from GridFS the referenced file as a GridOut.
+        """
+        if not self._gridout:
+            if self.pk is None:
+                raise ReferenceError('Cannot retrieve a None Reference')
+            self._gridout = yield self.gridfs.get(self.pk)
+            if not self._gridout:
+                raise ValidationError(self.error_messages['not_found'].format(
+                    gridfs=self.root_collection))
+        returnValue(self._gridout)
+
+    @inlineCallbacks
+    def exists(self):
+        """
+        Check if the referenced file exists in GridFS.
+        """
+        doc = yield self.db[self.collection_name].files.find_one(self.pk, fields={'_id': 1})
+        returnValue(bool(doc))
+
+    def delete(self):
+        """
+        Delete this file from GridFS.
+        """
+        return self.gridfs.delete(self.pk)

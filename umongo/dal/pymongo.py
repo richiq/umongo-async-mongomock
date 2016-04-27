@@ -1,12 +1,13 @@
 from pymongo.database import Database
 from pymongo.cursor import Cursor
 from pymongo.errors import DuplicateKeyError
+from gridfs import GridFS
 
 from ..abstract import AbstractDal
 from ..data_proxy import DataProxy, missing
-from ..data_objects import Reference
+from ..data_objects import Reference, GridFSReference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
-from ..fields import ReferenceField, ListField, EmbeddedField
+from ..fields import ReferenceField, ListField, EmbeddedField, GridFSField
 
 from .tools import cook_find_filter
 
@@ -163,6 +164,10 @@ def _reference_io_validate(field, value):
     value.fetch(no_data=True)
 
 
+def _gridfs_reference_io_validate(field, value):
+    value.exists()
+
+
 def _list_io_validate(field, value):
     errors = {}
     validators = field.container.io_validate
@@ -200,6 +205,9 @@ def _io_validate_patch_schema(schema):
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = PyMongoReference
+        if isinstance(field, GridFSField):
+            field.io_validate.append(_gridfs_reference_io_validate)
+            field.reference_cls = PyMongoGridFSReference
         if isinstance(field, EmbeddedField):
             field.io_validate.append(_embedded_document_io_validate)
             _io_validate_patch_schema(field.schema)
@@ -223,3 +231,44 @@ class PyMongoReference(Reference):
                 raise ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
         return self._document
+
+
+class PyMongoGridFSReference(GridFSReference):
+
+    def __init__(self, db, collection_name='fs', pk=None):
+        self._gridout = None
+        self._gridfs = None
+        self.db = db
+        self.collection_name = collection_name
+        self.pk = pk
+
+    @property
+    def gridfs(self):
+        if not self._gridfs:
+            self._gridfs = GridFS(self.db, self.collection_name)
+        return self._gridfs
+
+    def fetch(self):
+        """
+        Retrieve from GridFS the referenced file as a GridOut.
+        """
+        if not self._gridout:
+            if self.pk is None:
+                raise ReferenceError('Cannot retrieve a None Reference')
+            self._gridout = self.gridfs.find_one(self.pk)
+            if not self._gridout:
+                raise ValidationError(self.error_messages['not_found'].format(
+                    gridfs=self.root_collection))
+        return self._gridout
+
+    def exists(self):
+        """
+        Check if the referenced file exists in GridFS.
+        """
+        return self.gridfs.exists(self.pk)
+
+    def delete(self):
+        """
+        Delete this file from GridFS.
+        """
+        return self.gridfs.delete(self.pk)

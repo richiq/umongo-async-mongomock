@@ -5,6 +5,7 @@ History
 dev
 ---
 
+* Add GridFS support with GridFSField and GridFSReference
 * Replace collection configuration by db to simplify gridfs support
 * Add collection_name opts
 * abstract Document can receive db/collection

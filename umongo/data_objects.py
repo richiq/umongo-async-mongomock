@@ -5,7 +5,7 @@ from .data_proxy import DataProxy
 from .meta import MetaEmbeddedDocument
 
 
-__all__ = ('EmbeddedDocument', 'List', 'Reference')
+__all__ = ('EmbeddedDocument', 'List', 'Dict', 'Reference', 'GridFSReference')
 
 
 class EmbeddedDocument(BaseDataObject, metaclass=MetaEmbeddedDocument):
@@ -131,7 +131,6 @@ class Reference:
     def __init__(self, document_cls, pk):
         self.document_cls = document_cls
         self.pk = pk
-        self._document = None
 
     def fetch(self, no_data=False):
         """
@@ -154,4 +153,41 @@ class Reference:
             return self.pk == other.pk and self.document_cls == other.document_cls
         elif isinstance(other, DBRef):
             return self.pk == other.id and self.document_cls.collection.name == other.collection
+        return NotImplemented
+
+
+class GridFSReference:
+    error_messages = I18nErrorDict(not_found='Reference not found in GridFS instance {gridfs}.')
+
+    def __init__(self, db, collection_name='fs', pk=None):
+        self.root_collection = db[collection_name]
+        self.pk = pk
+
+    def fetch(self):
+        """
+        Retrieve from GridFS the referenced file as a GridOut.
+        """
+        raise NotImplementedError
+
+    def exists(self):
+        """
+        Check if the referenced file exists in GridFS.
+        """
+        raise NotImplementedError
+
+    def delete(self):
+        """
+        Delete this file from GridFS.
+        """
+        raise NotImplementedError
+
+    def __repr__(self):
+        return '<object %s.%s(gridfs=%s, pk=%r)>' % (
+            self.__module__, self.__class__.__name__, self.gridfs, self.pk)
+
+    def __eq__(self, other):
+        if isinstance(other, GridFSReference):
+            return other.pk == self.pk and other.root_collection == self.root_collection
+        elif isinstance(other, DBRef):
+            return self.pk == other.id and self.root_collection.name == other.collection
         return NotImplemented
