@@ -2,7 +2,11 @@
 History
 =======
 
-0.7.6 (2016-4-28)
+0.7.8 (2016-4-28)
+-----------------
+* Fix setup.py style preventing release of version 0.7.7
+
+0.7.7 (2016-4-28)
 -----------------
 
 * Fix await error with Reference.fetch

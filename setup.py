@@ -33,7 +33,7 @@ setup(
         'pymongo': ['pymongo>=3.2.1'],
         'motor': ['motor>=0.6.2'],
         'txmongo': ['txmongo>=16.0.1'],
-        'mongomock': ['mongomock', 'pymongo'] # pymongo needed for bson module
+        'mongomock': ['mongomock', 'pymongo']  # pymongo needed for bson module
     },
     license="MIT",
     zip_safe=False,
