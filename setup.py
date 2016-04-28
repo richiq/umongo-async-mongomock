@@ -15,8 +15,7 @@ with open('HISTORY.rst', 'rb') as history_file:
     history = history_file.read().decode('utf8')
 
 requirements = [
-    "marshmallow>=2.6.0",
-    "pymongo"  # needed for bson module
+    "marshmallow>=2.6.0"
 ]
 
 setup(
@@ -33,7 +32,8 @@ setup(
     extras_require={
         'pymongo': ['pymongo>=3.2.1'],
         'motor': ['motor>=0.6.2'],
-        'txmongo': ['txmongo>=16.0.1']
+        'txmongo': ['txmongo>=16.0.1'],
+        'mongomock': ['mongomock', 'pymongo'] # pymongo needed for bson module
     },
     license="MIT",
     zip_safe=False,
