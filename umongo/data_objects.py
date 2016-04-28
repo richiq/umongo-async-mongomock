@@ -157,10 +157,13 @@ class Reference:
 
 
 class GridFSReference:
-    error_messages = I18nErrorDict(not_found='Reference not found in GridFS instance {gridfs}.')
+
+    error_messages = I18nErrorDict(not_found='Reference not found for GridFS file.')
 
     def __init__(self, db, collection_name='fs', pk=None):
         self.root_collection = db[collection_name]
+        self.db = db
+        self.collection_name = collection_name
         self.pk = pk
 
     def fetch(self):

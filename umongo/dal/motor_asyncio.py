@@ -197,7 +197,9 @@ def _reference_io_validate(field, value):
 
 @asyncio.coroutine
 def _gridfs_reference_io_validate(field, value):
-    yield from value.exists()
+    if not (yield from value.exists()):
+        raise ValidationError(value.error_messages['not_found'].format(
+            gridfs=value.root_collection))
 
 
 @asyncio.coroutine
@@ -274,11 +276,9 @@ class MotorAsyncIOReference(Reference):
 class MotorGridFSReference(GridFSReference):
 
     def __init__(self, db, collection_name='fs', pk=None):
+        super().__init__(db, collection_name, pk)
         self._gridout = None
         self._gridfs = None
-        self.db = db
-        self.collection_name = collection_name
-        self.pk = pk
 
     @property
     def gridfs(self):

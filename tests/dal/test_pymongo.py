@@ -542,3 +542,10 @@ class TestPymongo(BaseTest):
         del doc.file
         doc.commit()
         assert gfs.exists(gridout._id)
+
+        # Try with bad file id
+        doc = WithFileDoc()
+        doc.file = ObjectId()
+        with pytest.raises(exceptions.ValidationError) as exc:
+            doc.commit()
+        assert exc.value.messages == {'file': ['Reference not found for GridFS file.']}

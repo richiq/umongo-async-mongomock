@@ -165,7 +165,9 @@ def _reference_io_validate(field, value):
 
 
 def _gridfs_reference_io_validate(field, value):
-    value.exists()
+    if not value.exists():
+        raise ValidationError(value.error_messages['not_found'].format(
+            gridfs=value.root_collection))
 
 
 def _list_io_validate(field, value):
@@ -236,11 +238,9 @@ class PyMongoReference(Reference):
 class PyMongoGridFSReference(GridFSReference):
 
     def __init__(self, db, collection_name='fs', pk=None):
+        super().__init__(db, collection_name, pk)
         self._gridout = None
         self._gridfs = None
-        self.db = db
-        self.collection_name = collection_name
-        self.pk = pk
 
     @property
     def gridfs(self):

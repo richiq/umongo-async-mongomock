@@ -626,3 +626,10 @@ class TestTxMongo(BaseTest):
         del doc.file
         yield doc.commit()
         assert (yield gfs.get(gridout._id))
+
+        # Try with bad file id
+        doc = WithFileDoc()
+        doc.file = ObjectId()
+        with pytest.raises(exceptions.ValidationError) as exc:
+            yield doc.commit()
+        assert exc.value.messages == {'file': ['Reference not found for GridFS file.']}

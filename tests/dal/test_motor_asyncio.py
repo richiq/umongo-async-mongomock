@@ -703,4 +703,11 @@ class TestMotorAsyncio(BaseTest):
             yield from doc.commit()
             assert (yield from gfs.get(gridout._id))
 
+            # Try with bad file id
+            doc = WithFileDoc()
+            doc.file = ObjectId()
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from doc.commit()
+            assert exc.value.messages == {'file': ['Reference not found for GridFS file.']}
+
         loop.run_until_complete(do_test())

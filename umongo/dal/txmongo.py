@@ -177,8 +177,11 @@ def _reference_io_validate(field, value):
     return value.fetch(no_data=True)
 
 
+@inlineCallbacks
 def _gridfs_reference_io_validate(field, value):
-    return value.exists()
+    if not (yield value.exists()):
+        raise ValidationError(value.error_messages['not_found'].format(
+            gridfs=value.root_collection))
 
 
 @inlineCallbacks
@@ -253,11 +256,9 @@ class TxMongoReference(Reference):
 class TxMongoGridFSReference(GridFSReference):
 
     def __init__(self, db, collection_name='fs', pk=None):
+        super().__init__(db, collection_name, pk)
         self._gridout = None
         self._gridfs = None
-        self.db = db
-        self.collection_name = collection_name
-        self.pk = pk
 
     @property
     def gridfs(self):
