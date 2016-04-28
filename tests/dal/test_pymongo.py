@@ -62,6 +62,16 @@ class TestPymongo(BaseDBTest):
         # Update without changing anything
         john.name = john.name
         john.commit()
+        # Test conditional commit
+        john.name = 'Zorro Doe'
+        with pytest.raises(exceptions.UpdateError):
+            john.commit(conditions={'name': 'Bad Name'})
+        john.commit(conditions={'name': 'William Doe'})
+        john.reload()
+        assert john.name == 'Zorro Doe'
+        # Cannot use conditions when creating document
+        with pytest.raises(RuntimeError):
+            Student(name='Joe').commit(conditions={'name': 'dummy'})
 
     def test_delete(self, classroom_model):
         Student = classroom_model.Student

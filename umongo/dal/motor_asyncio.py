@@ -66,6 +66,12 @@ class MotorAsyncIODal(AbstractDal):
 
     @asyncio.coroutine
     def reload(self):
+        """
+        Retrieve and replace document's data by the ones in database.
+
+        Raises :class:`umongo.exceptions.NotCreatedError` if the document
+        doesn't exist in database.
+        """
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.find_one(self.pk)
@@ -75,16 +81,30 @@ class MotorAsyncIODal(AbstractDal):
         self._data.from_mongo(ret)
 
     @asyncio.coroutine
-    def commit(self, io_validate_all=False):
+    def commit(self, io_validate_all=False, conditions=None):
+        """
+        Commit the document in database.
+        If the document doesn't already exist it will be inserted, otherwise
+        it will be updated.
+
+        :param io_validate_all:
+        :param conditions: only perform commit if matching record in db
+            satisfies condition(s) (e.g. version number).
+            Raises :class:`umongo.exceptions.UpdateError` if the
+            conditions are not satisfied.
+        """
         yield from self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
         try:
             if self.created:
                 if payload:
-                    ret = yield from self.collection.update(
-                        {'_id': self._data.get_by_mongo_name('_id')}, payload)
+                    query = conditions or {}
+                    query['_id'] = self._data.get_by_mongo_name('_id')
+                    ret = yield from self.collection.update(query, payload)
                     if ret.get('ok') != 1 or ret.get('n') != 1:
                         raise UpdateError(ret)
+            elif conditions:
+                raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
                 ret = yield from self.collection.insert(payload)
                 # TODO: check ret ?
@@ -112,7 +132,22 @@ class MotorAsyncIODal(AbstractDal):
         self._data.clear_modified()
 
     @asyncio.coroutine
+    def delete(self):
+        """
+        Alias of :meth:`remove` to enforce default api.
+        """
+        return self.remove()
+
+    @asyncio.coroutine
     def remove(self):
+        """
+        Remove the document from database.
+
+        Raises :class:`umongo.exceptions.NotCreatedError` if the document
+        is not created (i.e. ``doc.created`` is False)
+        Raises :class:`umongo.exceptions.DeleteError` if the document
+        doesn't exist in database.
+        """
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.remove({'_id': self.pk})
@@ -122,6 +157,12 @@ class MotorAsyncIODal(AbstractDal):
         return ret
 
     def io_validate(self, validate_all=False):
+        """
+        Run the io_validators of the document's fields.
+
+        :param validate_all: If False only run the io_validators of the
+            fields that have been modified.
+        """
         if validate_all:
             return _io_validate_data_proxy(self.schema, self._data)
         else:
@@ -131,6 +172,9 @@ class MotorAsyncIODal(AbstractDal):
     @classmethod
     @asyncio.coroutine
     def find_one(cls, spec_or_id=None, *args, **kwargs):
+        """
+        Find a single document in database.
+        """
         # In pymongo<3, `spec_or_id` is for filtering and `filter` is for sorting
         spec_or_id = cook_find_filter(cls, spec_or_id)
         ret = yield from cls.collection.find_one(*args, spec_or_id=spec_or_id, **kwargs)
@@ -140,6 +184,11 @@ class MotorAsyncIODal(AbstractDal):
 
     @classmethod
     def find(cls, spec=None, *args, **kwargs):
+        """
+        Find a list document in database.
+
+        Returns a cursor that provide Documents.
+        """
         # In pymongo<3, `spec` is for filtering and `filter` is for sorting
         spec = cook_find_filter(cls, spec)
         return WrappedCursor(cls, cls.collection.find(*args, spec=spec, **kwargs))
@@ -147,6 +196,9 @@ class MotorAsyncIODal(AbstractDal):
     @classmethod
     @asyncio.coroutine
     def ensure_indexes(cls):
+        """
+        Check&create if needed the Document's indexes in database
+        """
         for index in cls.opts.indexes:
             kwargs = index.document.copy()
             keys = [(k, d) for k, d in kwargs.pop('key').items()]

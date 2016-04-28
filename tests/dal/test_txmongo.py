@@ -78,6 +78,16 @@ class TestTxMongo(BaseDBTest):
         # Update without changing anything
         john.name = john.name
         yield john.commit()
+        # Test conditional commit
+        john.name = 'Zorro Doe'
+        with pytest.raises(exceptions.UpdateError):
+            yield john.commit(conditions={'name': 'Bad Name'})
+        yield john.commit(conditions={'name': 'William Doe'})
+        yield john.reload()
+        assert john.name == 'Zorro Doe'
+        # Cannot use conditions when creating document
+        with pytest.raises(RuntimeError):
+            yield Student(name='Joe').commit(conditions={'name': 'dummy'})
 
     @pytest_inlineCallbacks
     def test_delete(self, classroom_model):

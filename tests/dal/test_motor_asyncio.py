@@ -74,6 +74,16 @@ class TestMotorAsyncio(BaseDBTest):
             # Update without changing anything
             john.name = john.name
             yield from john.commit()
+            # Test conditional commit
+            john.name = 'Zorro Doe'
+            with pytest.raises(exceptions.UpdateError):
+                yield from john.commit(conditions={'name': 'Bad Name'})
+            yield from john.commit(conditions={'name': 'William Doe'})
+            yield from john.reload()
+            assert john.name == 'Zorro Doe'
+            # Cannot use conditions when creating document
+            with pytest.raises(RuntimeError):
+                yield from Student(name='Joe').commit(conditions={'name': 'dummy'})
 
         loop.run_until_complete(do_test())
 

@@ -48,6 +48,12 @@ class PyMongoDal(AbstractDal):
         _io_validate_patch_schema(schema)
 
     def reload(self):
+        """
+        Retrieve and replace document's data by the ones in database.
+
+        Raises :class:`umongo.exceptions.NotCreatedError` if the document
+        doesn't exist in database.
+        """
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.find_one(self.pk)
@@ -56,16 +62,30 @@ class PyMongoDal(AbstractDal):
         self._data = DataProxy(self.schema)
         self._data.from_mongo(ret)
 
-    def commit(self, io_validate_all=False):
+    def commit(self, io_validate_all=False, conditions=None):
+        """
+        Commit the document in database.
+        If the document doesn't already exist it will be inserted, otherwise
+        it will be updated.
+
+        :param io_validate_all:
+        :param conditions: only perform commit if matching record in db
+            satisfies condition(s) (e.g. version number).
+            Raises :class:`umongo.exceptions.UpdateError` if the
+            conditions are not satisfied.
+        """
         self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.created)
         try:
             if self.created:
                 if payload:
-                    ret = self.collection.update_one(
-                        {'_id': self._data.get_by_mongo_name('_id')}, payload)
+                    query = conditions or {}
+                    query['_id'] = self._data.get_by_mongo_name('_id')
+                    ret = self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
                         raise UpdateError(ret.raw_result)
+            elif conditions:
+                raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
                 ret = self.collection.insert_one(payload)
                 # TODO: check ret ?
@@ -92,6 +112,14 @@ class PyMongoDal(AbstractDal):
         self._data.clear_modified()
 
     def delete(self):
+        """
+        Remove the document from database.
+
+        Raises :class:`umongo.exceptions.NotCreatedError` if the document
+        is not created (i.e. ``doc.created`` is False)
+        Raises :class:`umongo.exceptions.DeleteError` if the document
+        doesn't exist in database.
+        """
         if not self.created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.delete_one({'_id': self.pk})
@@ -100,6 +128,12 @@ class PyMongoDal(AbstractDal):
         self.created = False
 
     def io_validate(self, validate_all=False):
+        """
+        Run the io_validators of the document's fields.
+
+        :param validate_all: If False only run the io_validators of the
+            fields that have been modified.
+        """
         if validate_all:
             _io_validate_data_proxy(self.schema, self._data)
         else:
@@ -108,6 +142,9 @@ class PyMongoDal(AbstractDal):
 
     @classmethod
     def find_one(cls, filter=None, *args, **kwargs):
+        """
+        Find a single document in database.
+        """
         filter = cook_find_filter(cls, filter)
         ret = cls.collection.find_one(*args, filter=filter, **kwargs)
         if ret is not None:
@@ -116,12 +153,20 @@ class PyMongoDal(AbstractDal):
 
     @classmethod
     def find(cls, filter=None, *args, **kwargs):
+        """
+        Find a list document in database.
+
+        Returns a cursor that provide Documents.
+        """
         filter = cook_find_filter(cls, filter)
         raw_cursor = cls.collection.find(*args, filter=filter, **kwargs)
         return WrappedCursor(cls, raw_cursor)
 
     @classmethod
     def ensure_indexes(cls):
+        """
+        Check&create if needed the Document's indexes in database
+        """
         if cls.opts.indexes:
             cls.collection.create_indexes(cls.opts.indexes)
 
