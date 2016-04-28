@@ -75,6 +75,9 @@ class TestTxMongo(BaseDBTest):
         assert john.to_mongo(update=True) == None
         john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
+        # Update without changing anything
+        john.name = john.name
+        yield john.commit()
 
     @pytest_inlineCallbacks
     def test_delete(self, classroom_model):
@@ -87,8 +90,18 @@ class TestTxMongo(BaseDBTest):
         students = yield Student.find()
         assert len(students) == 1
         yield john.delete()
+        assert not john.created
         students = yield Student.find()
         assert len(students) == 0
+        with pytest.raises(exceptions.NotCreatedError):
+           yield john.delete()
+        # Can re-commit the document in database
+        yield john.commit()
+        assert john.created
+        students = yield Student.find()
+        assert len(students) == 1
+        # Finally try to delete a doc no longer in database
+        yield students[0].delete()
         with pytest.raises(exceptions.DeleteError):
            yield john.delete()
 

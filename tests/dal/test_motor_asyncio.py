@@ -71,6 +71,9 @@ class TestMotorAsyncio(BaseDBTest):
             assert john.to_mongo(update=True) == None
             john2 = yield from Student.find_one(john.id)
             assert john2._data == john._data
+            # Update without changing anything
+            john.name = john.name
+            yield from john.commit()
 
         loop.run_until_complete(do_test())
 
@@ -87,7 +90,16 @@ class TestMotorAsyncio(BaseDBTest):
             assert (yield from Student.find().count()) == 1
             ret = yield from john.remove()
             assert ret == {'ok': 1, 'n': 1}
+            assert not john.created
             assert (yield from Student.find().count()) == 0
+            with pytest.raises(exceptions.NotCreatedError):
+               yield from john.remove()
+            # Can re-commit the document in database
+            yield from john.commit()
+            assert john.created
+            assert (yield from Student.find().count()) == 1
+            # Finally try to remove a doc no longer in database
+            yield from (yield from Student.find_one(john.id)).remove()
             with pytest.raises(exceptions.DeleteError):
                yield from john.remove()
 

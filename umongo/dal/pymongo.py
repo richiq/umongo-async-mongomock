@@ -64,7 +64,7 @@ class PyMongoDal(AbstractDal):
                 if payload:
                     ret = self.collection.update_one(
                         {'_id': self._data.get_by_mongo_name('_id')}, payload)
-                    if ret.modified_count != 1:
+                    if ret.matched_count != 1:
                         raise UpdateError(ret.raw_result)
             else:
                 ret = self.collection.insert_one(payload)
@@ -97,6 +97,7 @@ class PyMongoDal(AbstractDal):
         ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
+        self.created = False
 
     def io_validate(self, validate_all=False):
         if validate_all:

@@ -83,8 +83,8 @@ class MotorAsyncIODal(AbstractDal):
                 if payload:
                     ret = yield from self.collection.update(
                         {'_id': self._data.get_by_mongo_name('_id')}, payload)
-                    if ret.get('nModified') != 1:
-                        raise UpdateError(ret.raw_result)
+                    if ret.get('ok') != 1 or ret.get('n') != 1:
+                        raise UpdateError(ret)
             else:
                 ret = yield from self.collection.insert(payload)
                 # TODO: check ret ?
@@ -118,6 +118,7 @@ class MotorAsyncIODal(AbstractDal):
         ret = yield from self.collection.remove({'_id': self.pk})
         if ret.get('ok') != 1 or ret.get('n') != 1:
             raise DeleteError(ret)
+        self.created = False
         return ret
 
     def io_validate(self, validate_all=False):

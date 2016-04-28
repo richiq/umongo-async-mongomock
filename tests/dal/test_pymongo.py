@@ -59,6 +59,9 @@ class TestPymongo(BaseDBTest):
         assert john.to_mongo(update=True) == None
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
+        # Update without changing anything
+        john.name = john.name
+        john.commit()
 
     def test_delete(self, classroom_model):
         Student = classroom_model.Student
@@ -69,7 +72,16 @@ class TestPymongo(BaseDBTest):
         john.commit()
         assert Student.collection.find().count() == 1
         john.delete()
+        assert not john.created
         assert Student.collection.find().count() == 0
+        with pytest.raises(exceptions.NotCreatedError):
+           john.delete()
+        # Can re-commit the document in database
+        john.commit()
+        assert john.created
+        assert Student.collection.find().count() == 1
+        # Finally try to delete a doc no longer in database
+        Student.find_one(john.id).delete()
         with pytest.raises(exceptions.DeleteError):
            john.delete()
 
