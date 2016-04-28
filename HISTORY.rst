@@ -2,6 +2,11 @@
 History
 =======
 
+dev
+---
+
+* Add `conditions` argument to Document.commit
+
 0.7.8 (2016-4-28)
 -----------------
 * Fix setup.py style preventing release of version 0.7.7
