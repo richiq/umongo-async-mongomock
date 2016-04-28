@@ -20,7 +20,7 @@ requirements = [
 
 setup(
     name='umongo',
-    version='0.7.6',
+    version='0.7.7',
     description="Small but efficient MongoDB ODM",
     long_description=readme + '\n\n' + history,
     author="Emmanuel Leblond",
