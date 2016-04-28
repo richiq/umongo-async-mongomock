@@ -12,7 +12,7 @@ except ImportError as e:
 else:
     dep_error = None
 
-from ..common import BaseTest, TEST_DB
+from ..common import BaseDBTest, TEST_DB
 from ..fixtures import classroom_model
 
 from umongo import Document, fields, exceptions, Reference
@@ -38,7 +38,7 @@ def loop():
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
-class TestMotorAsyncio(BaseTest):
+class TestMotorAsyncio(BaseDBTest):
 
     def test_create(self, loop, classroom_model):
         Student = classroom_model.Student
@@ -670,7 +670,7 @@ class TestMotorAsyncio(BaseTest):
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
-class TestAwaitSyntax(BaseTest):
+class TestAwaitSyntax(BaseDBTest):
 
     def test_base(self, loop, db):
         try:

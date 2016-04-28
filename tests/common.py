@@ -10,10 +10,10 @@ TEST_DB = 'umongo_test'
 con = pymongo.MongoClient()
 
 
-class BaseTest:
+class BaseDBTest:
 
     def setup(self):
-        con.drop_database('test_db')
+        con.drop_database(TEST_DB)
         default_registerer.documents = {}
 
 

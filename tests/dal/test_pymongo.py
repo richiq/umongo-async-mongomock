@@ -4,7 +4,7 @@ from functools import namedtuple
 from bson import ObjectId
 from pymongo import MongoClient
 
-from ..common import BaseTest, get_pymongo_version, TEST_DB
+from ..common import BaseDBTest, get_pymongo_version, TEST_DB
 from ..test_indexes import assert_indexes
 from ..fixtures import classroom_model
 
@@ -33,7 +33,7 @@ def db():
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
-class TestPymongo(BaseTest):
+class TestPymongo(BaseDBTest):
 
     def test_create(self, classroom_model):
         Student = classroom_model.Student

@@ -1,12 +1,15 @@
 import pytest
 from bson import ObjectId
 
-from .common import BaseTest
 from umongo import (Document, fields, AlreadyRegisteredDocumentError,
                     NotRegisteredDocumentError)
+from umongo.registerer import default_registerer
 
 
-class TestRegisterDocuments(BaseTest):
+class TestRegisterDocuments:
+
+    def setup(self):
+        default_registerer.documents = {}
 
     def test_already_register_documents(self):
 

@@ -3,11 +3,11 @@ from datetime import datetime
 from bson import ObjectId, DBRef
 from functools import namedtuple
 
-from .common import BaseTest
 from .fixtures import collection_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
 from umongo.abstract import AbstractDal
+from umongo.registerer import default_registerer
 
 
 class Student(Document):
@@ -20,7 +20,10 @@ class Student(Document):
         allow_inheritance = True
 
 
-class TestDocument(BaseTest):
+class TestDocument:
+
+    def setup(self):
+        default_registerer.documents = {}
 
     def test_repr(self):
         # I love readable stuff !

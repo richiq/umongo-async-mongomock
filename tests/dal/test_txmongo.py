@@ -3,7 +3,7 @@ from datetime import datetime
 from bson import ObjectId
 from functools import namedtuple, wraps
 
-from ..common import BaseTest, get_pymongo_version, TEST_DB, con
+from ..common import BaseDBTest, get_pymongo_version, TEST_DB, con
 from ..fixtures import classroom_model
 
 # Check if the required dependancies are met to run this driver's tests
@@ -48,7 +48,7 @@ def db():
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
-class TestTxMongo(BaseTest):
+class TestTxMongo(BaseDBTest):
 
     @pytest_inlineCallbacks
     def test_create(self, classroom_model):

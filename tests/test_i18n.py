@@ -8,6 +8,7 @@ from .fixtures import collection_moke
 
 
 class TestI18N:
+
     def teardown_method(self, method):
         # Reset i18n config before each test
         set_gettext(None)
