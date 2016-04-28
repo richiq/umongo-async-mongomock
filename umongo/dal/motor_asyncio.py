@@ -257,6 +257,7 @@ class MotorAsyncIOReference(Reference):
         super().__init__(*args, **kwargs)
         self._document = None
 
+    @asyncio.coroutine
     def fetch(self, no_data=False):
         if not self._document:
             if self.pk is None:

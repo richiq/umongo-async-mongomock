@@ -1,4 +1,5 @@
 from umongo import Document
+from umongo.dal.motor_asyncio import MotorAsyncIOReference
 
 # Await syntax related tests are stored in a separate file in order to
 # catch a SyntaxError when Python doesn't support it
@@ -18,6 +19,8 @@ async def test_await_syntax(db):
 
     doc = Doc()
     await doc.commit()
+
+    assert doc == await MotorAsyncIOReference(Doc, doc.id).fetch()
 
     cursor = Doc.find()
     await test_cursor(cursor)
