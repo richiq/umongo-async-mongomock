@@ -2,7 +2,13 @@
 History
 =======
 
-0.7.5 (2016-4-28)
+0.7.6 (2016-4-28)
+-----------------
+
+* Fix await error with Reference.fetch
+* Pymongo is now only installed with extra flavours of umongo
+
+0.7.6 (2016-4-28)
 -----------------
 
 * Use extras_require to install driver along with umongo
