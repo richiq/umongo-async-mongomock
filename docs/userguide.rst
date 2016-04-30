@@ -234,7 +234,7 @@ You get also access to Object Oriented version of your driver methods:
 Multi-driver support
 ====================
 
-For the moment all examples has been done with pymongo, but thing are
+For the moment all examples have been done with pymongo, but thing are
 pretty the same with other drivers, just change the ``collection`` and you're good to go:
 
 .. code-block:: python
@@ -392,8 +392,8 @@ Marshmallow integration
 Under the hood, μMongo heavily uses `marshmallow <http://marshmallow.readthedocs.org>`_
 for all it data validation work.
 
-However an ODM has some special needs (i.g. handling ``required`` fields that
-are handled by MongoDB's unique indexes) that force to extend marshmallow base types.
+However an ODM has some special needs (i.g. handling ``required`` fields through MongoDB's
+unique indexes) that force to extend marshmallow base types.
 
 In short, you should not try to use marshmallow base types (:class:`marshmallow.Schema`,
 :class:`marshmallow.fields.Field` or :class:`marshmallow.validate.Validator` for instance)
