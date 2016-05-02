@@ -87,7 +87,7 @@ OO world enforces model validation for each modification
     AttributeError: bad_field
     >>> odwin.birthday = "not_a_date"
     [...]
-    ValidationError: Not a valid datetime.
+    ValidationError: "Not a valid datetime."
 
 .. note: Just one exception: ``required`` attribute is validate at insertion time, we'll talk about that later.
 
@@ -424,7 +424,7 @@ Those validators will be enforced each time a field is modified:
     >>> john = Employee(name='John Rambo')
     >>> john.age = 99  # it's not his war anymore...
     [...]
-    ValidationError: {'age': ["No way I'm doing this !"]}
+    ValidationError: ['Must be between 18 and 65.']
 
 Now sometime you'll need for your validator to query your database (this
 is mainly done to validate a :class:`umongo.data_objects.Reference`). For
