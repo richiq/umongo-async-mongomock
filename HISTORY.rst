@@ -5,6 +5,9 @@ History
 dev
 ---
 
+* Heavy rewrite of the project, lost of API breakage
+* Documents are now first defined as templates then implemented
+  inside an Instance
 * Add `conditions` argument to Document.commit
 
 0.7.8 (2016-4-28)

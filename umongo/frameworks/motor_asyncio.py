@@ -1,8 +1,9 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorCursor
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
 from pymongo.errors import DuplicateKeyError
 
-from ..abstract import AbstractDal
+from ..builder import BaseBuilder
+from ..document import DocumentImplementation
 from ..data_proxy import DataProxy, missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, ValidationError, DeleteError
@@ -54,15 +55,7 @@ class WrappedCursor(AsyncIOMotorCursor):
         return cooked_future
 
 
-class MotorAsyncIODal(AbstractDal):
-
-    @staticmethod
-    def is_compatible_with(collection):
-        return isinstance(collection, AsyncIOMotorCollection)
-
-    @staticmethod
-    def io_validate_patch_schema(schema):
-        _io_validate_patch_schema(schema)
+class MotorAsyncIODocument(DocumentImplementation):
 
     @asyncio.coroutine
     def reload(self):
@@ -275,7 +268,7 @@ def _embedded_document_io_validate(field, value):
     yield from _io_validate_data_proxy(value.schema, value._data)
 
 
-def _io_validate_patch_schema(schema):
+def _io_validate_patch_schema(fields):
     """Add default io validators to the given schema
     """
 
@@ -300,7 +293,7 @@ def _io_validate_patch_schema(schema):
             field.io_validate.append(_embedded_document_io_validate)
             _io_validate_patch_schema(field.schema)
 
-    for field in schema.fields.values():
+    for field in fields.values():
         patch_field(field)
 
 
@@ -320,3 +313,17 @@ class MotorAsyncIOReference(Reference):
                 raise ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
         return self._document
+
+
+class MotorAsyncIOBuilder(BaseBuilder):
+
+    BASE_DOCUMENT_CLS = MotorAsyncIODocument
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, AsyncIOMotorDatabase)
+
+    def _build_schema(self, doc_template, schema_bases, schema_nmspc):
+        _io_validate_patch_schema(schema_nmspc)
+        # Patch schema fields to add io_validate attributes
+        return super()._build_schema(doc_template, schema_bases, schema_nmspc)

@@ -1,14 +1,13 @@
 from umongo import Document
-from umongo.dal.motor_asyncio import MotorAsyncIOReference
+from umongo.frameworks.motor_asyncio import MotorAsyncIOReference
 
 # Await syntax related tests are stored in a separate file in order to
 # catch a SyntaxError when Python doesn't support it
-async def test_await_syntax(db):
+async def test_await_syntax(instance):
 
+    @instance.register
     class Doc(Document):
-
-        class Meta:
-            collection = db.doc
+        pass
 
     async def test_cursor(cursor):
         await cursor.count()

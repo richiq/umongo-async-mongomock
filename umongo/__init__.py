@@ -1,3 +1,11 @@
+from .instance import Instance
+from .frameworks import (
+    PyMongoInstance,
+    TxMongoInstance,
+    MotorAsyncIOInstance,
+    MotorTornadoInstance,
+    MongoMockInstance
+)
 from .document import Document
 from .exceptions import (
     UMongoError,
@@ -5,18 +13,12 @@ from .exceptions import (
     NoDBDefinedError,
     NotRegisteredDocumentError,
     AlreadyRegisteredDocumentError,
+    BuilderNotDefinedError,
     UpdateError,
     MissingSchemaError,
     NotCreatedError,
     NoCollectionDefinedError,
     FieldNotLoadedError
-)
-from .dal import (
-    pymongo_lazy_loader,
-    txmongo_lazy_loader,
-    motor_asyncio_lazy_loader,
-    motor_tornado_lazy_loader,
-    mongomock_lazy_loader
 )
 from . import fields, validate
 from .schema import BaseSchema, Schema, EmbeddedSchema
@@ -28,6 +30,13 @@ __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
 __version__ = '0.7.8'
 __all__ = (
+    'Instance',
+    'PyMongoInstance',
+    'TxMongoInstance',
+    'MotorAsyncIOInstance',
+    'MotorTornadoInstance',
+    'MongoMockInstance'
+
     'Document',
     'EmbeddedDocument',
 
@@ -36,17 +45,12 @@ __all__ = (
     'NoDBDefinedError',
     'NotRegisteredDocumentError',
     'AlreadyRegisteredDocumentError',
+    'BuilderNotDefinedError',
     'UpdateError',
     'MissingSchemaError',
     'NotCreatedError',
     'NoCollectionDefinedError',
     'FieldNotLoadedError',
-
-    'pymongo_lazy_loader',
-    'txmongo_lazy_loader',
-    'motor_asyncio_lazy_loader',
-    'motor_tornado_lazy_loader',
-    'mongomock_lazy_loader',
 
     'fields',
 

@@ -4,10 +4,10 @@ from umongo import Document, fields, set_gettext, ValidationError, validate
 from umongo.i18n import gettext
 from umongo.abstract import BaseField
 
-from .fixtures import collection_moke
+from .common import BaseTest
 
 
-class TestI18N:
+class TestI18N(BaseTest):
 
     def teardown_method(self, method):
         # Reset i18n config before each test
@@ -27,6 +27,7 @@ class TestI18N:
 
     def test_document_validation(self):
 
+        @self.instance.register
         class Client(Document):
             phone_number = fields.StrField(validate=validate.Regexp(r'^[0-9 ]+$'))
 

@@ -3,7 +3,7 @@ from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
 from bson import DBRef, ObjectId, errors as bson_errors
 
-from .registerer import retrieve_document
+# from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
 from .data_objects import Reference, List, Dict
 from .abstract import BaseField
@@ -222,7 +222,7 @@ class ReferenceField(ObjectIdField):
     @property
     def document_cls(self):
         if isinstance(self._document_cls, str):
-            self._document_cls = retrieve_document(self._document_cls)
+            self._document_cls = self.instance.retrieve_document(self._document_cls)
         return self._document_cls
 
     def _serialize(self, value, attr, obj):
@@ -309,7 +309,7 @@ class GenericReferenceField(BaseField):
 
     def _deserialize_from_mongo(self, value):
         try:
-            document_cls = retrieve_document(value['_cls'])
+            document_cls = self.instance.retrieve_document(value['_cls'])
         except NotRegisteredDocumentError:
             raise ValidationError(_('Unknown document `{document}`.').format(
                 document=value['_cls']))

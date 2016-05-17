@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 
 from ..common import TEST_DB
-from ..fixtures import classroom_model
+from ..fixtures import classroom_model, instance
 
 
 try:
@@ -14,7 +14,7 @@ else:
 
 
 if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.dal import mongomock
+    from umongo.frameworks import mongomock
 
 
 @pytest.fixture

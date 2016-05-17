@@ -29,6 +29,10 @@ class AlreadyRegisteredDocumentError(UMongoError):
     pass
 
 
+class BuilderNotDefinedError(UMongoError):
+    pass
+
+
 class UpdateError(UMongoError):
     pass
 
@@ -53,5 +57,5 @@ class FieldNotLoadedError(UMongoError):
     pass
 
 
-class NoCompatibleDalError(UMongoError):
+class NoCompatibleBuilderError(UMongoError):
     pass

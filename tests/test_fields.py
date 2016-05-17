@@ -8,10 +8,10 @@ from umongo.data_proxy import DataProxy
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
 from umongo.data_objects import List, Dict
 
-from .fixtures import collection_moke, db_moke
+from .common import BaseTest
 
 
-class TestFields:
+class TestFields(BaseTest):
 
     def test_basefields(self):
 
@@ -288,6 +288,7 @@ class TestFields:
         class MyEmbeddedDocument(EmbeddedDocument):
             field = fields.IntField()
 
+        @self.instance.register
         class ToRefDoc(Document):
             pass
 
@@ -354,20 +355,22 @@ class TestFields:
         with pytest.raises(ValidationError):
             d.set('objid', 'notanid')
 
-    def test_reference(self, collection_moke):
+    def test_reference(self):
 
+        @self.instance.register
         class MyReferencedDoc(Document):
 
             class Meta:
-                collection = collection_moke
+                collection_name = 'my_collection'
 
+        @self.instance.register
         class OtherDoc(Document):
             pass
 
         to_refer_doc = MyReferencedDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
         ref = Reference(MyReferencedDoc, to_refer_doc.pk)
-        dbref = DBRef(collection_moke.name, to_refer_doc.pk)
+        dbref = DBRef('my_collection', to_refer_doc.pk)
         other_doc = OtherDoc.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef07")})
 
@@ -406,6 +409,7 @@ class TestFields:
 
     def test_reference_lazy(self):
 
+        @self.instance.register
         class MyReferencedDocLazy(Document):
             pass
 
@@ -413,7 +417,8 @@ class TestFields:
             {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
 
         class MySchema(Schema):
-            ref = fields.ReferenceField("MyReferencedDocLazy", attribute='in_mongo_ref')
+            ref = fields.ReferenceField(
+                "MyReferencedDocLazy", attribute='in_mongo_ref', instance=self.instance)
 
         d = DataProxy(MySchema())
         d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
@@ -424,23 +429,21 @@ class TestFields:
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
         assert d.get('ref').document_cls == MyReferencedDocLazy
 
-    def test_generic_reference(self, db_moke):
+    def test_generic_reference(self):
 
+        @self.instance.register
         class ToRef1(Document):
+            pass
 
-            class Config:
-                collection = db_moke.col_ref1
-
+        @self.instance.register
         class ToRef2(Document):
-
-            class Config:
-                collection = db_moke.col_ref2
+            pass
 
         doc1 = ToRef1.build_from_mongo({'_id': ObjectId()})
         ref1 = Reference(ToRef1, doc1.pk)
 
         class MySchema(Schema):
-            gref = fields.GenericReferenceField(attribute='in_mongo_gref')
+            gref = fields.GenericReferenceField(attribute='in_mongo_gref', instance=self.instance)
 
         d = DataProxy(MySchema())
         d.load({'gref': {'id': ObjectId("5672d47b1d41c88dcd37ef05"), 'cls': ToRef2.__name__}})

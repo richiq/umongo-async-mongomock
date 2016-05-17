@@ -2,10 +2,28 @@ from bson import DBRef
 
 from .abstract import BaseDataObject, I18nErrorDict
 from .data_proxy import DataProxy
-from .meta import MetaEmbeddedDocument
+from .schema import EmbeddedSchema
 
 
 __all__ = ('EmbeddedDocument', 'List', 'Reference')
+
+
+class MetaEmbeddedDocument(type):
+
+    def __new__(cls, name, bases, nmspc):
+        # Retrieve inherited schema classes
+        schema_bases = tuple([getattr(base, 'Schema') for base in bases
+                              if hasattr(base, 'Schema')])
+        if not schema_bases:
+            schema_bases = (EmbeddedSchema,)
+        from .builder import _collect_fields
+        doc_nmspc, schema_nmspc = _collect_fields(nmspc)
+        # Need to create a custom Schema class to use the provided fields
+        schema_cls = type('%sSchema' % name, schema_bases, schema_nmspc)
+        doc_nmspc['Schema'] = schema_cls
+        doc_nmspc['schema'] = schema_cls()
+
+        return type.__new__(cls, name, bases, doc_nmspc)
 
 
 class EmbeddedDocument(BaseDataObject, metaclass=MetaEmbeddedDocument):
@@ -142,6 +160,7 @@ class Reference:
             implementation may not retrieve document's data to save bandwidth.
         """
         raise NotImplementedError
+    # TODO replace no_data by `exists` function
 
     def __repr__(self):
         return '<object %s.%s(document=%s, pk=%r)>' % (

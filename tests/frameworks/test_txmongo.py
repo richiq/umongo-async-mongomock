@@ -1,25 +1,41 @@
 import pytest
 from datetime import datetime
-from functools import namedtuple
 from bson import ObjectId
-from pymongo import MongoClient
+from functools import namedtuple, wraps
 
-from ..common import BaseDBTest, get_pymongo_version, TEST_DB
-from ..test_indexes import assert_indexes
-from ..fixtures import classroom_model
-
-from umongo import Document, fields, exceptions, Reference
-
+from ..common import BaseDBTest, get_pymongo_version, TEST_DB, con
+from ..fixtures import classroom_model, instance
 
 # Check if the required dependancies are met to run this driver's tests
-major, minor, _ = get_pymongo_version()
-if int(major) != 3 or int(minor) < 2:
-    dep_error = "pymongo driver requires pymongo>=3.2.0"
+try:
+    from txmongo import MongoConnection
+    major, minor, _ = get_pymongo_version()
+    if major != 3 or minor < 2:
+        dep_error = "txmongo requires pymongo>=3.2.0"
+    from twisted.internet.defer import Deferred, inlineCallbacks, succeed
+except ImportError:
+    dep_error = 'Missing txmongo module'
+    # Given the test function are generator, we must wrap them into a dummy
+    # function that pytest can skip
+    def skip_wrapper(f):
+
+        @wraps(f)
+        def wrapper(self):
+            pass
+
+        return wrapper
+
+    pytest_inlineCallbacks = skip_wrapper
 else:
     dep_error = None
+    pytest_inlineCallbacks = pytest.inlineCallbacks
+
+from umongo import (Document, fields, exceptions, Reference, Instance,
+                    TxMongoInstance, NoDBDefinedError)
+
 
 if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.dal import pymongo
+    from umongo.frameworks import txmongo as framework
 
 
 # Helper to sort indexes by name in order to have deterministic comparison
@@ -29,115 +45,157 @@ def name_sorted(indexes):
 
 @pytest.fixture
 def db():
-    return MongoClient()[TEST_DB]
+    return MongoConnection()[TEST_DB]
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
-class TestPymongo(BaseDBTest):
+class TestTxMongo(BaseDBTest):
 
+    def test_auto_instance(self, db):
+        instance = Instance(db)
+
+        class Doc(Document):
+            pass
+
+        doc_impl_cls = instance.register(Doc)
+        assert doc_impl_cls.collection == db['doc']
+        assert issubclass(doc_impl_cls, framework.TxMongoDocument)
+
+    def test_lazy_loader_instance(self, db):
+        instance = TxMongoInstance()
+
+        class Doc(Document):
+            pass
+
+        doc_impl_cls = instance.register(Doc)
+        assert issubclass(doc_impl_cls, framework.TxMongoDocument)
+        with pytest.raises(NoDBDefinedError):
+            doc_impl_cls.collection
+        instance.init(db)
+        assert doc_impl_cls.collection == db['doc']
+
+    @pytest_inlineCallbacks
     def test_create(self, classroom_model):
         Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
-        john.commit()
+        yield john.commit()
         assert john.to_mongo() == {
             '_id': john.id,
             'name': 'John Doe',
             'birthday': datetime(1995, 12, 12)
         }
 
-
-        john2 = Student.find_one(john.id)
+        john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
 
+    @pytest_inlineCallbacks
     def test_update(self, classroom_model):
         Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
-        john.commit()
+        yield john.commit()
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
-        john.commit()
+        yield john.commit()
         assert john.to_mongo(update=True) == None
-        john2 = Student.find_one(john.id)
+        john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
         # Update without changing anything
         john.name = john.name
-        john.commit()
+        yield john.commit()
         # Test conditional commit
         john.name = 'Zorro Doe'
         with pytest.raises(exceptions.UpdateError):
-            john.commit(conditions={'name': 'Bad Name'})
-        john.commit(conditions={'name': 'William Doe'})
-        john.reload()
+            yield john.commit(conditions={'name': 'Bad Name'})
+        yield john.commit(conditions={'name': 'William Doe'})
+        yield john.reload()
         assert john.name == 'Zorro Doe'
         # Cannot use conditions when creating document
         with pytest.raises(RuntimeError):
-            Student(name='Joe').commit(conditions={'name': 'dummy'})
+            yield Student(name='Joe').commit(conditions={'name': 'dummy'})
 
+    @pytest_inlineCallbacks
     def test_delete(self, classroom_model):
         Student = classroom_model.Student
-        Student.collection.drop()
+        yield Student.collection.drop()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
-            john.delete()
-        john.commit()
-        assert Student.collection.find().count() == 1
-        john.delete()
+            yield john.delete()
+        yield john.commit()
+        students = yield Student.find()
+        assert len(students) == 1
+        yield john.delete()
         assert not john.created
-        assert Student.collection.find().count() == 0
+        students = yield Student.find()
+        assert len(students) == 0
         with pytest.raises(exceptions.NotCreatedError):
-           john.delete()
+           yield john.delete()
         # Can re-commit the document in database
-        john.commit()
+        yield john.commit()
         assert john.created
-        assert Student.collection.find().count() == 1
+        students = yield Student.find()
+        assert len(students) == 1
         # Finally try to delete a doc no longer in database
-        Student.find_one(john.id).delete()
+        yield students[0].delete()
         with pytest.raises(exceptions.DeleteError):
-           john.delete()
+           yield john.delete()
 
+    @pytest_inlineCallbacks
     def test_reload(self, classroom_model):
         Student = classroom_model.Student
-        Student(name='Other dude').commit()
+        yield Student(name='Other dude').commit()
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
-            john.reload()
-        john.commit()
-        john2 = Student.find_one(john.id)
+            yield john.reload()
+        yield john.commit()
+        john2 = yield Student.find_one(john.id)
         john2.name = 'William Doe'
-        john2.commit()
-        john.reload()
+        yield john2.commit()
+        yield john.reload()
         assert john.name == 'William Doe'
 
-    def test_cusor(self, classroom_model):
+    @pytest_inlineCallbacks
+    def test_find_no_cursor(self, classroom_model):
         Student = classroom_model.Student
         Student.collection.drop()
         for i in range(10):
-            Student(name='student-%s' % i).commit()
-        cursor = Student.find(limit=5, skip=6)
-        assert cursor.count() == 10
-        assert cursor.count(with_limit_and_skip=True) == 4
+            yield Student(name='student-%s' % i).commit()
+        results = yield Student.find(limit=5, skip=6)
+        assert isinstance(results, list)
+        assert len(results) == 4
         names = []
-        for elem in cursor:
+        for elem in results:
             assert isinstance(elem, Student)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
-        # Make sure this kind of notation doesn't create new cursor
-        cursor = Student.find()
-        cursor_limit = cursor.limit(5)
-        cursor_skip = cursor.skip(6)
-        assert cursor is cursor_limit is cursor_skip
+    @pytest_inlineCallbacks
+    def test_find_with_cursor(self, classroom_model):
+        Student = classroom_model.Student
+        Student.collection.drop()
+        for i in range(10):
+            yield Student(name='student-%s' % i).commit()
+        batch1, cursor1 = yield Student.find(limit=5, skip=6, cursor=True)
+        assert len(batch1) == 4
+        batch2, cursor2 = yield cursor1
+        assert len(batch2) == 0
+        assert cursor2 is None
+        names = []
+        for elem in batch1:
+            assert isinstance(elem, Student)
+            names.append(elem.name)
+        assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
+    @pytest_inlineCallbacks
     def test_classroom(self, classroom_model):
         student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
-        student.commit()
+        yield student.commit()
         teacher = classroom_model.Teacher(name='M. Strickland')
-        teacher.commit()
+        yield teacher.commit()
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
-        course.commit()
+        yield course.commit()
         assert student.courses == []
         student.courses.append(course)
-        student.commit()
+        yield student.commit()
         assert student.to_mongo() == {
             '_id': student.pk,
             'name': 'Marty McFly',
@@ -145,36 +203,39 @@ class TestPymongo(BaseDBTest):
             'courses': [course.pk]
         }
 
+    @pytest_inlineCallbacks
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')
-        teacher.commit()
+        yield teacher.commit()
         course = classroom_model.Course(name='Overboard 101', teacher=teacher)
-        course.commit()
+        yield course.commit()
         assert isinstance(course.teacher, Reference)
-        teacher_fetched = course.teacher.fetch()
+        teacher_fetched = yield course.teacher.fetch()
         assert teacher_fetched == teacher
         # Test bad ref as well
         course.teacher = Reference(classroom_model.Teacher, ObjectId())
         with pytest.raises(exceptions.ValidationError) as exc:
-            course.io_validate()
+            yield course.io_validate()
         assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
 
+    @pytest_inlineCallbacks
     def test_required(self, classroom_model):
         Student = classroom_model.Student
         student = Student(birthday=datetime(1968, 6, 9))
 
         with pytest.raises(exceptions.ValidationError):
-            student.io_validate()
+            yield student.io_validate()
 
         with pytest.raises(exceptions.ValidationError):
-            student.commit()
+            yield student.commit()
 
         student.name = 'Marty'
-        student.commit()
+        yield student.commit()
         # with pytest.raises(exceptions.ValidationError):
         #     Student.build_from_mongo({})
 
-    def test_io_validate(self, classroom_model):
+    @pytest_inlineCallbacks
+    def test_io_validate(self, instance, classroom_model):
         Student = classroom_model.Student
 
         io_field_value = 'io?'
@@ -185,77 +246,114 @@ class TestPymongo(BaseDBTest):
             assert value == io_field_value
             nonlocal io_validate_called
             io_validate_called = True
+            return succeed(None)
 
+        @instance.register
         class IOStudent(Student):
             io_field = fields.StrField(io_validate=io_validate)
 
         student = IOStudent(name='Marty', io_field=io_field_value)
         assert not io_validate_called
 
-        student.io_validate()
+        yield student.io_validate()
         assert io_validate_called
 
-    def test_io_validate_error(self, classroom_model):
+    @pytest_inlineCallbacks
+    def test_io_validate_error(self, instance, classroom_model):
         Student = classroom_model.Student
 
         def io_validate(field, value):
             raise exceptions.ValidationError('Ho boys !')
 
+        @instance.register
         class IOStudent(Student):
             io_field = fields.StrField(io_validate=io_validate)
 
         student = IOStudent(name='Marty', io_field='io?')
         with pytest.raises(exceptions.ValidationError) as exc:
-            student.io_validate()
+            yield student.io_validate()
         assert exc.value.messages == {'io_field': ['Ho boys !']}
 
-    def test_io_validate_multi_validate(self, classroom_model):
+    @pytest_inlineCallbacks
+    def test_io_validate_multi_validate(self, instance, classroom_model):
         Student = classroom_model.Student
         called = []
 
-        def io_validate1(field, value):
-            called.append('io_validate1')
+        defer1 = Deferred()
+        defer2 = Deferred()
+        defer3 = Deferred()
+        defer4 = Deferred()
 
-        def io_validate2(field, value):
-            called.append('io_validate2')
+        @inlineCallbacks
+        def io_validate11(field, value):
+            called.append(1)
+            defer1.callback(None)
+            yield defer3
+            called.append(4)
+            defer4.callback(None)
 
+        @inlineCallbacks
+        def io_validate12(field, value):
+            yield defer4
+            called.append(5)
+
+        @inlineCallbacks
+        def io_validate21(field, value):
+            yield defer2
+            called.append(3)
+            defer3.callback(None)
+
+        @inlineCallbacks
+        def io_validate22(field, value):
+            yield defer1
+            called.append(2)
+            defer2.callback(None)
+
+        @instance.register
         class IOStudent(Student):
-            io_field = fields.StrField(io_validate=(io_validate1, io_validate2))
+            io_field1 = fields.StrField(io_validate=(io_validate11, io_validate12))
+            io_field2 = fields.StrField(io_validate=(io_validate21, io_validate22))
 
-        student = IOStudent(name='Marty', io_field='io?')
-        student.io_validate()
-        assert called == ['io_validate1', 'io_validate2']
+        student = IOStudent(name='Marty', io_field1='io1', io_field2='io2')
+        yield student.io_validate()
+        assert called == [1, 2, 3, 4, 5]
 
-    def test_io_validate_list(self, classroom_model):
+    @pytest_inlineCallbacks
+    def test_io_validate_list(self, instance, classroom_model):
         Student = classroom_model.Student
         called = []
         values = [1, 2, 3, 4]
 
+        @inlineCallbacks
         def io_validate(field, value):
-            called.append(value)
+            yield called.append(value)
 
+        @instance.register
         class IOStudent(Student):
             io_field = fields.ListField(fields.IntField(io_validate=io_validate))
 
         student = IOStudent(name='Marty', io_field=values)
-        student.io_validate()
+        yield student.io_validate()
         assert called == values
 
-    def test_indexes(self, db):
+    @pytest_inlineCallbacks
+    def test_indexes(self, instance):
 
+        @instance.register
         class SimpleIndexDoc(Document):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
+                collection = 'simple_index_doc'
                 indexes = ['indexed']
 
-        SimpleIndexDoc.collection.drop_indexes()
+        yield SimpleIndexDoc.collection.drop_indexes()
 
         # Now ask for indexes building
-        SimpleIndexDoc.ensure_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        yield SimpleIndexDoc.ensure_indexes()
+        # SimpleIndexDoc.collection.index_information doesn't seems to work...
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
@@ -270,27 +368,31 @@ class TestPymongo(BaseDBTest):
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
-        SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        yield SimpleIndexDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
-    def test_indexes_inheritance(self, db):
+    @pytest_inlineCallbacks
+    def test_indexes_inheritance(self, instance):
 
+        @instance.register
         class SimpleIndexDoc(Document):
             indexed = fields.StrField()
             no_indexed = fields.IntField()
 
             class Meta:
-                collection = db.simple_index_doc
+                collection = 'simple_index_doc'
                 indexes = ['indexed']
 
-        SimpleIndexDoc.collection.drop_indexes()
+        yield SimpleIndexDoc.collection.drop_indexes()
 
         # Now ask for indexes building
-        SimpleIndexDoc.ensure_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        yield SimpleIndexDoc.ensure_indexes()
+        # SimpleIndexDoc.collection.index_information doesn't seems to work...
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
@@ -305,28 +407,31 @@ class TestPymongo(BaseDBTest):
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
-        SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        yield SimpleIndexDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].simple_index_doc.list_indexes()]
+        assert name_sorted(indexes) == name_sorted(expected_indexes)
 
-    def test_unique_index(self, db):
+    @pytest_inlineCallbacks
+    def test_unique_index(self, instance):
 
+        @instance.register
         class UniqueIndexDoc(Document):
             not_unique = fields.StrField(unique=False)
             sparse_unique = fields.IntField(unique=True)
             required_unique = fields.IntField(unique=True, required=True)
 
             class Meta:
-                collection = db.unique_index_doc
+                collection = 'unique_index_doc'
 
-        UniqueIndexDoc.collection.drop()
-        UniqueIndexDoc.collection.drop_indexes()
+        yield UniqueIndexDoc.collection.drop()
+        yield UniqueIndexDoc.collection.drop_indexes()
 
         # Now ask for indexes building
-        UniqueIndexDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
+        yield UniqueIndexDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_doc.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
@@ -353,37 +458,39 @@ class TestPymongo(BaseDBTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
-        UniqueIndexDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
+        yield UniqueIndexDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_doc.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
-        UniqueIndexDoc(not_unique='a', required_unique=1).commit()
-        UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
+        yield UniqueIndexDoc(not_unique='a', required_unique=1).commit()
+        yield UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
         with pytest.raises(exceptions.ValidationError) as exc:
-            UniqueIndexDoc(not_unique='a', required_unique=1).commit()
+            yield UniqueIndexDoc(not_unique='a', required_unique=1).commit()
         assert exc.value.messages == {'required_unique': 'Field value must be unique.'}
         with pytest.raises(exceptions.ValidationError) as exc:
-            UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
+            yield UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=3).commit()
         assert exc.value.messages == {'sparse_unique': 'Field value must be unique.'}
 
-    def test_unique_index_compound(self, db):
+    @pytest_inlineCallbacks
+    def test_unique_index_compound(self, instance):
 
+        @instance.register
         class UniqueIndexCompoundDoc(Document):
             compound1 = fields.IntField()
             compound2 = fields.IntField()
             not_unique = fields.StrField()
 
             class Meta:
-                collection = db.unique_index_compound_doc
+                collection = 'unique_index_compound_doc'
                 # Must define custom index to do that
                 indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
-        UniqueIndexCompoundDoc.collection.drop()
-        UniqueIndexCompoundDoc.collection.drop_indexes()
+        yield UniqueIndexCompoundDoc.collection.drop()
+        yield UniqueIndexCompoundDoc.collection.drop_indexes()
 
         # Now ask for indexes building
-        UniqueIndexCompoundDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexCompoundDoc.collection.list_indexes()]
+        yield UniqueIndexCompoundDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_compound_doc.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
@@ -402,39 +509,42 @@ class TestPymongo(BaseDBTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
-        UniqueIndexCompoundDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexCompoundDoc.collection.list_indexes()]
+        yield UniqueIndexCompoundDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_compound_doc.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Index is on the tuple (compound1, compound2)
-        UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
-        UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=2).commit()
-        UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
-        UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=2).commit()
+        yield UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
+        yield UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=2).commit()
+        yield UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
+        yield UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=2).commit()
         with pytest.raises(exceptions.ValidationError) as exc:
-            UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
+            yield UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
         assert exc.value.messages == {
             'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
             'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
         with pytest.raises(exceptions.ValidationError) as exc:
-            UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
+            yield UniqueIndexCompoundDoc(not_unique='a', compound1=2, compound2=1).commit()
         assert exc.value.messages == {
             'compound2': "Values of fields ['compound1', 'compound2'] must be unique together.",
             'compound1': "Values of fields ['compound1', 'compound2'] must be unique together."
         }
 
     @pytest.mark.xfail
-    def test_unique_index_inheritance(self, db):
+    @pytest_inlineCallbacks
+    def test_unique_index_inheritance(self, instance):
 
+        @instance.register
         class UniqueIndexParentDoc(Document):
             not_unique = fields.StrField(unique=False)
             unique = fields.IntField(unique=True)
 
             class Meta:
-                collection = db.unique_index_inheritance_doc
+                collection = 'unique_index_inheritance_doc'
                 allow_inheritance = True
 
+        @instance.register
         class UniqueIndexChildDoc(UniqueIndexParentDoc):
             child_not_unique = fields.StrField(unique=False)
             child_unique = fields.IntField(unique=True)
@@ -443,11 +553,11 @@ class TestPymongo(BaseDBTest):
             class Meta:
                 indexes = ['manual_index']
 
-        UniqueIndexChildDoc.collection.drop_indexes()
+        yield UniqueIndexChildDoc.collection.drop_indexes()
 
         # Now ask for indexes building
-        UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+        yield UniqueIndexChildDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_inheritance_doc.list_indexes()]
         expected_indexes = [
             {
                 'key': {'_id': 1},
@@ -486,46 +596,55 @@ class TestPymongo(BaseDBTest):
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
-        UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+        yield UniqueIndexChildDoc.ensure_indexes()
+        indexes = [e for e in con[TEST_DB].unique_index_inheritance_doc.list_indexes()]
         assert name_sorted(indexes) == name_sorted(expected_indexes)
 
-    def test_inheritance_search(self, db):
+    @pytest_inlineCallbacks
+    def test_inheritance_search(self, instance):
 
+        @instance.register
         class InheritanceSearchParent(Document):
             pf = fields.IntField()
 
             class Meta:
-                collection = db.inheritance_search
+                collection = 'inheritance_search'
                 allow_inheritance = True
 
+        @instance.register
         class InheritanceSearchChild1(InheritanceSearchParent):
             c1f = fields.IntField()
 
             class Meta:
                 allow_inheritance = True
 
+        @instance.register
         class InheritanceSearchChild1Child(InheritanceSearchChild1):
             sc1f = fields.IntField()
 
+        @instance.register
         class InheritanceSearchChild2(InheritanceSearchParent):
             c2f = fields.IntField(required=True)
 
-        InheritanceSearchParent.collection.drop()
+        yield InheritanceSearchParent.collection.drop()
 
-        InheritanceSearchParent(pf=0).commit()
-        InheritanceSearchChild1(pf=1, c1f=1).commit()
-        InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
-        InheritanceSearchChild2(pf=2, c2f=2).commit()
+        yield InheritanceSearchParent(pf=0).commit()
+        yield InheritanceSearchChild1(pf=1, c1f=1).commit()
+        yield InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
+        yield InheritanceSearchChild2(pf=2, c2f=2).commit()
 
-        assert InheritanceSearchParent.find().count() == 4
-        assert InheritanceSearchChild1.find().count() == 2
-        assert InheritanceSearchChild1Child.find().count() == 1
-        assert InheritanceSearchChild2.find().count() == 1
+        res = yield InheritanceSearchParent.find()
+        assert len(res) == 4
+        res = yield InheritanceSearchChild1.find()
+        assert len(res) == 2
+        res = yield InheritanceSearchChild1Child.find()
+        assert len(res) == 1
+        res = yield InheritanceSearchChild2.find()
+        assert len(res) == 1
 
-        res = InheritanceSearchParent.find_one({'sc1f': 1})
+        res = yield InheritanceSearchParent.find_one({'sc1f': 1})
         assert isinstance(res, InheritanceSearchChild1Child)
 
-        res = InheritanceSearchParent.find({'pf': 1})
+        res = yield InheritanceSearchParent.find({'pf': 1})
         for r in res:
             assert isinstance(r, InheritanceSearchChild1)

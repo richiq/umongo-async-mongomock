@@ -6,6 +6,8 @@ from umongo.indexes import (
     IndexModel, ASCENDING, DESCENDING, TEXT, HASHED)
 from umongo import Document, EmbeddedDocument, fields
 
+from .common import BaseTest
+
 
 def assert_indexes(indexes1, indexes2):
     if hasattr(indexes1, '__iter__'):
@@ -17,7 +19,7 @@ def assert_indexes(indexes1, indexes2):
         assert indexes1.document == indexes2.document
 
 
-class TestIndexes:
+class TestIndexes(BaseTest):
 
     def test_parse_index(self):
         for value, expected in (
@@ -59,6 +61,7 @@ class TestIndexes:
 
     def test_inheritance(self):
 
+        @self.instance.register
         class Parent(Document):
             last_name = fields.StrField()
 
@@ -66,6 +69,7 @@ class TestIndexes:
                 allow_inheritance = True
                 indexes = ['last_name']
 
+        @self.instance.register
         class Child(Parent):
             first_name = fields.StrField()
 
@@ -93,6 +97,7 @@ class TestIndexes:
             simple = fields.StrField()
             listed = fields.ListField(fields.StrField())
 
+        @self.instance.register
         class Doc(Document):
             nested = fields.EmbeddedField(NestedDoc)
             listed = fields.ListField(fields.EmbeddedField(NestedDoc))

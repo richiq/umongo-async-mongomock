@@ -13,12 +13,13 @@ else:
     dep_error = None
 
 from ..common import BaseDBTest, TEST_DB
-from ..fixtures import classroom_model
+from ..fixtures import classroom_model, instance
 
-from umongo import Document, fields, exceptions, Reference
+from umongo import (Document, fields, exceptions, Reference, Instance,
+                    MotorAsyncIOInstance, NoDBDefinedError)
 
 if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.dal import motor_asyncio
+    from umongo.frameworks import motor_asyncio as framework
 
 
 def _ns_stripped(indexes):
@@ -39,6 +40,29 @@ def loop():
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestMotorAsyncio(BaseDBTest):
+
+    def test_auto_instance(self, db):
+        instance = Instance(db)
+
+        class Doc(Document):
+            pass
+
+        doc_impl_cls = instance.register(Doc)
+        assert doc_impl_cls.collection == db['doc']
+        assert issubclass(doc_impl_cls, framework.MotorAsyncIODocument)
+
+    def test_lazy_loader_instance(self, db):
+        instance = MotorAsyncIOInstance()
+
+        class Doc(Document):
+            pass
+
+        doc_impl_cls = instance.register(Doc)
+        assert issubclass(doc_impl_cls, framework.MotorAsyncIODocument)
+        with pytest.raises(NoDBDefinedError):
+            doc_impl_cls.collection
+        instance.init(db)
+        assert doc_impl_cls.collection == db['doc']
 
     def test_create(self, loop, classroom_model):
         Student = classroom_model.Student
@@ -266,7 +290,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_io_validate(self, loop, classroom_model):
+    def test_io_validate(self, loop, instance, classroom_model):
 
         @asyncio.coroutine
         def do_test():
@@ -282,6 +306,7 @@ class TestMotorAsyncio(BaseDBTest):
                 nonlocal io_validate_called
                 io_validate_called = True
 
+            @instance.register
             class IOStudent(Student):
                 io_field = fields.StrField(io_validate=io_validate)
 
@@ -293,7 +318,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_io_validate_error(self, loop, classroom_model):
+    def test_io_validate_error(self, loop, instance, classroom_model):
 
         @asyncio.coroutine
         def do_test():
@@ -303,6 +328,7 @@ class TestMotorAsyncio(BaseDBTest):
             def io_validate(field, value):
                 raise exceptions.ValidationError('Ho boys !')
 
+            @instance.register
             class IOStudent(Student):
                 io_field = fields.StrField(io_validate=io_validate)
 
@@ -313,7 +339,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_io_validate_multi_validate(self, loop, classroom_model):
+    def test_io_validate_multi_validate(self, loop, instance, classroom_model):
 
         @asyncio.coroutine
         def do_test():
@@ -347,6 +373,7 @@ class TestMotorAsyncio(BaseDBTest):
                 called.append(2)
                 future2.set_result(None)
 
+            @instance.register
             class IOStudent(Student):
                 io_field1 = fields.StrField(io_validate=(io_validate11, io_validate12))
                 io_field2 = fields.StrField(io_validate=(io_validate21, io_validate22))
@@ -357,7 +384,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_io_validate_list(self, loop, classroom_model):
+    def test_io_validate_list(self, loop, instance, classroom_model):
 
         @asyncio.coroutine
         def do_test():
@@ -374,6 +401,7 @@ class TestMotorAsyncio(BaseDBTest):
                 yield from futures[value]
                 called.append(value)
 
+            @instance.register
             class IOStudent(Student):
                 io_field = fields.ListField(fields.IntField(io_validate=io_validate))
 
@@ -383,17 +411,18 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_indexes(self, loop, db):
+    def test_indexes(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class SimpleIndexDoc(Document):
                 indexed = fields.StrField()
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = db.simple_index_doc
+                    collection = 'simple_index_doc'
                     indexes = ['indexed']
 
             yield from SimpleIndexDoc.collection.drop_indexes()
@@ -420,17 +449,18 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_indexes_inheritance(self, loop, db):
+    def test_indexes_inheritance(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class SimpleIndexDoc(Document):
                 indexed = fields.StrField()
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = db.simple_index_doc
+                    collection = 'simple_index_doc'
                     indexes = ['indexed']
 
             yield from SimpleIndexDoc.collection.drop_indexes()
@@ -457,18 +487,19 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_unique_index(self, db, loop):
+    def test_unique_index(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class UniqueIndexDoc(Document):
                 not_unique = fields.StrField(unique=False)
                 sparse_unique = fields.IntField(unique=True)
                 required_unique = fields.IntField(unique=True, required=True)
 
                 class Meta:
-                    collection = db.unique_index_doc
+                    collection = 'unique_index_doc'
 
             yield from UniqueIndexDoc.collection.drop()
             yield from UniqueIndexDoc.collection.drop_indexes()
@@ -511,18 +542,19 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_unique_index_compound(self, db, loop):
+    def test_unique_index_compound(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class UniqueIndexCompoundDoc(Document):
                 compound1 = fields.IntField()
                 compound2 = fields.IntField()
                 not_unique = fields.StrField()
 
                 class Meta:
-                    collection = db.unique_index_compound_doc
+                    collection = 'unique_index_compound_doc'
                     # Must define custom index to do that
                     indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
@@ -575,19 +607,21 @@ class TestMotorAsyncio(BaseDBTest):
         loop.run_until_complete(do_test())
 
     @pytest.mark.xfail
-    def test_unique_index_inheritance(self, db, loop):
+    def test_unique_index_inheritance(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class UniqueIndexParentDoc(Document):
                 not_unique = fields.StrField(unique=False)
                 unique = fields.IntField(unique=True)
 
                 class Meta:
-                    collection = db.unique_index_inheritance_doc
+                    collection = 'unique_index_inheritance_doc'
                     allow_inheritance = True
 
+            @instance.register
             class UniqueIndexChildDoc(UniqueIndexParentDoc):
                 child_not_unique = fields.StrField(unique=False)
                 child_unique = fields.IntField(unique=True)
@@ -645,27 +679,31 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-    def test_inheritance_search(self, db, loop):
+    def test_inheritance_search(self, loop, instance):
 
         @asyncio.coroutine
         def do_test():
 
+            @instance.register
             class InheritanceSearchParent(Document):
                 pf = fields.IntField()
 
                 class Meta:
-                    collection = db.inheritance_search
+                    collection = 'inheritance_search'
                     allow_inheritance = True
 
+            @instance.register
             class InheritanceSearchChild1(InheritanceSearchParent):
                 c1f = fields.IntField()
 
                 class Meta:
                     allow_inheritance = True
 
+            @instance.register
             class InheritanceSearchChild1Child(InheritanceSearchChild1):
                 sc1f = fields.IntField()
 
+            @instance.register
             class InheritanceSearchChild2(InheritanceSearchParent):
                 c2f = fields.IntField(required=True)
 
@@ -694,10 +732,10 @@ class TestMotorAsyncio(BaseDBTest):
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestAwaitSyntax(BaseDBTest):
 
-    def test_base(self, loop, db):
+    def test_base(self, loop, instance):
         try:
             from .await_syntax import test_await_syntax
-            loop.run_until_complete(test_await_syntax(db))
+            loop.run_until_complete(test_await_syntax(instance))
         except SyntaxError:
             # Await syntax not supported (Python < 3.5)
             pass

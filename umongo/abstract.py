@@ -64,12 +64,13 @@ class BaseField(ma_fields.Field):
         'unique_compound': 'Values of fields {fields} must be unique together.'
     }
 
-    def __init__(self, *args, io_validate=None, unique=False, **kwargs):
+    def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Overwrite error_messages to handle i18n translation
         self.error_messages = I18nErrorDict(self.error_messages)
         self.io_validate = io_validate
         self.unique = unique
+        self.instance = instance
 
     def __repr__(self):
         return ('<fields.{ClassName}(default={self.default!r}, '
@@ -78,7 +79,8 @@ class BaseField(ma_fields.Field):
                 'load_only={self.load_only}, dump_only={self.dump_only}, '
                 'missing={self.missing}, allow_none={self.allow_none}, '
                 'error_messages={self.error_messages}, '
-                'io_validate={self.io_validate}, unique={self.unique})>'
+                'io_validate={self.io_validate}, unique={self.unique}, '
+                'instance={self.instance})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def serialize(self, attr, obj, accessor=None):

@@ -3,38 +3,52 @@ from datetime import datetime
 from bson import ObjectId, DBRef
 from functools import namedtuple
 
-from .fixtures import collection_moke, dal_moke, moked_lazy_loader
+# from .fixtures import collection_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
 from umongo.abstract import AbstractDal
-from umongo.registerer import default_registerer
+
+from .common import BaseTest
 
 
-class Student(Document):
-
+class BaseStudent(Document):
     name = fields.StrField(required=True)
     birthday = fields.DateTimeField()
     gpa = fields.FloatField()
 
     class Meta:
-        allow_inheritance = True
+        abstract = True
 
 
-class TestDocument:
+class Student(BaseStudent):
+    pass
+
+
+class EasyIdStudent(BaseStudent):
+    id = fields.IntField(attribute='_id')
+
+    class Meta:
+        collection_name = 'student'
+
+
+class TestDocument(BaseTest):
 
     def setup(self):
-        default_registerer.documents = {}
+        super().setup()
+        self.instance.register(BaseStudent)
+        self.Student = self.instance.register(Student)
+        self.EasyIdStudent = self.instance.register(EasyIdStudent)
 
     def test_repr(self):
         # I love readable stuff !
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
+        john = self.Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
         assert 'tests.test_document.Student' in repr(john)
         assert 'name' in repr(john)
         assert 'birthday' in repr(john)
         assert 'gpa' in repr(john)
 
     def test_create(self):
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
+        john = self.Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
         assert john.to_mongo() == {
             'name': 'John Doe',
             'birthday': datetime(1995, 12, 12),
@@ -45,7 +59,7 @@ class TestDocument:
             john.to_mongo(update=True)
 
     def test_from_mongo(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.to_mongo(update=True) is None
         assert john.created is True
@@ -56,7 +70,7 @@ class TestDocument:
         }
 
     def test_update(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         john.name = 'William Doe'
         john.birthday = datetime(1996, 12, 12)
@@ -66,7 +80,7 @@ class TestDocument:
         assert john.to_mongo(update=True) is None
 
     def test_dump(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.dump() == {
             'name': 'John Doe',
@@ -75,7 +89,7 @@ class TestDocument:
         }
 
     def test_fields_by_attr(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.name == 'John Doe'
         john.name = 'William Doe'
@@ -92,7 +106,7 @@ class TestDocument:
             del john.commit
 
     def test_fields_by_items(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john['name'] == 'John Doe'
         john['name'] = 'William Doe'
@@ -107,16 +121,17 @@ class TestDocument:
             del john['missing']
 
     def test_pk(self):
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.pk is None
         john_id = ObjectId("5672d47b1d41c88dcd37ef05")
-        john = Student.build_from_mongo(data={
+        john = self.Student.build_from_mongo(data={
             '_id': john_id, 'name': 'John Doe',
             'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.pk == john_id
 
         # Don't do that in real life !
+        @self.instance.register
         class CrazyNaming(Document):
             id = fields.IntField(attribute='in_mongo_id')
             _id = fields.IntField(attribute='in_mongo__id')
@@ -129,55 +144,42 @@ class TestDocument:
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
 
-    def test_dbref(self, collection_moke):
-
-        class ConfiguredStudent(Student):
-            id = fields.IntField(attribute='_id')
-
-            class Meta:
-                collection = collection_moke
-
-        student = ConfiguredStudent()
-
+    def test_dbref(self):
+        student = self.Student()
         with pytest.raises(exceptions.NotCreatedError):
             student.dbref
-
         # Fake document creation
-        student.id = 1
+        student.id = ObjectId('573b352e13adf20d13d01523')
         student.created = True
         student.clear_modified()
+        assert student.dbref == DBRef(collection='student',
+                                      id=ObjectId('573b352e13adf20d13d01523'))
 
-        assert student.dbref == DBRef(collection=collection_moke.name, id=1)
-
-    def test_equality(self, collection_moke):
-
-        class ConfiguredStudent(Student):
-            id = fields.IntField(attribute='_id')
-
-            class Meta:
-                collection = collection_moke
-
+    def test_equality(self):
         john_data = {
             '_id': 42, 'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0
         }
-        john = ConfiguredStudent.build_from_mongo(data=john_data)
-        john2 = ConfiguredStudent.build_from_mongo(data=john_data)
-        phillipe = ConfiguredStudent.build_from_mongo(data={
+        john = self.EasyIdStudent.build_from_mongo(data=john_data)
+        john2 = self.EasyIdStudent.build_from_mongo(data=john_data)
+        phillipe = self.EasyIdStudent.build_from_mongo(data={
             '_id': 3, 'name': 'Phillipe J. Fry', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
 
         assert john != phillipe
         assert john2 == john
-        assert john == DBRef(collection=collection_moke.name, id=john.pk)
+        assert john == DBRef(collection='student', id=john.pk)
 
         john.name = 'William Doe'
         assert john == john2
 
-        newbie = ConfiguredStudent(name='Newbie')
-        newbie2 = ConfiguredStudent(name='Newbie')
+        newbie = self.EasyIdStudent(name='Newbie')
+        newbie2 = self.EasyIdStudent(name='Newbie')
         assert newbie != newbie2
 
+    @pytest.mark.xfail
     def test_dal_connection(self, collection_moke):
+        # TODO check this...
 
+        @self.instance.register
         class ConfiguredStudent(Student):
             id = fields.IntField(attribute='_id')
 
@@ -205,19 +207,19 @@ class TestDocument:
             newbie.io_validate()
 
     def test_required_fields(self):
-
-        # Should be able to instanciate document without there required field
-        student = Student()
-        student = Student(gpa=2.8)
+        # Should be able to instanciate document without their required fields
+        student = self.Student()
+        student = self.Student(gpa=2.8)
         # Required check is done in `io_validate`, cannot go further without a dal
+        # TODO check this...
 
     def test_auto_id_field(self):
         my_id = ObjectId('5672d47b1d41c88dcd37ef05')
 
+        @self.instance.register
         class AutoId(Document):
 
             class Meta:
-                register = False
                 allow_inheritance = True
 
         assert 'id' in AutoId.schema.fields
@@ -231,6 +233,7 @@ class TestDocument:
         assert autoid.pk == autoid.id
         assert autoid.dump() == {'id': '5672d47b1d41c88dcd37ef05'}
 
+        @self.instance.register
         class AutoIdInheritance(AutoId):
             pass
 
@@ -239,48 +242,75 @@ class TestDocument:
     def test_custom_id_field(self):
         my_id = ObjectId('5672d47b1d41c88dcd37ef05')
 
+        @self.instance.register
         class CustomId(Document):
             int_id = fields.IntField(attribute='_id')
 
             class Meta:
-                register = False
                 allow_inheritance = True
 
         assert 'id' not in CustomId.schema.fields
         with pytest.raises(exceptions.ValidationError):
             CustomId(id=my_id)
         customid = CustomId(int_id=42)
+        with pytest.raises(exceptions.ValidationError):
+            customid.int_id = my_id
         assert customid.int_id == 42
         assert customid.pk == customid.int_id
         assert customid.to_mongo() == {'_id': 42}
 
+        @self.instance.register
         class CustomIdInheritance(CustomId):
             pass
 
-        assert 'id' in CustomIdInheritance.schema.fields
+        assert 'id' not in CustomIdInheritance.schema.fields
+
+    def test_inheritance_from_template(self):
+        # It is legal (and equivalent) to make a child inherit from
+        # a template instead of from an implementation
+
+        class ParentAsTemplate(Document):
+            class Meta:
+                allow_inheritance = True
+
+        Parent = self.instance.register(ParentAsTemplate)
+
+        assert Parent.template is ParentAsTemplate
+
+        @self.instance.register
+        class Child(ParentAsTemplate):
+            pass
+
+        assert Parent.opts.children == {'Child'}
 
 
-class TestConfig:
+class TestConfig(BaseTest):
 
     def test_missing_schema(self):
         # No exceptions should occur
 
-        class Doc1(Document):
+        @self.instance.register
+        class Doc(Document):
             pass
 
-        d = Doc1()
+        d = Doc()
         assert isinstance(d.schema, Schema)
 
     def test_base_config(self):
 
-        class Doc2(Document):
+        @self.instance.register
+        class Doc(Document):
             pass
 
-        assert Doc2.opts.collection is None
-        assert Doc2.opts.lazy_collection is None
-        assert Doc2.opts.dal is None
-        assert Doc2.opts.register_document is True
+        assert Doc.opts.collection_name == 'doc'
+        assert Doc.opts.abstract is False
+        assert Doc.opts.allow_inheritance is False
+        assert Doc.opts.instance is self.instance
+        assert Doc.opts.is_child is False
+        assert Doc.opts.indexes == []
+        assert Doc.opts.children == set()
 
+    @pytest.mark.xfail
     def test_lazy_collection(self, moked_lazy_loader, collection_moke):
 
         def lazy_factory():
@@ -299,6 +329,7 @@ class TestConfig:
         d = Doc3()
         assert d.collection is collection_moke
 
+    @pytest.mark.xfail
     def test_custom_dal_lazy_collection(self, request, moked_lazy_loader, collection_moke):
 
         dal_moke_2 = dal_moke(request, collection_moke)
@@ -316,108 +347,97 @@ class TestConfig:
         assert Doc3.opts.dal is dal_moke_2
         assert issubclass(Doc3, dal_moke_2)
 
-    def test_inheritance(self, request):
-        col1 = collection_moke(request, name='col1')
-        col2 = collection_moke(request, name='col2')
+    def test_inheritance(self):
 
+        @self.instance.register
         class AbsDoc(Document):
 
             class Meta:
-                register_document = False
                 abstract = True
 
-        class Doc4Child1(AbsDoc):
+        @self.instance.register
+        class DocChild1(AbsDoc):
 
             class Meta:
-                collection = col1
                 allow_inheritance = True
-                register_document = False
+                collection_name = 'col1'
 
-        class Doc4Child1Child(Doc4Child1):
+        @self.instance.register
+        class DocChild1Child(DocChild1):
             pass
 
-        class Doc4Child2(AbsDoc):
+        @self.instance.register
+        class DocChild2(AbsDoc):
 
             class Meta:
-                collection = col2
+                collection_name = 'col2'
 
-        assert Doc4Child1.opts.collection is col1
-        assert Doc4Child1Child.opts.collection is col1
-        assert Doc4Child1Child.opts.allow_inheritance is False
-        assert Doc4Child1.opts.register_document is False
-        assert Doc4Child2.opts.register_document is True
-        assert Doc4Child2.opts.collection == col2
-        assert Doc4Child2.opts.register_document is True
+        assert DocChild1.opts.collection_name is 'col1'
+        assert DocChild1Child.opts.collection_name is 'col1'
+        assert DocChild1Child.opts.allow_inheritance is False
+        assert DocChild2.opts.collection_name == 'col2'
 
-    def test_bad_inheritance(self, request):
+    def test_bad_inheritance(self):
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
             class BadAbstractDoc(Document):
                 class Meta:
                     allow_inheritance = False
                     abstract = True
         assert exc.value.args[0] == "Abstract document cannot disable inheritance"
 
+        @self.instance.register
         class NotParent(Document):
             pass
 
         assert not NotParent.opts.allow_inheritance
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
             class ImpossibleChildDoc(NotParent):
                 pass
         assert exc.value.args[0] == ("Document"
-            " <class 'tests.test_document.TestConfig.test_bad_inheritance.<locals>.NotParent'>"
+            " <class 'tests.test_document.NotParent'>"
             " doesn't allow inheritance")
 
+        @self.instance.register
         class NotAbstractParent(Document):
             class Meta:
                 allow_inheritance = True
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
             class ImpossibleChildDoc(NotAbstractParent):
                 class Meta:
                     abstract = True
         assert exc.value.args[0] == "Abstract document should have all it parents abstract"
 
-        col1 = collection_moke(request, name='col1')
-        col2 = collection_moke(request, name='col2')
-
+        @self.instance.register
         class ParentWithCol1(Document):
             class Meta:
                 allow_inheritance = True
-                collection = col1
+                collection_name = 'col1'
 
+        @self.instance.register
         class ParentWithCol2(Document):
             class Meta:
                 allow_inheritance = True
-                collection = col2
+                collection_name = 'col2'
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
+            class ImpossibleChildDoc(ParentWithCol1):
+                class Meta:
+                    collection_name = 'col42'
+        assert exc.value.args[0].startswith("Cannot redefine collection_name in a child, use abstract instead")
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
             class ImpossibleChildDoc(ParentWithCol1, ParentWithCol2):
                 pass
-        assert exc.value.args[0].startswith("collection cannot be defined multiple times")
+        assert exc.value.args[0].startswith("Cannot redefine collection_name in a child, use abstract instead")
 
-
-    def test_bad_config(self):
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-            class BadConf(Document):
-                class Meta:
-                    collection = object()
-                    lazy_collection = lambda: None
-        assert exc.value.args[0] == (
-            "Cannot define at the same time `collection` and `lazy_collection`")
-
-    def test_no_collection(self):
-
-        class Doc5(Document):
-            pass
-
-        with pytest.raises(exceptions.NoCollectionDefinedError):
-            Doc5.collection
-
-        with pytest.raises(exceptions.NoCollectionDefinedError):
-            Doc5().collection
-
+    @pytest.mark.xfail
     def test_bad_lazy_collection(self, dal_moke):
 
         # Bad `dal` attribute

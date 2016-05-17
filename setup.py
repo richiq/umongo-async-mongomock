@@ -21,12 +21,12 @@ requirements = [
 setup(
     name='umongo',
     version='0.7.8',
-    description="Small but efficient MongoDB ODM",
+    description="sync/async MongoDB ODM, yes.",
     long_description=readme + '\n\n' + history,
     author="Emmanuel Leblond",
     author_email='emmanuel.leblond@gmail.com',
     url='https://github.com/touilleMan/umongo',
-    packages=['umongo', 'umongo.dal'],
+    packages=['umongo', 'umongo.frameworks'],
     include_package_data=True,
     install_requires=requirements,
     extras_require={
