@@ -1,5 +1,6 @@
 from .exceptions import (BuilderNotDefinedError, NotRegisteredDocumentError,
                          AlreadyRegisteredDocumentError, NoDBDefinedError)
+from .document import DocumentImplementation
 
 
 class BaseInstance:
@@ -66,6 +67,9 @@ class BaseInstance:
                 Doc.find()
 
         """
+        if issubclass(doc_template, DocumentImplementation):
+            import pdb; pdb.set_trace()
+            doc_template = doc_template.opts.template
         doc_cls = self.builder.build_from_template(doc_template)
         if hasattr(self, doc_cls.__name__):
             raise AlreadyRegisteredDocumentError(

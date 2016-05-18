@@ -77,11 +77,12 @@ def _collect_indexes(nmspc, bases):
     return indexes
 
 
-def _build_document_opts(instance, name ,nmspc, bases):
+def _build_document_opts(instance, template, name ,nmspc, bases):
     kwargs = {}
     meta = nmspc.get('Meta')
     collection_name = getattr(meta, 'collection_name', None)
     kwargs['instance'] = instance
+    kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
     kwargs['base_schema_cls'] = getattr(meta, 'base_schema_cls', Schema)
@@ -90,7 +91,7 @@ def _build_document_opts(instance, name ,nmspc, bases):
 
     # Handle option inheritance and integrity checks
     for base in bases:
-        if not issubclass(base, DocumentImplementation):
+        if not issubclass(base, Document):
             continue
         popts = base.opts
         # Notify the parent of it newborn !
@@ -127,13 +128,12 @@ class BaseBuilder:
         self._templates_lookup = {Document: self.BASE_DOCUMENT_CLS}
 
     def _convert_bases(self, bases):
-        "Replace template parents by their implementation classes"
+        "Replace template parents by their implementation inside this instance"
         converted_bases = []
         for base in bases:
+            assert not issubclass(base, DocumentImplementation), \
+                'Document cannot inherit of implementations'
             if issubclass(base, Document):
-                # Replace the implementation by it template if needed
-                if hasattr(base, 'template'):
-                    base = base.template
                 if base not in self._templates_lookup:
                     raise NotRegisteredDocumentError('Unknown document `%s`' % base)
                 converted_bases.append(self._templates_lookup[base])
@@ -167,9 +167,8 @@ class BaseBuilder:
         assert issubclass(doc_template, Document)
         name = doc_template.__name__
         bases = self._convert_bases(doc_template.__bases__)
-        opts = _build_document_opts(self.instance, name, doc_template.__dict__, bases)
+        opts = _build_document_opts(self.instance, doc_template, name, doc_template.__dict__, bases)
         nmspc, schema_template_fields = _collect_fields(doc_template.__dict__)
-        nmspc['template'] = doc_template
         nmspc['opts'] = opts
 
         # Given the fields provided by the template are going to be

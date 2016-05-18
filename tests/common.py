@@ -1,7 +1,6 @@
 import pymongo
 from bson import ObjectId
 
-# from umongo.registerer import default_registerer
 from umongo.document import DocumentImplementation
 from umongo.instance import Instance
 from umongo.builder import BaseBuilder

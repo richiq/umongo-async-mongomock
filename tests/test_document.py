@@ -175,37 +175,6 @@ class TestDocument(BaseTest):
         newbie2 = self.EasyIdStudent(name='Newbie')
         assert newbie != newbie2
 
-    @pytest.mark.xfail
-    def test_dal_connection(self, collection_moke):
-        # TODO check this...
-
-        @self.instance.register
-        class ConfiguredStudent(Student):
-            id = fields.IntField(attribute='_id')
-
-            class Meta:
-                collection = collection_moke
-
-        newbie = ConfiguredStudent(name='Newbie')
-
-        def commiter(doc, io_validate_all=False):
-            doc.created = True
-
-        collection_moke.push_callback('commit', callback=commiter)
-        collection_moke.push_callback('reload')
-        collection_moke.push_callback('delete')
-        collection_moke.push_callback('find_one')
-        collection_moke.push_callback('find')
-        collection_moke.push_callback('io_validate')
-
-        with collection_moke:
-            newbie.commit()
-            newbie.reload()
-            newbie.delete()
-            newbie.find_one()
-            newbie.find()
-            newbie.io_validate()
-
     def test_required_fields(self):
         # Should be able to instanciate document without their required fields
         student = self.Student()
@@ -275,7 +244,7 @@ class TestDocument(BaseTest):
 
         Parent = self.instance.register(ParentAsTemplate)
 
-        assert Parent.template is ParentAsTemplate
+        assert Parent.opts.template is ParentAsTemplate
 
         @self.instance.register
         class Child(ParentAsTemplate):
@@ -283,6 +252,13 @@ class TestDocument(BaseTest):
 
         assert Parent.opts.children == {'Child'}
 
+    def test_instanciate_template(self):
+
+        class Doc(Document):
+            pass
+
+        with pytest.raises(AssertionError):
+            Doc()
 
 class TestConfig(BaseTest):
 
@@ -309,43 +285,6 @@ class TestConfig(BaseTest):
         assert Doc.opts.is_child is False
         assert Doc.opts.indexes == []
         assert Doc.opts.children == set()
-
-    @pytest.mark.xfail
-    def test_lazy_collection(self, moked_lazy_loader, collection_moke):
-
-        def lazy_factory():
-            return collection_moke
-
-        class Doc3(Document):
-
-            class Meta:
-                lazy_collection = moked_lazy_loader(lazy_factory)
-
-        assert Doc3.opts.collection is None
-        assert Doc3.opts.dal is Doc3.Meta.lazy_collection.dal
-        assert issubclass(Doc3, Doc3.Meta.lazy_collection.dal)
-        # Try to do the dereferencing
-        assert Doc3.collection is collection_moke
-        d = Doc3()
-        assert d.collection is collection_moke
-
-    @pytest.mark.xfail
-    def test_custom_dal_lazy_collection(self, request, moked_lazy_loader, collection_moke):
-
-        dal_moke_2 = dal_moke(request, collection_moke)
-
-        def lazy_factory():
-            return collection_moke
-
-        class Doc3(Document):
-
-            class Meta:
-                lazy_collection = moked_lazy_loader(lazy_factory)
-                dal = dal_moke_2
-                register_document = False
-
-        assert Doc3.opts.dal is dal_moke_2
-        assert issubclass(Doc3, dal_moke_2)
 
     def test_inheritance(self):
 
@@ -397,7 +336,7 @@ class TestConfig(BaseTest):
             class ImpossibleChildDoc(NotParent):
                 pass
         assert exc.value.args[0] == ("Document"
-            " <class 'tests.test_document.NotParent'>"
+            " <Document implementation class 'tests.test_document.NotParent'>"
             " doesn't allow inheritance")
 
         @self.instance.register
@@ -436,49 +375,3 @@ class TestConfig(BaseTest):
             class ImpossibleChildDoc(ParentWithCol1, ParentWithCol2):
                 pass
         assert exc.value.args[0].startswith("Cannot redefine collection_name in a child, use abstract instead")
-
-    @pytest.mark.xfail
-    def test_bad_lazy_collection(self, dal_moke):
-
-        # Bad `dal` attribute
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-
-            class Doc7(Document):
-
-                class Meta:
-                    lazy_collection = lambda: None
-
-                    class dal:
-                        pass
-        assert exc.value.args[0] == (
-            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
-
-        # Invalid lazy_collection's dal
-        LazyCollection = namedtuple('LazyCollection', ('dal', 'load'))
-
-        class BadDal:
-            pass
-
-        def load_collection():
-            pass
-
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-            class Doc8(Document):
-                class Meta:
-                    lazy_collection = LazyCollection(BadDal, load_collection)
-        assert exc.value.args[0] == (
-            "`dal` attribute must be a subclass of <class 'umongo.abstract.AbstractDal'>")
-
-        # Invalid lazy_collection's load
-        class GoodDal(AbstractDal):
-            @staticmethod
-            def io_validate_patch_schema(schema):
-                pass
-
-        class Doc9(Document):
-            class Meta:
-                lazy_collection = LazyCollection(GoodDal, load_collection)
-
-        with pytest.raises(exceptions.NoCollectionDefinedError) as exc:
-            Doc9.collection
-        assert exc.value.args[0] == "lazy_collection didn't returned a collection"

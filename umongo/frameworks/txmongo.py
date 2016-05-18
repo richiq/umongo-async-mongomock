@@ -17,6 +17,8 @@ class TxMongoDocument(DocumentImplementation):
 
     __slots__ = ()
 
+    opts = DocumentImplementation.opts
+
     @inlineCallbacks
     def reload(self):
         """

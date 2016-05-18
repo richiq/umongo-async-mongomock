@@ -59,6 +59,8 @@ class MotorAsyncIODocument(DocumentImplementation):
 
     __slots__ = ()
 
+    opts = DocumentImplementation.opts
+
     @asyncio.coroutine
     def reload(self):
         """

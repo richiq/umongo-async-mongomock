@@ -46,6 +46,8 @@ class PyMongoDocument(DocumentImplementation):
 
     __slots__ = ()
 
+    opts = DocumentImplementation.opts
+
     def reload(self):
         """
         Retrieve and replace document's data by the ones in database.

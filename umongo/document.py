@@ -25,6 +25,7 @@ class DocumentOpts:
     ==================== ====================== ===========
     attribute            configurable in Meta   description
     ==================== ====================== ===========
+    template             no                     Origine template of the Document
     instance             no                     Implementation's instance
     abstract             yes                    Document has no collection
                                                 and can only be inherited
@@ -42,6 +43,7 @@ class DocumentOpts:
     def __repr__(self):
         return ('<{ClassName}('
                 'instance={self.instance}, '
+                'template={self.template}, '
                 'abstract={self.abstract}, '
                 'allow_inheritance={self.allow_inheritance}, '
                 'collection_name={self.collection_name}, '
@@ -51,10 +53,11 @@ class DocumentOpts:
                 'children={self.children})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def __init__(self, instance, collection_name=None, abstract=False,
+    def __init__(self, instance, template, collection_name=None, abstract=False,
                  allow_inheritance=None, base_schema_cls=Schema, indexes=None,
                  is_child=False, children=None):
         self.instance = instance
+        self.template = template
         self.collection_name = collection_name if not abstract else None
         self.abstract = abstract
         self.allow_inheritance = abstract if allow_inheritance is None else allow_inheritance
@@ -68,6 +71,19 @@ class DocumentOpts:
 
 class MetaDocument(type):
 
+    def __new__(cls, name, bases, nmspc):
+        # opts is only defined of implementations
+        if 'opts' not in nmspc:
+            # If user has passed parent documents as implementation, we need
+            # to retrieve the original templates
+            cooked_bases = []
+            for base in bases:
+                if issubclass(base, Document) and not base.is_template:
+                    base = base.opts.template
+                cooked_bases.append(base)
+            bases = tuple(cooked_bases)
+        return type.__new__(cls, name, bases, nmspc)
+
     @property
     def collection(cls):
         if cls.opts.abstract:
@@ -75,6 +91,15 @@ class MetaDocument(type):
         if not cls.opts.instance.db:
             raise NoDBDefinedError('Instance must be initialized first')
         return cls.opts.instance.db[cls.opts.collection_name]
+
+    @property
+    def is_template(cls):
+        return 'opts' not in cls.__dict__
+
+    def __repr__(cls):
+        type = 'template' if cls.is_template else 'implementation'
+        return "<Document %s class '%s.%s'>" % (type, cls.__module__,
+                                                cls.__name__)
 
 
 class Document(metaclass=MetaDocument):
@@ -88,12 +113,9 @@ class Document(metaclass=MetaDocument):
 
     __slots__ = ('created', '_data')
 
-    opts = None
-    is_template = True
-
     def __init__(self, **kwargs):
-        assert not self.is_template, ('Cannot instantiate a template, '
-                                      'use instance.register result instead.')
+        assert not type(self).is_template, (
+            'Cannot instantiate a template, use instance.register result instead.')
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
@@ -241,5 +263,4 @@ class DocumentImplementation(Document):
     """
     __slots__ = ()
 
-    opts = DocumentOpts(None, abstract=True, allow_inheritance=True)
-    is_template = False
+    opts = DocumentOpts(None, Document, abstract=True, allow_inheritance=True)
