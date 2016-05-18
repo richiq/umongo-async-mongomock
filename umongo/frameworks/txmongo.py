@@ -15,6 +15,8 @@ from .tools import cook_find_filter
 
 class TxMongoDocument(DocumentImplementation):
 
+    __slots__ = ()
+
     @inlineCallbacks
     def reload(self):
         """

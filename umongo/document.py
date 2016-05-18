@@ -7,6 +7,37 @@ from .schema import Schema
 
 
 class DocumentOpts:
+    """
+    Configuration for a document.
+
+    Should be passed as a Meta class to the :class:`Document`
+
+    .. code-block:: python
+
+        @instance.register
+        class Doc(Document):
+            class Meta:
+                abstract = True
+
+        assert Doc.opts.abstract == True
+
+
+    ==================== ====================== ===========
+    attribute            configurable in Meta   description
+    ==================== ====================== ===========
+    instance             no                     Implementation's instance
+    abstract             yes                    Document has no collection
+                                                and can only be inherited
+    allow_inheritance    yes                    Allow the document to be subclassed
+    collection_name      yes                    Name of the collection to store
+                                                the document into
+    is_child             no                     Document inherit of a non-abstract document
+    base_schema_cls      yes                    Base Schema class to use
+    indexes              yes                    List of custom indexes
+    children             no                     List of Document inheriting this one
+    ==================== ====================== ===========
+
+    """
 
     def __repr__(self):
         return ('<{ClassName}('
@@ -48,31 +79,22 @@ class MetaDocument(type):
 
 class Document(metaclass=MetaDocument):
     """
-    This class is used to mark a document definition.
+    Define a class as a Document.
 
-    However
-    """
-
-    __slots__ = ()
-
-    @property
-    def collection(self):
-        """
-        Return the collection used by this document class
-        """
-        # Cannot implicitly access to the class's property
-        return type(self).collection
-
-
-class DocumentImplementation(Document):
-    """
+    .. note::
+        Base Document class generate a template which should be then
+        implemented by a :class:`umongo.Instance` before use.
     """
 
     __slots__ = ('created', '_data')
 
-    opts = DocumentOpts(None, abstract=True, allow_inheritance=True)
+    opts = None
+    is_template = True
 
     def __init__(self, **kwargs):
+        assert not self.is_template, ('Cannot instantiate a template, '
+                                      'use instance.register result instead.')
+        super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.created = False
@@ -94,6 +116,14 @@ class DocumentImplementation(Document):
         elif isinstance(other, Reference):
             return isinstance(self, other.document_cls) and self.pk == other.pk
         return NotImplemented
+
+    @property
+    def collection(self):
+        """
+        Return the collection used by this document class
+        """
+        # Cannot implicitly access to the class's property
+        return type(self).collection
 
     @property
     def pk(self):
@@ -190,8 +220,8 @@ class DocumentImplementation(Document):
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
-        if name in DocumentImplementation.__dict__:
-            DocumentImplementation.__dict__[name].__set__(self, value)
+        if name in Document.__dict__:
+            Document.__dict__[name].__set__(self, value)
         else:
             self._data.set(name, value, to_raise=AttributeError)
 
@@ -200,3 +230,16 @@ class DocumentImplementation(Document):
 
     def __delattr__(self, name):
         self._data.delete(name, to_raise=AttributeError)
+
+
+class DocumentImplementation(Document):
+    """
+    Represent a Document once it has been implemented by a :class:`umongo.builder.BaseBuilder`
+
+    This class should not be used directly, it should be inherited by
+    concrete implementations such as :class:`umongo.frameworks.pymongo.PyMongoDocument`
+    """
+    __slots__ = ()
+
+    opts = DocumentOpts(None, abstract=True, allow_inheritance=True)
+    is_template = False

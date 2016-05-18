@@ -57,6 +57,8 @@ class WrappedCursor(AsyncIOMotorCursor):
 
 class MotorAsyncIODocument(DocumentImplementation):
 
+    __slots__ = ()
+
     @asyncio.coroutine
     def reload(self):
         """

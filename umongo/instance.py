@@ -6,9 +6,7 @@ class BaseInstance:
     """
     Base class for instance.
 
-    Instances aims at collecting and implementing document templates.
-
-    .. code-block:: python
+    Instances aims at collecting and implementing document templates::
 
         # Doc is a template, cannot use it for the moment
         class Doc(Document):
@@ -59,9 +57,7 @@ class BaseInstance:
         .. note::
             This method can be used as a decorator. This is useful when you
             only have a single instance to work with to directly use the
-            class you defined:
-
-            .. code-block::
+            class you defined::
 
                 @instance.register
                 class Doc:
@@ -103,7 +99,7 @@ class LazyLoaderInstance(BaseInstance):
 
     .. note::
         This class should not be used directly but instead overloaded.
-        See :class:`umongo.frameworks.PyMongoInstance` for example.
+        See :class:`umongo.PyMongoInstance` for example.
 
     """
 
@@ -118,5 +114,12 @@ class LazyLoaderInstance(BaseInstance):
         return self._db
 
     def init(self, db):
+        """
+        Set the database to use whithin this instance.
+
+        .. note::
+            The document registered in the instance cannot be used
+            before this function is called.
+        """
         assert self.BUILDER_CLS.is_compatible_with(db)
         self._db = db

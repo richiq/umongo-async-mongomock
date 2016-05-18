@@ -93,16 +93,27 @@ class TestInheritance(BaseTest):
 
     def test_non_document_inheritance(self):
 
-        class NotDoc:
+        class NotDoc1:
             @staticmethod
-            def my_func():
+            def my_func1():
+                return 24
+
+        class NotDoc2:
+            @staticmethod
+            def my_func2():
                 return 42
 
         @self.instance.register
-        class Doc(Document, NotDoc):
+        class Doc(NotDoc1, Document, NotDoc2):
             a = fields.StrField()
 
-        assert issubclass(Doc, NotDoc)
-        assert isinstance(Doc(), NotDoc)
-        assert Doc.my_func() == 42
-        assert Doc(a='test').my_func() == 42
+        assert issubclass(Doc, NotDoc1)
+        assert issubclass(Doc, NotDoc2)
+        assert isinstance(Doc(), NotDoc1)
+        assert isinstance(Doc(), NotDoc2)
+        assert Doc.my_func1() == 24
+        assert Doc.my_func2() == 42
+        doc = Doc(a='test')
+        assert doc.my_func1() == 24
+        assert doc.my_func2() == 42
+        assert doc.a == 'test'

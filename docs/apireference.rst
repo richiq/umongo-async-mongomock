@@ -6,6 +6,24 @@ API Reference
 
 .. module:: umongo
 
+Instance
+========
+
+.. autoclass:: umongo.Instance
+    :inherited-members:
+
+.. autoclass:: umongo.instance.LazyLoaderInstance
+    :inherited-members:
+
+.. autoclass:: umongo.PyMongoInstance
+
+.. autoclass:: umongo.TxMongoInstance
+
+.. autoclass:: umongo.MotorAsyncIOInstance
+
+.. autoclass:: umongo.MongoMockInstance
+
+
 Document
 ========
 
@@ -13,6 +31,8 @@ Document
     :inherited-members:
 
 .. autoclass:: umongo.document.DocumentOpts
+
+.. autoclass:: umongo.DocumentImplementation
 
 .. _api_fields:
 

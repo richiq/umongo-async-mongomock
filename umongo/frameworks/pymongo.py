@@ -44,6 +44,8 @@ class WrappedCursor(Cursor):
 
 class PyMongoDocument(DocumentImplementation):
 
+    __slots__ = ()
+
     def reload(self):
         """
         Retrieve and replace document's data by the ones in database.

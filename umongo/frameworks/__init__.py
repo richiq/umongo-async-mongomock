@@ -55,30 +55,45 @@ find_builder_from_db = default_builder_registerer.find_from_db
 # Define lazy loader instances for each builder
 
 class PyMongoInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for pymongo
+    """
     def __init__(self, *args, **kwargs):
         self.BUILDER_CLS = import_module('umongo.frameworks.pymongo').PyMongoBuilder
         super().__init__(*args, **kwargs)
 
 
 class TxMongoInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
+    """
     def __init__(self, *args, **kwargs):
         self.BUILDER_CLS = import_module('umongo.frameworks.txmongo').TxMongoBuilder
         super().__init__(*args, **kwargs)
 
 
 class MotorAsyncIOInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for motor-asyncio
+    """
     def __init__(self, *args, **kwargs):
         self.BUILDER_CLS = import_module('umongo.frameworks.motor_asyncio').MotorAsyncIOBuilder
         super().__init__(*args, **kwargs)
 
 
 class MotorTornadoInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for motor-tornado
+    """
     def __init__(self, *args, **kwargs):
         self.BUILDER_CLS = import_module('umongo.frameworks.motor_tornado').MotorTornadoBuilder
         super().__init__(*args, **kwargs)
 
 
 class MongoMockInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
+    """
     def __init__(self, *args, **kwargs):
         self.BUILDER_CLS = import_module('umongo.frameworks.mongomock').MongoMockBuilder
         super().__init__(*args, **kwargs)
