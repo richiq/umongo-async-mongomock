@@ -12,7 +12,7 @@ Document
 .. autoclass:: umongo.Document
     :inherited-members:
 
-.. autoclass:: umongo.meta.DocumentOpts
+.. autoclass:: umongo.document.DocumentOpts
 
 .. _api_fields:
 

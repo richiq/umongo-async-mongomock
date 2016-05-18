@@ -43,10 +43,12 @@ Quick example
 
     from datetime import datetime
     from pymongo import MongoClient
-    from umongo import Document, fields, validate
+    from umongo import Instance, Document, fields, validate
 
     db = MongoClient().test
+    instance = Instance(db)
 
+    @instance.register
     class User(Document):
         email = fields.EmailField(required=True, unique=True)
         birthday = fields.DateTimeField(validate=validate.Range(min=datetime(1900, 1, 1)))

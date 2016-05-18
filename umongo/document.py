@@ -48,8 +48,12 @@ class MetaDocument(type):
 
 class Document(metaclass=MetaDocument):
     """
-    Dummy class to spot document templates
+    This class is used to mark a document definition.
+
+    However
     """
+
+    __slots__ = ()
 
     @property
     def collection(self):
@@ -61,6 +65,9 @@ class Document(metaclass=MetaDocument):
 
 
 class DocumentImplementation(Document):
+    """
+    """
+
     __slots__ = ('created', '_data')
 
     opts = DocumentOpts(None, abstract=True, allow_inheritance=True)

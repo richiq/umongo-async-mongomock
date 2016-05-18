@@ -52,10 +52,13 @@ First let's define a document with few :mod:`umongo.fields`
 
 .. code-block:: python
 
+    @instance.register
     class Dog(Document):
         name = fields.StrField(required=True)
         breed = fields.StrField(missing="Mongrel")
         birthday = fields.DateTimeField()
+
+First don't pay attention to the ``@instance.register``, this is for later ;-)
 
 Note that each field can be customized with special attributes like
 ``required`` (which is pretty self-explanatory) or ``missing`` (if the
@@ -76,7 +79,8 @@ Now we can play back and forth between OO and client worlds
     {'birthday': '2001-09-22T00:00:00+00:00', 'breed': 'Labrador', 'name': 'Odwin'}
 
 .. note:: You can access the data as attribute (i.g. ``odwin.name``) or as item (i.g. ``odwin['name']``).
-          The latter is specially useful if one of your field name clash with :class:`umongo.Document`'s attributes.
+          The latter is specially useful if one of your field name clashes
+          with :class:`umongo.Document`'s attributes.
 
 OO world enforces model validation for each modification
 
@@ -95,6 +99,7 @@ Object orientation means inheritance, of course you can do that
 
 .. code-block:: python
 
+    @instance.register
     class Animal(Document):
         breed = fields.StrField()
         birthday = fields.DateTimeField()
@@ -103,9 +108,11 @@ Object orientation means inheritance, of course you can do that
             allow_inheritance = True
             abstract = True
 
+    @instance.register
     class Dog(Animal):
         name = fields.StrField(required=True)
 
+    @instance.register
     class Duck(Animal):
         pass
 
@@ -129,7 +136,6 @@ Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
     AbstractDocumentError: Cannot instantiate an abstract Document
 
 
-
 Mongo world
 -----------
 
@@ -147,6 +153,7 @@ Well it our case the data haven't change much (if any !). Let's consider somethi
 
 .. code-block:: python
 
+    @instance.register
     class Dog(Document):
         name = fields.StrField(attribute='_id')
 
@@ -163,15 +170,16 @@ readability we keep it as ``name`` inside our document.
     >>> Dog.build_from_mongo({'_id': 'Scruffy'}).dump()
     {'name': 'Scruffy'}
 
-.. note:: If no field refers to ``_id`` in the document, a dump-only field ``id``
-          will be automatically added:
+.. note::
+    If no field refers to ``_id`` in the document, a dump-only field ``id``
+    will be automatically added:
 
-          .. code-block:: python
+    .. code-block:: python
 
-            >>> class AutoId(Document):
-            ...     pass
-            >>> AutoId.find_one()
-            <object Document __main__.AutoId({'_id': ObjectId('5714b9a61d41c8feb01222c8')})>
+        >>> class AutoId(Document):
+        ...     pass
+        >>> AutoId.find_one()
+        <object Document __main__.AutoId({'_id': ObjectId('5714b9a61d41c8feb01222c8')})>
 
 But what about if we what to retrieve the ``_id`` field whatever it name is ?
 No problem, use the ``pk`` property:
@@ -185,34 +193,7 @@ No problem, use the ``pk`` property:
 
 Ok so now we got our data in a way we can insert it to MongoDB through our favorite driver.
 In fact most of the time you don't need to use ``to_mongo`` directly.
-Instead you should configure (remember the ``Meta`` class ?) you document class
-with a collection to insert into:
-
-.. code-block:: python
-
-    >>> db = pymongo.MongoClient().umongo_test
-    >>> class Dog(Document):
-    ...     name = fields.StrField(attribute='_id')
-    ...     breed = fields.StrField(missing="Mongrel")
-    ...     class Meta:
-    ...         collection = db.dog
-
-.. note::
-    Often in more complex applications you won't have your driver ready
-    when defining your documents. In such case you should use instead ``lazy_collection``
-    with a lazy loader depending of your driver:
-
-    .. code-block:: python
-
-          def get_collection():
-              return txmongo.MongoConnection()['lazy_db_doc']
-
-          class LazyDBDoc(Document):
-              class Meta:
-                  lazy_collection = txmongo_lazy_loader(get_collection)
-
-
-This way you will be able to ``commit`` your changes into the database:
+Instead you can directly ask the document to ``commit`` it changes in database:
 
 .. code-block:: python
 
@@ -230,21 +211,115 @@ You get also access to Object Oriented version of your driver methods:
     Dog.find_one({'_id': 'Odwin'})
     <object Document __main__.Dog({'_id': 'Odwin', 'breed': 'Labrador'})>
 
+You can also access the collection used by the document at any time
+(for example to do more low-level operations):
+
+.. code-block:: python
+
+    >>> Dog.collection
+    Collection(Database(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'test'), 'dog')
+
+.. note::
+    By default the collection to use is the snake-cased version of the
+    document's name (e.g. ``Dog`` => ``dog``, ``HTTPError`` => ``http_error``).
+    However, you can configure (remember the ``Meta`` class ?) the collection
+    to use for a document with the ``collection_name`` meta attribute.
+
 
 Multi-driver support
 ====================
 
+Remember the ``@insance.register`` ? That's now it kicks in !
+
+The idea behind μMongo is to allow the same document definition to be used
+with diferent mongoDB drivers.
+
+To achieve that the user only define document templates. Templates which
+will be implemented when registered by an instance:
+
+.. figure:: instance_template.png
+   :alt: instance/template mechanism in μMongo
+
+Basically an instance provide three informations:
+
+- the mongoDB driver type to use
+- the database to use
+- the documents implemented
+
+This way a template can be implemented by multiple instances, this can be
+useful for example to:
+
+- store the same documents in differents databases
+- define an instance with async driver for a web server and a
+  sync one for shell interactions
+
+But enough of theory, let's create our first instance !
+
+.. code-block:: python
+
+    >>> from umongo import Instance
+    >>> import pymongo
+    >>> con = pymongo.MongoClient()
+    >>> instance1 = Instance(con.db1)
+    >>> instance2 = Instance(con.db2)
+
+Now we can define & register documents, then work with them:
+
+.. code-block:: python
+
+    >>> class Dog(Document):
+    ...     pass
+    >>> DogInstance1Impl = instance1.register(Dog)
+    >>> DogInstance2Impl = instance2.register(Dog)
+    >>> DogInstance1Impl().commit()
+    >>> DogInstance1Impl.find().count()
+    1
+    >>> DogInstance2Impl.find().count()
+    0
+
+.. note::
+    You can use ``instance.register`` as a decoration to replace the template
+    by it implementation. This is expecially useful if you only use a single
+    instance:
+
+    .. code-block:: python
+
+        >>> @instance.register
+        ... class Dog(Document):
+        ...     pass
+        >>> Dog().commit()
+
+.. note::
+    Often in more complex applications you won't have your driver ready
+    when defining your documents. In such case you should use a special
+    instance with lazy db loader depending of your driver:
+
+    .. code-block:: python
+
+        >>> from umongo import TxMongoInstance
+        >>> instance = TxMongoInstance()
+        >>> @instance.register
+        ... class Dog(Document):
+        ...     pass
+        >>> # Don't try to use Dog (except for inheritance) now !
+        >>> db = create_txmongo_database()
+        >>> instance.init(db)
+        >>> # Now instance is ready
+        >>> yield Dog().commit()
+
+
 For the moment all examples have been done with pymongo, but thing are
-pretty the same with other drivers, just change the ``collection`` and you're good to go:
+pretty the same with other drivers, just configure the ``instance``
+and you're good to go:
 
 .. code-block:: python
 
     >>> db = motor.motor_asyncio.AsyncIOMotorClient()['umongo_test']
-    >>> class Dog(Document):
+    >>> instance = Instance(db)
+    >>> @instance.register
+    ... class Dog(Document):
     ...     name = fields.StrField(attribute='_id')
     ...     breed = fields.StrField(missing="Mongrel")
-    ...     class Meta:
-    ...         collection = db.dog
 
 Of course the way you'll be calling methods will differ:
 
@@ -253,10 +328,6 @@ Of course the way you'll be calling methods will differ:
     >>> odwin = Dog(name='Odwin', breed='Labrador')
     >>> yield from odwin.commit()
     >>> dogs = yield from Dog.find()
-
-.. note:: Be careful not to mix documents with different collection type
-          defined or unexpected thing could happened (and furthermore there
-          is no practical reason to do that !)
 
 
 Inheritance
@@ -267,11 +338,13 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
 
 .. code-block:: python
 
-    >>> class Parent(Document):
+    >>> @instance.register
+    ... class Parent(Document):
     ...     unique_in_parent = fields.IntField(unique=True)
     ...     class Meta:
     ...         allow_inheritance = True
-    >>> class Child(Parent):
+    >>> @instance.register
+    ... class Child(Parent):
     ...     unique_in_child = fields.StrField(unique=True)
     >>> child = Child(unique_in_parent=42, unique_in_child='forty_two')
     >>> child.cls
@@ -282,6 +355,8 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
     {'unique_in_parent': 22}
     >>> [x.document for x in Parent.opts.indexes]
     [{'key': SON([('unique_in_parent', 1)]), 'name': 'unique_in_parent_1', 'sparse': True, 'unique': True}]
+
+.. warning:: You must ``register`` a parent before it child inside a given instance.
 
 
 Indexes
@@ -295,7 +370,8 @@ In fields, ``unique`` attribute is implicitly handled by an index:
 
 .. code-block:: python
 
-    >>> class WithUniqueEmail(Document):
+    >>> @instance.register
+    ... class WithUniqueEmail(Document):
     ...     email = fields.StrField(unique=True)
     >>> [x.document for x in WithUniqueEmail.opts.indexes]
     [{'key': SON([('email', 1)]), 'name': 'email_1', 'sparse': True, 'unique': True}]
@@ -311,7 +387,8 @@ For more custom indexes, the ``Meta.indexes`` attribute should be used:
 
 .. code-block:: python
 
-    >>> class CustomIndexes(Document):
+    >>> @instance.register
+    ... class CustomIndexes(Document):
     ...     name = fields.StrField()
     ...     age = fields.Int()
     ...     class Meta:
@@ -347,11 +424,13 @@ compounded with the ``_cls``
 
 .. code-block:: python
 
-      >>> class Parent(Document):
+      >>> @instance.register
+      ... class Parent(Document):
       ...     unique_in_parent = fields.IntField(unique=True)
       ...     class Meta:
       ...         allow_inheritance = True
-      >>> class Child(Parent):
+      >>> @instance.register
+      ... class Child(Parent):
       ...     unique_in_child = fields.StrField(unique=True)
       ...     class Meta:
       ...         indexes = ['#unique_in_parent']
@@ -411,6 +490,7 @@ Fields can be configured with special validators through the ``validate`` attrib
 
     from umongo import Document, fields, validate
 
+    @instance.register
     class Employee(Document):
         name = fields.StrField(validate=[validate.Length(max=120), validate.Regexp(r"[a-zA-Z ']+")])
         age = fields.IntField(validate=validate.Range(min=18, max=65))
@@ -439,15 +519,14 @@ wrapped by :class:`asyncio.coroutine` and called with ``yield from``.
 
     from motor.motor_asyncio import AsyncIOMotorClient
     db = AsyncIOMotorClient().test
+    instance = Instance(db)
 
-
+    @instance.register
     class TrendyActivity(Document):
         name = fields.StrField()
 
-        class Meta:
-            collection = db.trendy_activity
 
-
+    @instance.register
     class Job(Document):
 
         def _is_dream_job(field, value):
@@ -456,8 +535,6 @@ wrapped by :class:`asyncio.coroutine` and called with ``yield from``.
 
         activity = fields.StrField(io_validate=_is_dream_job)
 
-        class Meta:
-            collection = db.job
 
     @asyncio.coroutine
     def run():

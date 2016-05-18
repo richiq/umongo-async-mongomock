@@ -1,5 +1,7 @@
-Application example
-===================
+Flask application example
+=========================
+
+`Flask <http://flask.pocoo.org/>`_ works great with μMongo !
 
 This application show a simple API usecase. It uses:
 

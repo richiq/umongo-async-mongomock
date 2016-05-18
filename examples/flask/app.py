@@ -4,11 +4,12 @@ from flask.ext.babel import Babel, gettext
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Document, fields, ValidationError, set_gettext
+from umongo import Instance, Document, fields, ValidationError, set_gettext
 
 
 app = Flask(__name__)
 db = MongoClient().demo_umongo
+instance = Instance(db)
 babel = Babel(app)
 set_gettext(gettext)
 
@@ -25,6 +26,7 @@ def get_locale():
     return request.accept_languages.best_match(LANGUAGES.keys())
 
 
+@instance.register
 class User(Document):
     nick = fields.StrField(required=True, unique=True)
     firstname = fields.StrField()
@@ -98,7 +100,7 @@ def root():
 def _to_objid(data):
     try:
         return ObjectId(data)
-    except ValueError:
+    except Exception:
         return None
 
 
@@ -128,6 +130,20 @@ def update_user(nick_or_id):
         resp.status_code = 400
         return resp
     return jsonify(dump_user_no_pass(user))
+
+
+@app.route('/users/<nick_or_id>', methods=['DELETE'])
+def delete_user(nick_or_id):
+    user = User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
+    if not user:
+        abort(404)
+    try:
+        user.delete()
+    except ValidationError as ve:
+        resp = jsonify(message=ve.args[0])
+        resp.status_code = 400
+        return resp
+    return 'Ok'
 
 
 @app.route('/users/<nick_or_id>/password', methods=['PUT'])

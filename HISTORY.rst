@@ -8,7 +8,10 @@ dev
 * Heavy rewrite of the project, lost of API breakage
 * Documents are now first defined as templates then implemented
   inside an Instance
+* DALs has been replaced by frameworks implementations of Builder
+* Fix `__getitem__` for Pymongo.Cursor wrapper
 * Add `conditions` argument to Document.commit
+* Add `count` method to txmongo
 
 0.7.8 (2016-4-28)
 -----------------

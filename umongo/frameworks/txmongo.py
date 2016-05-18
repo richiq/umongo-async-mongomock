@@ -146,6 +146,15 @@ class TxMongoDocument(DocumentImplementation):
             return [cls.build_from_mongo(e, use_cls=True) for e in raw_cursor_or_list]
 
     @classmethod
+    def count(cls, spec=None, **kwargs):
+        """
+        Get the number of documents in this collection.
+        """
+        # In txmongo, `spec` is for filtering and `filter` is for sorting
+        spec = cook_find_filter(cls, spec)
+        return cls.collection.count(spec=spec, **kwargs)
+
+    @classmethod
     @inlineCallbacks
     def ensure_indexes(cls):
         """

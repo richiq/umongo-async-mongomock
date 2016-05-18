@@ -144,6 +144,9 @@ class TestPymongo(BaseDBTest):
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
+        cursor = Student.find(limit=5, skip=6)
+        assert isinstance(cursor[0], Student)
+
         # Make sure this kind of notation doesn't create new cursor
         cursor = Student.find()
         cursor_limit = cursor.limit(5)

@@ -1,12 +1,14 @@
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Document, fields, ValidationError, validate
+from umongo import Instance, Document, fields, ValidationError, validate
 
 
 db = MongoClient().demo_umongo
+instance = Instance(db)
 
 
+@instance.register
 class Vehicle(Document):
     model = fields.StrField(required=True)
 
@@ -15,10 +17,12 @@ class Vehicle(Document):
         allow_inheritance = True
 
 
+@instance.register
 class Car(Vehicle):
     doors = fields.IntField(validate=validate.OneOf([3, 5]))
 
 
+@instance.register
 class MotorBike(Vehicle):
     engine_type = fields.StrField(validate=validate.OneOf(['2-stroke', '4-stroke']))
 
