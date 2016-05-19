@@ -9,11 +9,13 @@ API Reference
 Instance
 ========
 
-.. autoclass:: umongo.Instance
+.. autoclass:: umongo.instance.BaseInstance
     :inherited-members:
 
+.. autoclass:: umongo.Instance
+
 .. autoclass:: umongo.instance.LazyLoaderInstance
-    :inherited-members:
+  :members:
 
 .. autoclass:: umongo.PyMongoInstance
 
@@ -23,16 +25,17 @@ Instance
 
 .. autoclass:: umongo.MongoMockInstance
 
-
 Document
 ========
 
 .. autoclass:: umongo.Document
-    :inherited-members:
+
+.. autoclass:: umongo.document.DocumentTemplate
 
 .. autoclass:: umongo.document.DocumentOpts
 
-.. autoclass:: umongo.DocumentImplementation
+.. autoclass:: umongo.document.DocumentImplementation
+    :inherited-members:
 
 .. _api_fields:
 

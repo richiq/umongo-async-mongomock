@@ -6,6 +6,41 @@ from .exceptions import (NotCreatedError, NoDBDefinedError,
 from .schema import Schema
 
 
+class MetaDocumentTemplate(type):
+
+    def __new__(cls, name, bases, nmspc):
+        # If user has passed parent documents as implementation, we need
+        # to retrieve the original templates
+        cooked_bases = []
+        for base in bases:
+            if issubclass(base, DocumentImplementation):
+                base = base.opts.template
+            cooked_bases.append(base)
+        return type.__new__(cls, name, tuple(cooked_bases), nmspc)
+
+    def __repr__(cls):
+        return "<Document template class '%s.%s'>" % (cls.__module__, cls.__name__)
+
+
+class DocumentTemplate(metaclass=MetaDocumentTemplate):
+    """
+    Base class to define a umongo Document.
+
+    .. note::
+        Once defined, this class should be implemented by a
+        :class:`umongo.builder.BaseBuilder` to be able to use it
+        inside an :class:`umongo.instance.BaseInstance`.
+    """
+
+    def __init__(self, **kwargs):
+        raise NotImplementedError('Cannot instantiate a template, '
+                                  'use instance.register result instead.')
+
+
+Document = DocumentTemplate
+"Shortcut to DocumentTemplate"
+
+
 class DocumentOpts:
     """
     Configuration for a document.
@@ -69,20 +104,17 @@ class DocumentOpts:
             raise DocumentDefinitionError("Abstract document cannot disable inheritance")
 
 
-class MetaDocument(type):
+class MetaDocumentImplementation(MetaDocumentTemplate):
 
     def __new__(cls, name, bases, nmspc):
-        # opts is only defined of implementations
+        # `opts` is only defined by the builder to implement a template.
+        # If this field is missing, the user is subclassing an implementation
+        # to define a new type of document, thus we should construct a template class.
         if 'opts' not in nmspc:
-            # If user has passed parent documents as implementation, we need
-            # to retrieve the original templates
-            cooked_bases = []
-            for base in bases:
-                if issubclass(base, Document) and not base.is_template:
-                    base = base.opts.template
-                cooked_bases.append(base)
-            bases = tuple(cooked_bases)
-        return type.__new__(cls, name, bases, nmspc)
+            # Inheritance to avoid metaclass conflicts
+            return super().__new__(cls, name, bases, nmspc)
+        else:
+            return type.__new__(cls, name, bases, nmspc)
 
     @property
     def collection(cls):
@@ -95,34 +127,23 @@ class MetaDocument(type):
             raise NoDBDefinedError('Instance must be initialized first')
         return cls.opts.instance.db[cls.opts.collection_name]
 
-    @property
-    def is_template(cls):
-        """
-        Return True if the document class is a template
-        """
-        return 'opts' not in cls.__dict__
-
     def __repr__(cls):
-        type = 'template' if cls.is_template else 'implementation'
-        return "<Document %s class '%s.%s'>" % (type, cls.__module__,
-                                                cls.__name__)
+        return "<Document implementation class '%s.%s'>" % (cls.__module__, cls.__name__)
 
 
-class Document(metaclass=MetaDocument):
+class DocumentImplementation(metaclass=MetaDocumentImplementation):
     """
-    Define a class as a Document.
+    Represent a Document once it has been implemented inside a
+    :class:`umongo.instance.BaseInstance`.
 
-    .. note::
-        Base Document class generate a template which should be then
-        implemented by a :class:`umongo.Instance` before use.
+    .. note:: This class should not be used directly, it should be inherited by
+              concrete implementations such as :class:`umongo.frameworks.pymongo.PyMongoDocument`
     """
 
     __slots__ = ('is_created', '_data')
+    opts = DocumentOpts(None, DocumentTemplate, abstract=True, allow_inheritance=True)
 
     def __init__(self, **kwargs):
-        assert not type(self).is_template, (
-            'Cannot instantiate a template, use instance.register result instead.')
-        super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
@@ -248,8 +269,8 @@ class Document(metaclass=MetaDocument):
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
-        if name in Document.__dict__:
-            Document.__dict__[name].__set__(self, value)
+        if name in DocumentImplementation.__dict__:
+            DocumentImplementation.__dict__[name].__set__(self, value)
         else:
             self._data.set(name, value, to_raise=AttributeError)
 
@@ -258,15 +279,3 @@ class Document(metaclass=MetaDocument):
 
     def __delattr__(self, name):
         self._data.delete(name, to_raise=AttributeError)
-
-
-class DocumentImplementation(Document):
-    """
-    Represent a Document once it has been implemented by a :class:`umongo.builder.BaseBuilder`
-
-    This class should not be used directly, it should be inherited by
-    concrete implementations such as :class:`umongo.frameworks.pymongo.PyMongoDocument`
-    """
-    __slots__ = ()
-
-    opts = DocumentOpts(None, Document, abstract=True, allow_inheritance=True)

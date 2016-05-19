@@ -7,10 +7,10 @@ class BaseInstance:
     """
     Base class for instance.
 
-    Instances aims at collecting and implementing document templates::
+    Instances aims at collecting and implementing :class:`umongo.document.DocumentTemplate`::
 
         # Doc is a template, cannot use it for the moment
-        class Doc(Document):
+        class Doc(DocumentTemplate):
             pass
 
         instance = Instance()
@@ -34,11 +34,12 @@ class BaseInstance:
 
     @property
     def db(self):
+        """Database used within the instance."""
         raise NotImplementedError
 
     def retrieve_document(self, name_or_template):
         """
-        Retrieve a :class:`umongo.DocumentImplementation` registered into this
+        Retrieve a :class:`umongo.document.DocumentImplementation` registered into this
         instance from it name or it template class (i.e. :class:`umongo.Document`).
         """
         if not isinstance(name_or_template, str):
@@ -50,10 +51,10 @@ class BaseInstance:
 
     def register(self, doc_template):
         """
-        Generate a :class:`umongo.DocumentImplementation` from the given
+        Generate a :class:`umongo.document.DocumentImplementation` from the given
         :class:`umongo.Document` template for this instance.
 
-        :return: The :class:`umongo.DocumentImplementation` generated
+        :return: The :class:`umongo.document.DocumentImplementation` generated
 
         .. note::
             This method can be used as a decorator. This is useful when you
@@ -61,12 +62,13 @@ class BaseInstance:
             class you defined::
 
                 @instance.register
-                class Doc:
+                class MyDoc(Document):
                     pass
 
-                Doc.find()
+                MyDoc.find()
 
         """
+        # Retrieve the template if another implementation has been provided instead
         if issubclass(doc_template, DocumentImplementation):
             doc_template = doc_template.opts.template
         doc_cls = self.builder.build_from_template(doc_template)
@@ -98,7 +100,7 @@ class Instance(BaseInstance):
 
 class LazyLoaderInstance(BaseInstance):
     """
-    Base class for instance with database lazy loading
+    Base class for instance with database lazy loading.
 
     .. note::
         This class should not be used directly but instead overloaded.
@@ -121,7 +123,7 @@ class LazyLoaderInstance(BaseInstance):
         Set the database to use whithin this instance.
 
         .. note::
-            The document registered in the instance cannot be used
+            The documents registered in the instance cannot be used
             before this function is called.
         """
         assert self.BUILDER_CLS.is_compatible_with(db)

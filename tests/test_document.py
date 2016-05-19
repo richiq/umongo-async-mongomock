@@ -253,7 +253,7 @@ class TestDocument(BaseTest):
         class Doc(Document):
             pass
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(NotImplementedError):
             Doc()
 
 

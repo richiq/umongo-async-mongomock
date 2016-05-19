@@ -2,7 +2,7 @@ import re
 from copy import copy
 from marshmallow.fields import Field
 
-from .document import Document, DocumentOpts, DocumentImplementation
+from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
 from .schema import Schema, on_need_add_id_field, add_child_field
 from .indexes import parse_index
@@ -90,7 +90,7 @@ def _build_document_opts(instance, template, name, nmspc, bases):
 
     # Handle option inheritance and integrity checks
     for base in bases:
-        if not issubclass(base, Document):
+        if not issubclass(base, DocumentImplementation):
             continue
         popts = base.opts
         # Notify the parent of it newborn !
@@ -118,13 +118,21 @@ def _build_document_opts(instance, template, name, nmspc, bases):
 
 
 class BaseBuilder:
+    """
+    A builder connect a :class:`umongo.document.DocumentTemplate` with an
+    :class:`umongo.instance.BaseInstance` by generating a
+    :class:`umongo.document.DocumentImplementation`.
+
+    .. note:: This class should not be used directly, it should be inherited by
+              concrete implementations such as :class:`umongo.frameworks.pymongo.PyMongoBuilder`
+    """
 
     BASE_DOCUMENT_CLS = None
 
     def __init__(self, instance):
         assert self.BASE_DOCUMENT_CLS
         self.instance = instance
-        self._templates_lookup = {Document: self.BASE_DOCUMENT_CLS}
+        self._templates_lookup = {DocumentTemplate: self.BASE_DOCUMENT_CLS}
 
     def _convert_bases(self, bases):
         "Replace template parents by their implementation inside this instance"
@@ -132,9 +140,9 @@ class BaseBuilder:
         for base in bases:
             assert not issubclass(base, DocumentImplementation), \
                 'Document cannot inherit of implementations'
-            if issubclass(base, Document):
+            if issubclass(base, DocumentTemplate):
                 if base not in self._templates_lookup:
-                    raise NotRegisteredDocumentError('Unknown document `%s`' % base)
+                    raise NotRegisteredDocumentError('Unknown document `%r`' % base)
                 converted_bases.append(self._templates_lookup[base])
             else:
                 converted_bases.append(base)
@@ -163,7 +171,11 @@ class BaseBuilder:
         return type('%sSchema' % doc_template.__name__, schema_bases, schema_nmspc)
 
     def build_from_template(self, doc_template):
-        assert issubclass(doc_template, Document)
+        """
+        Generate a :class:`umongo.document.DocumentImplementation` for this
+        instance from the given :class:`umongo.document.DocumentTemplate`.
+        """
+        assert issubclass(doc_template, DocumentTemplate)
         name = doc_template.__name__
         bases = self._convert_bases(doc_template.__bases__)
         opts = _build_document_opts(self.instance, doc_template, name, doc_template.__dict__, bases)

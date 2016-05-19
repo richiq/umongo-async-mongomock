@@ -218,6 +218,9 @@ class ReferenceField(ObjectIdField):
         super().__init__(*args, **kwargs)
         self.reference_cls = reference_cls
         self._document_cls = document_cls
+        # Avoid importing multiple times
+        from .document import DocumentImplementation
+        self._document_implementation_cls = DocumentImplementation
 
     @property
     def document_cls(self):
@@ -231,7 +234,6 @@ class ReferenceField(ObjectIdField):
     def _deserialize(self, value, attr, data):
         if value is None:
             return None
-        from .document import Document
         if isinstance(value, DBRef):
             if self._document_cls.collection.name != value.collection:
                 raise ValidationError(_("DBRef must be on collection `{collection}`.").format(
@@ -249,7 +251,7 @@ class ReferenceField(ObjectIdField):
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
             value = value.pk
-        elif isinstance(value, Document):
+        elif isinstance(value, self._document_implementation_cls):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
         value = super()._deserialize(value, attr, data)
@@ -273,6 +275,9 @@ class GenericReferenceField(BaseField):
     def __init__(self, *args, reference_cls=Reference, **kwargs):
         super().__init__(*args, **kwargs)
         self.reference_cls = reference_cls
+        # Avoid importing multiple times
+        from .document import DocumentImplementation
+        self._document_implementation_cls = DocumentImplementation
 
     def _serialize(self, value, attr, obj):
         return {'id': str(value.pk), 'cls': value.document_cls.__name__}
@@ -280,12 +285,11 @@ class GenericReferenceField(BaseField):
     def _deserialize(self, value, attr, data):
         if value is None:
             return None
-        from .document import Document
         if isinstance(value, Reference):
             if type(value) is not self.reference_cls:
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
-        elif isinstance(value, Document):
+        elif isinstance(value, self._document_implementation_cls):
             if not value.is_created:
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
