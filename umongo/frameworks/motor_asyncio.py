@@ -69,7 +69,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
         doesn't exist in database.
         """
-        if not self.created:
+        if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.find_one(self.pk)
         if ret is None:
@@ -91,9 +91,9 @@ class MotorAsyncIODocument(DocumentImplementation):
             conditions are not satisfied.
         """
         yield from self.io_validate(validate_all=io_validate_all)
-        payload = self._data.to_mongo(update=self.created)
+        payload = self._data.to_mongo(update=self.is_created)
         try:
-            if self.created:
+            if self.is_created:
                 if payload:
                     query = conditions or {}
                     query['_id'] = self._data.get_by_mongo_name('_id')
@@ -106,7 +106,7 @@ class MotorAsyncIODocument(DocumentImplementation):
                 ret = yield from self.collection.insert(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret)
-                self.created = True
+                self.is_created = True
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -141,16 +141,16 @@ class MotorAsyncIODocument(DocumentImplementation):
         Remove the document from database.
 
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
-        is not created (i.e. ``doc.created`` is False)
+        is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
         """
-        if not self.created:
+        if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.remove({'_id': self.pk})
         if ret.get('ok') != 1 or ret.get('n') != 1:
             raise DeleteError(ret)
-        self.created = False
+        self.is_created = False
         return ret
 
     def io_validate(self, validate_all=False):

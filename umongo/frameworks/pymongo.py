@@ -55,7 +55,7 @@ class PyMongoDocument(DocumentImplementation):
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
         doesn't exist in database.
         """
-        if not self.created:
+        if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.find_one(self.pk)
         if ret is None:
@@ -76,9 +76,9 @@ class PyMongoDocument(DocumentImplementation):
             conditions are not satisfied.
         """
         self.io_validate(validate_all=io_validate_all)
-        payload = self._data.to_mongo(update=self.created)
+        payload = self._data.to_mongo(update=self.is_created)
         try:
-            if self.created:
+            if self.is_created:
                 if payload:
                     query = conditions or {}
                     query['_id'] = self._data.get_by_mongo_name('_id')
@@ -91,7 +91,7 @@ class PyMongoDocument(DocumentImplementation):
                 ret = self.collection.insert_one(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret.inserted_id)
-                self.created = True
+                self.is_created = True
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -117,16 +117,16 @@ class PyMongoDocument(DocumentImplementation):
         Remove the document from database.
 
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
-        is not created (i.e. ``doc.created`` is False)
+        is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
         """
-        if not self.created:
+        if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
-        self.created = False
+        self.is_created = False
 
     def io_validate(self, validate_all=False):
         """

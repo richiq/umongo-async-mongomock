@@ -1,5 +1,4 @@
 import pymongo
-from bson import ObjectId
 
 from umongo.document import DocumentImplementation
 from umongo.instance import Instance

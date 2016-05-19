@@ -2,8 +2,13 @@
 History
 =======
 
-dev
----
+0.8.1 (2016-05.19)
+------------------
+
+* Replace ``Document.created`` by ``is_created`` (see #14)
+
+0.8.0 (2016-05-18)
+------------------
 
 * Heavy rewrite of the project, lost of API breakage
 * Documents are now first defined as templates then implemented

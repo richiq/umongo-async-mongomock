@@ -3,9 +3,8 @@ from copy import copy
 from marshmallow.fields import Field
 
 from .document import Document, DocumentOpts, DocumentImplementation
-from .exceptions import NoCollectionDefinedError, DocumentDefinitionError, NotRegisteredDocumentError
-from .schema import Schema, EmbeddedSchema, on_need_add_id_field, add_child_field
-from .abstract import AbstractDal
+from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
+from .schema import Schema, on_need_add_id_field, add_child_field
 from .indexes import parse_index
 
 
@@ -77,7 +76,7 @@ def _collect_indexes(nmspc, bases):
     return indexes
 
 
-def _build_document_opts(instance, template, name ,nmspc, bases):
+def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs = {}
     meta = nmspc.get('Meta')
     collection_name = getattr(meta, 'collection_name', None)

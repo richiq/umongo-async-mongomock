@@ -1,12 +1,8 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
-from functools import namedtuple
-
-# from .fixtures import collection_moke, dal_moke, moked_lazy_loader
 
 from umongo import Document, Schema, fields, exceptions
-from umongo.abstract import AbstractDal
 
 from .common import BaseTest
 
@@ -54,7 +50,7 @@ class TestDocument(BaseTest):
             'birthday': datetime(1995, 12, 12),
             'gpa': 3.0
         }
-        assert john.created is False
+        assert john.is_created is False
         with pytest.raises(exceptions.NotCreatedError):
             john.to_mongo(update=True)
 
@@ -62,7 +58,7 @@ class TestDocument(BaseTest):
         john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.to_mongo(update=True) is None
-        assert john.created is True
+        assert john.is_created is True
         assert john.to_mongo() == {
             'name': 'John Doe',
             'birthday': datetime(1995, 12, 12),
@@ -140,7 +136,7 @@ class TestDocument(BaseTest):
 
         crazy = CrazyNaming.build_from_mongo(data={
             '_id': 1, 'in_mongo__id': 2, 'in_mongo__id': 3, 'pk': 4
-            })
+        })
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
 
@@ -150,7 +146,7 @@ class TestDocument(BaseTest):
             student.dbref
         # Fake document creation
         student.id = ObjectId('573b352e13adf20d13d01523')
-        student.created = True
+        student.is_created = True
         student.clear_modified()
         assert student.dbref == DBRef(collection='student',
                                       id=ObjectId('573b352e13adf20d13d01523'))
@@ -177,8 +173,8 @@ class TestDocument(BaseTest):
 
     def test_required_fields(self):
         # Should be able to instanciate document without their required fields
-        student = self.Student()
-        student = self.Student(gpa=2.8)
+        self.Student()
+        self.Student(gpa=2.8)
         # Required check is done in `io_validate`, cannot go further without a dal
         # TODO check this...
 
@@ -260,6 +256,7 @@ class TestDocument(BaseTest):
         with pytest.raises(AssertionError):
             Doc()
 
+
 class TestConfig(BaseTest):
 
     def test_missing_schema(self):
@@ -333,7 +330,7 @@ class TestConfig(BaseTest):
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
-            class ImpossibleChildDoc(NotParent):
+            class ImpossibleChildDoc1(NotParent):
                 pass
         assert exc.value.args[0] == ("Document"
             " <Document implementation class 'tests.test_document.NotParent'>"
@@ -346,7 +343,7 @@ class TestConfig(BaseTest):
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
-            class ImpossibleChildDoc(NotAbstractParent):
+            class ImpossibleChildDoc2(NotAbstractParent):
                 class Meta:
                     abstract = True
         assert exc.value.args[0] == "Abstract document should have all it parents abstract"
@@ -365,13 +362,15 @@ class TestConfig(BaseTest):
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
-            class ImpossibleChildDoc(ParentWithCol1):
+            class ImpossibleChildDoc3(ParentWithCol1):
                 class Meta:
                     collection_name = 'col42'
-        assert exc.value.args[0].startswith("Cannot redefine collection_name in a child, use abstract instead")
+        assert exc.value.args[0].startswith(
+            "Cannot redefine collection_name in a child, use abstract instead")
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
-            class ImpossibleChildDoc(ParentWithCol1, ParentWithCol2):
+            class ImpossibleChildDoc4(ParentWithCol1, ParentWithCol2):
                 pass
-        assert exc.value.args[0].startswith("Cannot redefine collection_name in a child, use abstract instead")
+        assert exc.value.args[0].startswith(
+            "Cannot redefine collection_name in a child, use abstract instead")

@@ -90,7 +90,7 @@ class TestFields(BaseTest):
 
         class MySchema(EmbeddedSchema):
             a = fields.DateTimeField()
- 
+
         s = MySchema(strict=True)
         data, _ = s.load({'a': datetime(2016, 8, 6)})
         assert data['a'] == datetime(2016, 8, 6)
@@ -169,8 +169,8 @@ class TestFields(BaseTest):
         assert embedded.to_mongo(update=True) == {'$set': {'in_mongo_a': 3}}
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 3, 'b': 2}}}
         embedded.clear_modified()
-        assert embedded.to_mongo(update=True) == None
-        assert d.to_mongo(update=True) == None
+        assert embedded.to_mongo(update=True) is None
+        assert d.to_mongo(update=True) is None
 
         del embedded.a
         assert embedded.to_mongo(update=True) == {'$unset': ['in_mongo_a']}
@@ -194,7 +194,7 @@ class TestFields(BaseTest):
         embedded_doc['a'] = 1
         assert embedded_doc.a == embedded_doc['a'] == 1
         del embedded_doc['a']
-        assert embedded_doc.a == embedded_doc['a'] == None
+        assert embedded_doc.a is embedded_doc['a'] is None
 
         # Test repr readability
         repr_d = repr(MyEmbeddedDocument(a=1, b=2))
@@ -204,7 +204,7 @@ class TestFields(BaseTest):
 
     @pytest.mark.xfail()
     def test_embedded_document_required(self):
-
+        # TODO
         class MyEmbeddedDocument(EmbeddedDocument):
             required_field = fields.IntField(required=True)
             optional_field = fields.IntField()
@@ -212,13 +212,16 @@ class TestFields(BaseTest):
         class MySchema(Schema):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
 
-        with pytest.raises(ValidationError):
-            MyEmbeddedDocument()
+        # with pytest.raises(ValidationError):
+        #     MyEmbeddedDocument()
 
-        with pytest.raises(ValidationError):
-            MyEmbeddedDocument(optional_field=1)
-        embedded = MyEmbeddedDocument(optional_field=1, required_field=2)
+        # with pytest.raises(ValidationError):
+        #     MyEmbeddedDocument(optional_field=1)
+
+        # embedded = MyEmbeddedDocument(optional_field=1, required_field=2)
+        embedded = MyEmbeddedDocument()
         d = DataProxy(MySchema())
+        d.set('embedded', embedded)
 
     def test_list(self):
 
@@ -450,7 +453,8 @@ class TestFields(BaseTest):
         assert d.dump() == {'gref': {'id': "5672d47b1d41c88dcd37ef05", 'cls': 'ToRef2'}}
         d.get('gref').document_cls == ToRef2
         d.set('gref', doc1)
-        assert d.to_mongo(update=True) == {'$set': {'in_mongo_gref': {'_id': doc1.pk, '_cls': 'ToRef1'}}}
+        assert d.to_mongo(update=True) == {
+            '$set': {'in_mongo_gref': {'_id': doc1.pk, '_cls': 'ToRef1'}}}
         assert d.get('gref') == ref1
         d.set('gref', ref1)
         assert d.get('gref') == ref1
@@ -462,15 +466,15 @@ class TestFields(BaseTest):
 
         # Test invalid references
         for v in [
-                {'id': ObjectId()},  # missing _cls
-                {'cls': ToRef1.__name__},  # missing _id
-                {'id': ObjectId(), 'cls': 'dummy!'},  # invalid _cls
-                {'_id': ObjectId(), '_cls': ToRef1.__name__},  # bad field names
-                {'id': ObjectId(), 'cls': ToRef1.__name__, 'e': '?'},  # too much fields
-                ObjectId("5672d47b1d41c88dcd37ef05"),  # missing cls info
-                42,  # Are you kidding ?
-                '',  # Please stop...
-                True  # I'm outa of that !
-                ]:
-            with pytest.raises(ValidationError) as exc:
+            {'id': ObjectId()},  # missing _cls
+            {'cls': ToRef1.__name__},  # missing _id
+            {'id': ObjectId(), 'cls': 'dummy!'},  # invalid _cls
+            {'_id': ObjectId(), '_cls': ToRef1.__name__},  # bad field names
+            {'id': ObjectId(), 'cls': ToRef1.__name__, 'e': '?'},  # too much fields
+            ObjectId("5672d47b1d41c88dcd37ef05"),  # missing cls info
+            42,  # Are you kidding ?
+            '',  # Please stop...
+            True  # I'm outa of that !
+        ]:
+            with pytest.raises(ValidationError):
                 d.set('gref', v)

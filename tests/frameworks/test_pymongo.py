@@ -1,11 +1,9 @@
 import pytest
 from datetime import datetime
-from functools import namedtuple
 from bson import ObjectId
 from pymongo import MongoClient
 
 from ..common import BaseDBTest, get_pymongo_version, TEST_DB
-from ..test_indexes import assert_indexes
 from ..fixtures import classroom_model, instance
 
 from umongo import (Document, fields, exceptions, Reference, Instance,
@@ -78,7 +76,7 @@ class TestPymongo(BaseDBTest):
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
         john.commit()
-        assert john.to_mongo(update=True) == None
+        assert john.to_mongo(update=True) is None
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
         # Update without changing anything
@@ -104,18 +102,18 @@ class TestPymongo(BaseDBTest):
         john.commit()
         assert Student.collection.find().count() == 1
         john.delete()
-        assert not john.created
+        assert not john.is_created
         assert Student.collection.find().count() == 0
         with pytest.raises(exceptions.NotCreatedError):
-           john.delete()
+            john.delete()
         # Can re-commit the document in database
         john.commit()
-        assert john.created
+        assert john.is_created
         assert Student.collection.find().count() == 1
         # Finally try to delete a doc no longer in database
         Student.find_one(john.id).delete()
         with pytest.raises(exceptions.DeleteError):
-           john.delete()
+            john.delete()
 
     def test_reload(self, classroom_model):
         Student = classroom_model.Student

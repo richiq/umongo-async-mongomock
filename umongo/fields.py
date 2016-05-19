@@ -245,7 +245,7 @@ class ReferenceField(ObjectIdField):
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
         elif isinstance(value, self.document_cls):
-            if not value.created:
+            if not value.is_created:
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
             value = value.pk
@@ -286,7 +286,7 @@ class GenericReferenceField(BaseField):
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
         elif isinstance(value, Document):
-            if not value.created:
+            if not value.is_created:
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
             return self.reference_cls(value.__class__, value.pk)

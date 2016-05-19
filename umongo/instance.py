@@ -1,5 +1,5 @@
-from .exceptions import (BuilderNotDefinedError, NotRegisteredDocumentError,
-                         AlreadyRegisteredDocumentError, NoDBDefinedError)
+from .exceptions import (
+    NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
 from .document import DocumentImplementation
 
 
@@ -68,7 +68,6 @@ class BaseInstance:
 
         """
         if issubclass(doc_template, DocumentImplementation):
-            import pdb; pdb.set_trace()
             doc_template = doc_template.opts.template
         doc_cls = self.builder.build_from_template(doc_template)
         if hasattr(self, doc_cls.__name__):
@@ -87,7 +86,7 @@ class Instance(BaseInstance):
 
     def __init__(self, db, doc_templates=()):
         self._db = db
-        # Dynamically find a builder compatible with the db 
+        # Dynamically find a builder compatible with the db
         from .frameworks import find_builder_from_db
         self.BUILDER_CLS = find_builder_from_db(db)
         super().__init__(doc_templates=doc_templates)
@@ -95,7 +94,7 @@ class Instance(BaseInstance):
     @property
     def db(self):
         return self._db
-    
+
 
 class LazyLoaderInstance(BaseInstance):
     """

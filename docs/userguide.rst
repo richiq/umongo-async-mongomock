@@ -125,9 +125,9 @@ Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
 .. code-block:: python
 
     >>> Animal.opts
-    <DocumentOpts(abstract=True, allow_inheritance=True, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], custom_indexes=[], collection=None, lazy_collection=None, dal=None, children={'Duck', 'Dog'})>
+    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Animal'>, abstract=True, allow_inheritance=True, collection_name=None, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], children={'Duck', 'Dog'})>
     >>> Dog.opts
-    <DocumentOpts(abstract=False, allow_inheritance=False, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], custom_indexes=[], collection=None, lazy_collection=None, dal=None, children={})>
+    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Dog'>, abstract=False, allow_inheritance=False, collection_name=dog, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], children=set())>
     >>> class NotAllowedSubDog(Dog): pass
     [...]
     DocumentDefinitionError: Document <class '__main__.Dog'> doesn't allow inheritance
@@ -269,7 +269,15 @@ Now we can define & register documents, then work with them:
 
     >>> class Dog(Document):
     ...     pass
+    >>> Dog  # mark as a template in repr
+    <Document template class '__main__.Dog'>
+    >>> Dog.is_template
+    True
     >>> DogInstance1Impl = instance1.register(Dog)
+    >>> DogInstance1Impl  # mark as an implementation in repr
+    <Document implementation class '__main__.Dog'>
+    >>> DogInstance1Impl.is_template
+    False
     >>> DogInstance2Impl = instance2.register(Dog)
     >>> DogInstance1Impl().commit()
     >>> DogInstance1Impl.find().count()

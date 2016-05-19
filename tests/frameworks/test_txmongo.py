@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId
-from functools import namedtuple, wraps
+from functools import wraps
 
 from ..common import BaseDBTest, get_pymongo_version, TEST_DB, con
 from ..fixtures import classroom_model, instance
@@ -15,6 +15,7 @@ try:
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
     dep_error = 'Missing txmongo module'
+
     # Given the test function are generator, we must wrap them into a dummy
     # function that pytest can skip
     def skip_wrapper(f):
@@ -96,7 +97,7 @@ class TestTxMongo(BaseDBTest):
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
         yield john.commit()
-        assert john.to_mongo(update=True) == None
+        assert john.to_mongo(update=True) is None
         john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
         # Update without changing anything
@@ -124,20 +125,20 @@ class TestTxMongo(BaseDBTest):
         students = yield Student.find()
         assert len(students) == 1
         yield john.delete()
-        assert not john.created
+        assert not john.is_created
         students = yield Student.find()
         assert len(students) == 0
         with pytest.raises(exceptions.NotCreatedError):
-           yield john.delete()
+            yield john.delete()
         # Can re-commit the document in database
         yield john.commit()
-        assert john.created
+        assert john.is_created
         students = yield Student.find()
         assert len(students) == 1
         # Finally try to delete a doc no longer in database
         yield students[0].delete()
         with pytest.raises(exceptions.DeleteError):
-           yield john.delete()
+            yield john.delete()
 
     @pytest_inlineCallbacks
     def test_reload(self, classroom_model):

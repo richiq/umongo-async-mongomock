@@ -6,7 +6,7 @@ from klein import Klein
 from bson import ObjectId
 from txmongo import MongoConnection
 
-from umongo import Instance, Document, fields, ValidationError, set_gettext
+from umongo import Instance, Document, fields, ValidationError
 
 
 app = Klein()
@@ -67,31 +67,38 @@ def populate_db():
     for data in [
         {
             'nick': 'mze', 'lastname': 'Mao', 'firstname': 'Zedong',
-            'birthday': datetime.datetime(1893, 12, 26), 'password': 'Serve the people'
+            'birthday': datetime.datetime(1893, 12, 26),
+            'password': 'Serve the people'
         },
         {
             'nick': 'lsh', 'lastname': 'Liu', 'firstname': 'Shaoqi',
-            'birthday': datetime.datetime(1898, 11, 24), 'password': 'Dare to think, dare to act'
+            'birthday': datetime.datetime(1898, 11, 24),
+            'password': 'Dare to think, dare to act'
         },
         {
             'nick': 'lxia', 'lastname': 'Li', 'firstname': 'Xiannian',
-            'birthday': datetime.datetime(1909, 6, 23), 'password': 'To rebel is justified'
+            'birthday': datetime.datetime(1909, 6, 23),
+            'password': 'To rebel is justified'
         },
         {
             'nick': 'ysh', 'lastname': 'Yang', 'firstname': 'Shangkun',
-            'birthday': datetime.datetime(1907, 7, 5), 'password': 'Smash the gang of four'
+            'birthday': datetime.datetime(1907, 7, 5),
+            'password': 'Smash the gang of four'
         },
         {
             'nick': 'jze', 'lastname': 'Jiang', 'firstname': 'Zemin',
-            'birthday': datetime.datetime(1926, 8, 17), 'password': 'Seek truth from facts'
+            'birthday': datetime.datetime(1926, 8, 17),
+            'password': 'Seek truth from facts'
         },
         {
             'nick': 'huji', 'lastname': 'Hu', 'firstname': 'Jintao',
-            'birthday': datetime.datetime(1942, 12, 21), 'password': 'It is good to have just 1 child'
+            'birthday': datetime.datetime(1942, 12, 21),
+            'password': 'It is good to have just 1 child'
         },
         {
             'nick': 'xiji', 'lastname': 'Xi', 'firstname': 'Jinping',
-            'birthday': datetime.datetime(1953, 6, 15), 'password': 'Achieve the 4 modernisations'
+            'birthday': datetime.datetime(1953, 6, 15),
+            'password': 'Achieve the 4 modernisations'
         }
     ]:
         yield User(**data).commit()

@@ -2,8 +2,9 @@ import pytest
 from bson import ObjectId
 
 from umongo import (Document, fields, AlreadyRegisteredDocumentError,
-                    NotRegisteredDocumentError, BuilderNotDefinedError, NoDBDefinedError)
+                    NotRegisteredDocumentError, NoDBDefinedError)
 from umongo.instance import Instance, LazyLoaderInstance
+from umongo.document import DocumentImplementation
 
 from .common import MokedDB, MokedBuilder
 from .fixtures import instance
@@ -21,7 +22,8 @@ class TestInstance:
         class Doc(Document):
             pass
 
-        instance.register(Doc)
+        doc_instance = instance.register(Doc)
+        assert issubclass(doc_instance, DocumentImplementation)
         with pytest.raises(AlreadyRegisteredDocumentError):
             instance.register(Doc)
 
@@ -43,6 +45,19 @@ class TestInstance:
 
         instance1.register(Doc)
         instance2.register(Doc)
+
+    def test_register_other_implementation(self, db):
+        instance1 = Instance(db)
+        instance2 = Instance(db)
+
+        class Doc(Document):
+            pass
+
+        doc_instance1_cls = instance1.register(Doc)
+        doc_instance2_cls = instance2.register(doc_instance1_cls)
+        assert issubclass(doc_instance2_cls, DocumentImplementation)
+        with pytest.raises(AlreadyRegisteredDocumentError):
+            instance2.register(Doc)
 
     def test_parent_not_registered(self, instance):
         class Parent(Document):

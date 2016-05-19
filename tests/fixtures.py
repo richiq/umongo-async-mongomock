@@ -1,10 +1,7 @@
 import pytest
 from functools import namedtuple
-from collections import deque
-from bson import ObjectId
 
-from umongo import Document, Schema, fields
-from umongo.abstract import AbstractDal
+from umongo import Document, fields
 from umongo.instance import Instance
 
 
@@ -36,8 +33,3 @@ def classroom_model(instance):
             allow_inheritance = True
 
     return namedtuple('Mapping', ('Teacher', 'Course', 'Student'))(Teacher, Course, Student)
-
-
-# @pytest.fixture
-# def moked_lazy_loader(dal_moke):
-#     return lazy_loader_factory(lambda: dal_moke)

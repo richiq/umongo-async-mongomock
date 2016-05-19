@@ -5,7 +5,7 @@ from .exceptions import ValidationError
 from .i18n import gettext as _
 
 
-__all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject', 'AbstractDal')
+__all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
 
 
 class BaseSchema(MaSchema):
@@ -182,79 +182,3 @@ class BaseDataObject:
 
     def dump(self):
         return self
-
-
-class AbstractDal:
-
-    @staticmethod
-    def is_compatible_with(collection):
-        raise NotImplementedError
-
-    def reload(self):
-        """
-        Retrieve and replace document's data by the ones in database.
-
-        Raises :class:`umongo.exceptions.NotCreatedError` if the document
-        doesn't exist in database.
-        """
-        raise NotImplementedError
-
-    def commit(self, io_validate_all=False, conditions=None):
-        """
-        Commit the document in database.
-        If the document doesn't already exist it will be inserted, otherwise
-        it will be updated.
-
-        :param io_validate_all:
-        :param conditions: only perform commit if matching record in db
-            satisfies condition(s) (e.g. version number).
-            Raises :class:`umongo.exceptions.UpdateError` if the
-            conditions are not satisfied.
-        """
-        raise NotImplementedError
-
-    def delete(self):
-        """
-        Remove the document from database.
-
-        Raises :class:`umongo.exceptions.NotCreatedError` if the document
-        is not created (i.e. ``doc.created`` is False)
-        Raises :class:`umongo.exceptions.DeleteError` if the document
-        doesn't exist in database.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def find_one(cls, *args, **kwargs):
-        """
-        Find a single document in database.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def find(cls, *args, **kwargs):
-        """
-        Find a list document in database.
-
-        Returns a cursor that provide Documents.
-        """
-        raise NotImplementedError
-
-    def io_validate(self, validate_all=False):
-        """
-        Run the io_validators of the document's fields.
-
-        :param validate_all: If False only run the io_validators of the
-            fields that have been modified.
-        """
-        raise NotImplementedError
-
-    def ensure_indexes(cls):
-        """
-        Check&create if needed the Document's indexes in database
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def io_validate_patch_schema(schema):
-        raise NotImplementedError

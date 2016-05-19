@@ -86,6 +86,9 @@ class MetaDocument(type):
 
     @property
     def collection(cls):
+        """
+        Return the collection used by this document class
+        """
         if cls.opts.abstract:
             raise NoDBDefinedError('Abstract document has no collection')
         if not cls.opts.instance.db:
@@ -94,6 +97,9 @@ class MetaDocument(type):
 
     @property
     def is_template(cls):
+        """
+        Return True if the document class is a template
+        """
         return 'opts' not in cls.__dict__
 
     def __repr__(cls):
@@ -111,7 +117,7 @@ class Document(metaclass=MetaDocument):
         implemented by a :class:`umongo.Instance` before use.
     """
 
-    __slots__ = ('created', '_data')
+    __slots__ = ('is_created', '_data')
 
     def __init__(self, **kwargs):
         assert not type(self).is_template, (
@@ -119,8 +125,8 @@ class Document(metaclass=MetaDocument):
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
-        self.created = False
-        "Return True if the document has been commited to database"  # created's docstring
+        self.is_created = False
+        "Return True if the document has been commited to database"  # is_created's docstring
         self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
 
     def __repr__(self):
@@ -153,7 +159,7 @@ class Document(metaclass=MetaDocument):
         Return the document's primary key (i.e. ``_id`` in mongo notation) or
         None if not available yet
 
-        .. warning:: Use ``created`` field instead to test if the document
+        .. warning:: Use ``is_created`` field instead to test if the document
                      has already been commited to database given ``_id``
                      field could be generated before insertion
         """
@@ -164,7 +170,7 @@ class Document(metaclass=MetaDocument):
         """
         Return a pymongo DBRef instance related to the document
         """
-        if not self.created:
+        if not self.is_created:
             raise NotCreatedError('Must create the document before'
                                   ' having access to DBRef')
         return DBRef(collection=self.collection.name, id=self.pk)
@@ -193,7 +199,7 @@ class Document(metaclass=MetaDocument):
         """
         # TODO: handle partial
         self._data.from_mongo(data, partial=partial)
-        self.created = True
+        self.is_created = True
 
     def to_mongo(self, update=False):
         """
@@ -202,7 +208,7 @@ class Document(metaclass=MetaDocument):
         :param update: if True the return dict should be used as an
                        update payload instead of containing the entire document
         """
-        if update and not self.created:
+        if update and not self.is_created:
             raise NotCreatedError('Must create the document before'
                                   ' using update')
         return self._data.to_mongo(update=update)

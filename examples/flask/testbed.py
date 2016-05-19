@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import requests
-from datetime import datetime
 
 
 def test_list(total):

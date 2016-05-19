@@ -1,7 +1,6 @@
 import pytest
 import asyncio
 from datetime import datetime
-from functools import namedtuple
 from bson import ObjectId
 
 # Check if the required dependancies are met to run this driver's tests
@@ -92,7 +91,7 @@ class TestMotorAsyncio(BaseDBTest):
             john.name = 'William Doe'
             assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
             yield from john.commit()
-            assert john.to_mongo(update=True) == None
+            assert john.to_mongo(update=True) is None
             john2 = yield from Student.find_one(john.id)
             assert john2._data == john._data
             # Update without changing anything
@@ -124,18 +123,18 @@ class TestMotorAsyncio(BaseDBTest):
             assert (yield from Student.find().count()) == 1
             ret = yield from john.remove()
             assert ret == {'ok': 1, 'n': 1}
-            assert not john.created
+            assert not john.is_created
             assert (yield from Student.find().count()) == 0
             with pytest.raises(exceptions.NotCreatedError):
-               yield from john.remove()
+                yield from john.remove()
             # Can re-commit the document in database
             yield from john.commit()
-            assert john.created
+            assert john.is_created
             assert (yield from Student.find().count()) == 1
             # Finally try to remove a doc no longer in database
             yield from (yield from Student.find_one(john.id)).remove()
             with pytest.raises(exceptions.DeleteError):
-               yield from john.remove()
+                yield from john.remove()
 
         loop.run_until_complete(do_test())
 

@@ -21,7 +21,7 @@ class TestInheritance(BaseTest):
             first_name = fields.StrField()
 
         assert 'cls' in Child.schema.fields
-        cls_field = Child.schema.fields['cls']
+        Child.schema.fields['cls']
         assert not hasattr(Parent(), 'cls')
         assert Child().cls == 'Child'
 
@@ -39,18 +39,18 @@ class TestInheritance(BaseTest):
                 allow_inheritance = True
                 collection_name = 'parent_col'
 
-        assert Parent.opts.abstract == False
-        assert Parent.opts.allow_inheritance == True
+        assert Parent.opts.abstract is False
+        assert Parent.opts.allow_inheritance is True
 
         @self.instance.register
         class Child(Parent):
             first_name = fields.StrField()
 
-        assert Child.opts.abstract == False
-        assert Child.opts.allow_inheritance == False
+        assert Child.opts.abstract is False
+        assert Child.opts.allow_inheritance is False
         assert Child.opts.collection_name == 'parent_col'
         assert Child.collection.name == 'parent_col'
-        child = Child(first_name='John', last_name='Doe')
+        Child(first_name='John', last_name='Doe')
 
     def test_abstract(self):
 
@@ -69,8 +69,8 @@ class TestInheritance(BaseTest):
             class Meta:
                 abstract = True
 
-        assert AbstractDoc.opts.abstract == True
-        assert AbstractDoc.opts.allow_inheritance == True
+        assert AbstractDoc.opts.abstract is True
+        assert AbstractDoc.opts.allow_inheritance is True
         # Cannot instanciate also an abstract document
         with pytest.raises(exceptions.AbstractDocumentError):
             AbstractDoc()
@@ -80,15 +80,15 @@ class TestInheritance(BaseTest):
             class Meta:
                 abstract = True
 
-        assert StillAbstractDoc.opts.abstract == True
-        assert StillAbstractDoc.opts.allow_inheritance == True
+        assert StillAbstractDoc.opts.abstract is True
+        assert StillAbstractDoc.opts.allow_inheritance is True
 
         @self.instance.register
         class ConcreteDoc(AbstractDoc):
             pass
 
-        assert ConcreteDoc.opts.abstract == False
-        assert ConcreteDoc.opts.allow_inheritance == False
+        assert ConcreteDoc.opts.abstract is False
+        assert ConcreteDoc.opts.allow_inheritance is False
         assert ConcreteDoc().abs_field == 'from abstract'
 
     def test_non_document_inheritance(self):

@@ -35,7 +35,7 @@ __all__ = (
     'TxMongoInstance',
     'MotorAsyncIOInstance',
     'MotorTornadoInstance',
-    'MongoMockInstance'
+    'MongoMockInstance',
 
     'Document',
     'EmbeddedDocument',

@@ -32,7 +32,7 @@ class TestDataProxy:
         assert d.get('b') == 3
         assert d._data == {'a': 1, 'b': 3}
         assert d.dump() == {'a': 1, 'b': 3}
-        d.delete('b') 
+        d.delete('b')
         assert d._data == {'a': 1, 'b': missing}
         assert d.dump() == {'a': 1}
 
@@ -92,7 +92,6 @@ class TestDataProxy:
         assert d.to_mongo(update=True) is None
         assert not d.get('a').is_modified()
         assert not d.get('b').is_modified()
-
 
     def test_set(self):
 
