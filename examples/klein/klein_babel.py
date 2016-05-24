@@ -3,7 +3,7 @@
 import re
 from functools import wraps
 from twisted.python import context
-from babel import Locale, support
+from babel import support
 
 
 locale_delim_re = re.compile(r'[_-]')
@@ -38,7 +38,6 @@ def parse_accept_header(header):
     return result
 
 
-
 def select_locale_by_request(request, default='en'):
     accept_language = request.getHeader('ACCEPT-LANGUAGE')
     if not accept_language:
@@ -58,9 +57,7 @@ def locale_from_request(fn):
 
     @wraps(fn)
     def wrapper(request, *args, **kwargs):
-        # locale = Locale.parse('fr')
         locale = select_locale_by_request(request)
-        # locale = request.accept_languages.best_match(LANGUAGES.keys())
         translations = support.Translations.load(
             'translations', locales=locale, domain='messages')
         ctx = {'locale': locale, 'translations': translations}
@@ -70,7 +67,5 @@ def locale_from_request(fn):
 
 
 def gettext(string):
-    t = context.get('translations', default=support.NullTranslations())
-    new = t.gettext(string)
     return context.get(
         'translations', default=support.NullTranslations()).gettext(string)

@@ -5,6 +5,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from klein import Klein
 from bson import ObjectId
 from txmongo import MongoConnection
+from klein_babel import gettext, locale_from_request
 
 from umongo import Instance, Document, fields, ValidationError, set_gettext
 
@@ -12,10 +13,6 @@ from umongo import Instance, Document, fields, ValidationError, set_gettext
 app = Klein()
 db = MongoConnection().demo_umongo
 instance = Instance(db)
-
-
-# custom babel support
-from klein_babel import gettext, locale_from_request
 set_gettext(gettext)
 
 
