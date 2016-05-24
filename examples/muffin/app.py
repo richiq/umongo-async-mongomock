@@ -57,7 +57,7 @@ class User(Document):
     password = fields.StrField()  # Don't store it in clear in real life !
 
 
-async def populate_db():
+async def populate_db():  # noqa
     await User.collection.drop()  # noqa
     await User.ensure_indexes()  # noqa
     for data in [
