@@ -57,9 +57,9 @@ class User(Document):
     password = fields.StrField()  # Don't store it in clear in real life !
 
 
-async def populate_db():  # noqa
-    await User.collection.drop()  # noqa
-    await User.ensure_indexes()  # noqa
+async def populate_db():
+    await User.collection.drop()
+    await User.ensure_indexes()
     for data in [
         {
             'nick': 'mze', 'lastname': 'Mao', 'firstname': 'Zedong',
@@ -97,7 +97,7 @@ async def populate_db():  # noqa
             'password': 'Achieve the 4 modernisations'
         }
     ]:
-        await User(**data).commit()  # noqa
+        await User(**data).commit()
 
 
 # dump/update can be passed a custom schema instance to avoid some fields
@@ -109,7 +109,7 @@ def dump_user_no_pass(u):
 
 
 @app.register('/', methods=['GET'])
-async def root(request):  # noqa
+async def root(request):
     return """<h1>Umongo flask example</h1>
 <br>
 <h3>routes:</h3><br>
@@ -137,53 +137,53 @@ def build_error(status=400, msg=None):
 
 
 @app.register('/users/{nick_or_id}', methods=['GET'])
-async def get_user(request):  # noqa
+async def get_user(request):
     nick_or_id = request.match_info['nick_or_id']
-    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})  # noqa
+    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         return build_error(404)
     return jsonify(request, dump_user_no_pass(user))
 
 
 @app.register('/users/{nick_or_id}', methods=['PATCH'])
-async def update_user(request):  # noqa
+async def update_user(request):
     nick_or_id = request.match_info['nick_or_id']
-    payload = await request.json()  # noqa
+    payload = await request.json()
     if payload is None:
         return build_error(400, 'Request body must be json with Content-type: application/json')
-    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})  # noqa
+    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         return build_error(404)
     # Define a custom schema from the default one to ignore read-only fields
     schema = User.Schema(dump_only=('password', 'nick'))
     try:
         user.update(payload, schema=schema)
-        await user.commit()  # noqa
+        await user.commit()
     except ValidationError as ve:
         return build_error(400, ve.args[0])
     return jsonify(request, dump_user_no_pass(user))
 
 
 @app.register('/users/{nick_or_id}', methods=['DELETE'])
-async def delete_user(request):  # noqa
+async def delete_user(request):
     nick_or_id = request.match_info['nick_or_id']
-    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})  # noqa
+    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         return build_error(404)
     try:
-        await user.remove()  # noqa
+        await user.remove()
     except ValidationError as ve:
         return build_error(400, ve.args[0])
     return 'Ok'
 
 
 @app.register('/users/{nick_or_id}/password', methods=['PUT'])
-async def change_password_user(request):  # noqa
+async def change_password_user(request):
     nick_or_id = request.match_info['nick_or_id']
-    payload = await request.json()  # noqa
+    payload = await request.json()
     if payload is None:
         return build_error(400, 'Request body must be json with Content-type: application/json')
-    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})  # noqa
+    user = await User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
         return build_error(404, 'Not found')
 
@@ -199,33 +199,33 @@ async def change_password_user(request):  # noqa
         # the `required` options
         data, _ = schema.load(payload)
         user.password = data['password']
-        await user.commit()  # noqa
+        await user.commit()
     except ValidationError as ve:
         return build_error(400, ve.args[0])
     return jsonify(request, dump_user_no_pass(user))
 
 
 @app.register('/users', methods=['GET'])
-async def list_users(request):  # noqa
+async def list_users(request):
     page = int(request.GET.get('page', 1))
     per_page = 10
     cursor = User.find(limit=per_page, skip=(page - 1) * per_page)
     return jsonify(request, {
-        '_total': (await cursor.count()),  # noqa
+        '_total': (await cursor.count()),
         '_page': page,
         '_per_page': per_page,
-        '_items': [dump_user_no_pass(u) for u in (await cursor.to_list(per_page))]  # noqa
+        '_items': [dump_user_no_pass(u) for u in (await cursor.to_list(per_page))]
     })
 
 
 @app.register('/users', methods=['POST'])
-async def create_user(request):  # noqa
-    payload = await request.json()  # noqa
+async def create_user(request):
+    payload = await request.json()
     if payload is None:
         return build_error(400, 'Request body must be json with Content-type: application/json')
     try:
         user = User(**payload)
-        await user.commit()  # noqa
+        await user.commit()
     except ValidationError as ve:
         return build_error(400, ve.args[0])
     return jsonify(request, dump_user_no_pass(user))
