@@ -1,3 +1,4 @@
 twisted
 txmongo
 klein
+babel

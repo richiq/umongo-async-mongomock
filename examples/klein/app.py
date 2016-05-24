@@ -6,28 +6,17 @@ from klein import Klein
 from bson import ObjectId
 from txmongo import MongoConnection
 
-from umongo import Instance, Document, fields, ValidationError
+from umongo import Instance, Document, fields, ValidationError, set_gettext
 
 
 app = Klein()
 db = MongoConnection().demo_umongo
 instance = Instance(db)
 
-# Babel is no supported for the moment...
-# babel = Babel(app)
-# set_gettext(gettext)
 
-
-# available languages
-LANGUAGES = {
-    'en': 'English',
-    'fr': 'Français'
-}
-
-
-# @babel.localeselector
-# def get_locale():
-#     return request.accept_languages.best_match(LANGUAGES.keys())
+# custom babel support
+from klein_babel import gettext, locale_from_request
+set_gettext(gettext)
 
 
 class MongoJsonEncoder(json.JSONEncoder):
@@ -139,12 +128,14 @@ class Error(Exception):
 
 
 @app.handle_errors(Error)
-def error(self, request, failure):
-    request.setResponseCode(failure.args[0])
-    return failure.args[1]
+def error(request, failure):
+    code, data = failure.value.args
+    request.setResponseCode(code)
+    return data
 
 
 @app.route('/users/<nick_or_id>', methods=['GET'])
+@locale_from_request
 @inlineCallbacks
 def get_user(request, nick_or_id):
     user = yield User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
@@ -154,6 +145,7 @@ def get_user(request, nick_or_id):
 
 
 @app.route('/users/<nick_or_id>', methods=['PATCH'])
+@locale_from_request
 @inlineCallbacks
 def update_user(request, nick_or_id):
     payload = get_json(request)
@@ -168,28 +160,26 @@ def update_user(request, nick_or_id):
         user.update(payload, schema=schema)
         yield user.commit()
     except ValidationError as ve:
-        resp = jsonify(request, message=ve.args[0])
-        resp.status_code = 400
-        returnValue(resp)
+        raise Error(400, jsonify(request, message=ve.args[0]))
     returnValue(jsonify(request, dump_user_no_pass(user)))
 
 
 @app.route('/users/<nick_or_id>', methods=['DELETE'])
+@locale_from_request
 @inlineCallbacks
 def delete_user(request, nick_or_id):
     user = yield User.find_one({'$or': [{'nick': nick_or_id}, {'_id': _to_objid(nick_or_id)}]})
     if not user:
-        Error(404)
+        raise Error(404, 'Not Found')
     try:
-        user.delete()
+        yield user.delete()
     except ValidationError as ve:
-        resp = jsonify(message=ve.args[0])
-        resp.status_code = 400
-        returnValue(resp)
+        raise Error(400, jsonify(message=ve.args[0]))
     returnValue('Ok')
 
 
 @app.route('/users/<nick_or_id>/password', methods=['PUT'])
+@locale_from_request
 @inlineCallbacks
 def change_password_user(request, nick_or_id):
     payload = get_json(request)
@@ -213,13 +203,12 @@ def change_password_user(request, nick_or_id):
         user.password = data['password']
         yield user.commit()
     except ValidationError as ve:
-        resp = jsonify(request, message=ve.args[0])
-        resp.status_code = 400
-        returnValue(resp)
+        raise Error(400, jsonify(request, message=ve.args[0]))
     returnValue(jsonify(request, dump_user_no_pass(user)))
 
 
 @app.route('/users', methods=['GET'])
+@locale_from_request
 @inlineCallbacks
 def list_users(request):
     page = int(request.args.get('page', 1))
@@ -233,6 +222,7 @@ def list_users(request):
 
 
 @app.route('/users', methods=['POST'])
+@locale_from_request
 @inlineCallbacks
 def create_user(request):
     payload = get_json(request)
@@ -242,9 +232,7 @@ def create_user(request):
         user = User(**payload)
         yield user.commit()
     except ValidationError as ve:
-        resp = jsonify(request, message=ve.args[0])
-        resp.status_code = 400
-        returnValue(resp)
+        raise Error(400, jsonify(request, message=ve.args[0]))
     returnValue(jsonify(request, dump_user_no_pass(user)))
 
 
