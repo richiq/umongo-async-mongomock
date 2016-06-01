@@ -270,12 +270,12 @@ Now we can define & register documents, then work with them:
     >>> class Dog(Document):
     ...     pass
     >>> Dog  # mark as a template in repr
-    <Document template class '__main__.Dog'>
+    <Template class '__main__.Dog'>
     >>> Dog.is_template
     True
     >>> DogInstance1Impl = instance1.register(Dog)
     >>> DogInstance1Impl  # mark as an implementation in repr
-    <Document implementation class '__main__.Dog'>
+    <Implementation class '__main__.Dog'>
     >>> DogInstance1Impl.is_template
     False
     >>> DogInstance2Impl = instance2.register(Dog)

@@ -1,13 +1,14 @@
 from .exceptions import (
     NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
-from .document import Template, DocumentTemplate, Implementation
+from .document import DocumentTemplate
+from .template import get_template
 
 
 class BaseInstance:
     """
     Base class for instance.
 
-    Instances aims at collecting and implementing :class:`umongo.document.Template`::
+    Instances aims at collecting and implementing :class:`umongo.template.Template`::
 
         # Doc is a template, cannot use it for the moment
         class Doc(DocumentTemplate):
@@ -55,7 +56,7 @@ class BaseInstance:
 
     def retrieve_embedded_document(self, name_or_template):
         """
-        Retrieve a :class:`umongo.document.EmbeddedDocumentImplementation`
+        Retrieve a :class:`umongo.embedded_document.EmbeddedDocumentImplementation`
         registered into this instance from it name or it template class
         (i.e. :class:`umongo.EmbeddedDocument`).
         """
@@ -68,15 +69,15 @@ class BaseInstance:
 
     def register(self, template, as_attribute=True):
         """
-        Generate a :class:`umongo.document.Implementation` from the given
-        :class:`umongo.document.Template` for this instance.
+        Generate an :class:`umongo.template.Implementation` from the given
+        :class:`umongo.template.Template` for this instance.
 
-        :param template: :class:`umongo.document.Template` to implement
+        :param template: :class:`umongo.template.Template` to implement
         :param as_attribute:
-            Make the generated :class:`umongo.document.Implementation` available
+            Make the generated :class:`umongo.template.Implementation` available
             as this instance's attribute.
 
-        :return: The :class:`umongo.document.Implementation` generated
+        :return: The :class:`umongo.template.Implementation` generated
 
         .. note::
             This method can be used as a decorator. This is useful when you
@@ -95,9 +96,7 @@ class BaseInstance:
 
         """
         # Retrieve the template if another implementation has been provided instead
-        if issubclass(template, Implementation):
-            template = template.opts.template
-        assert issubclass(template, Template)
+        template = get_template(template)
         if issubclass(template, DocumentTemplate):
             implementation = self._register_doc(template)
         else:  # EmbeddedDocumentTemplate

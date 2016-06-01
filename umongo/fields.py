@@ -5,10 +5,10 @@ from bson import DBRef, ObjectId, errors as bson_errors
 
 # from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
+from .template import get_template
 from .data_objects import Reference, List, Dict
 from .abstract import BaseField
 from .i18n import gettext as _
-
 
 __all__ = (
     # 'RawField',
@@ -214,19 +214,33 @@ class ObjectIdField(BaseField, ma_fields.Field):
 
 class ReferenceField(ObjectIdField):
 
-    def __init__(self, document_cls, *args, reference_cls=Reference, **kwargs):
+    def __init__(self, document, *args, reference_cls=Reference, **kwargs):
+        """
+        :param document: Can be a :class:`umongo.embedded_document.DocumentTemplate`,
+            another instance's :class:`umongo.embedded_document.DocumentImplementation` or
+            the embedded document class name.
+        """
         super().__init__(*args, **kwargs)
         # TODO : check document_cls is implementation or string
         self.reference_cls = reference_cls
-        self._document_cls = document_cls
+        # Can be the Template, Template's name or another Implementation
+        if not isinstance(document, str):
+            self.document = get_template(document)
+        else:
+            self.document = document
+        self._document_cls = None
         # Avoid importing multiple times
         from .document import DocumentImplementation
         self._document_implementation_cls = DocumentImplementation
 
     @property
     def document_cls(self):
-        if isinstance(self._document_cls, str):
-            self._document_cls = self.instance.retrieve_document(self._document_cls)
+        """
+        Return the instance's :class:`umongo.embedded_document.DocumentImplementation`
+        implementing the `document` attribute.
+        """
+        if not self._document_cls:
+            self._document_cls = self.instance.retrieve_document(self.document)
         return self._document_cls
 
     def _serialize(self, value, attr, obj):
@@ -323,16 +337,47 @@ class GenericReferenceField(BaseField):
 
 class EmbeddedField(BaseField, ma_fields.Nested):
 
-    def __init__(self, embedded_document_cls, *args, **kwargs):
-        # TODO : check embedded_document_cls to be compatible
-        super().__init__(embedded_document_cls.Schema, *args, **kwargs)
-        self._embedded_document_cls = embedded_document_cls
+    def __init__(self, embedded_document, *args, **kwargs):
+        """
+        :param embedded_document: Can be a
+            :class:`umongo.embedded_document.EmbeddedDocumentTemplate`,
+            another instance's :class:`umongo.embedded_document.EmbeddedDocumentImplementation`
+            or the embedded document class name.
+        """
+        # Don't need to pass `nested` attribute given it is overloaded
+        super().__init__(None, *args, **kwargs)
+        # Try to retrieve the template if possible for consistency
+        if not isinstance(embedded_document, str):
+            self.embedded_document = get_template(embedded_document)
+        else:
+            self.embedded_document = embedded_document
+        self._embedded_document_cls = None
+
+    @property
+    def nested(self):
+        """Overload `nested` attribute to be able to fetch it lazily"""
+        return self.embedded_document_cls.Schema
+
+    @nested.setter
+    def nested(self, value):
+        pass
+
+    @property
+    def embedded_document_cls(self):
+        """
+        Return the instance's :class:`umongo.embedded_document.EmbeddedDocumentImplementation`
+        implementing the `embedded_document` attribute.
+        """
+        if not self._embedded_document_cls:
+            self._embedded_document_cls = self.instance.retrieve_embedded_document(
+                self.embedded_document)
+        return self._embedded_document_cls
 
     def _serialize(self, value, attr, obj):
         return value.dump()
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, self._embedded_document_cls):
+        if isinstance(value, self.embedded_document_cls):
             return value
         value = super()._deserialize(value, attr, data)
         return self._deserialize_from_mongo(value)
@@ -341,12 +386,11 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return obj.to_mongo()
 
     def _deserialize_from_mongo(self, value):
-        return self._embedded_document_cls.build_from_mongo(value)
+        return self.embedded_document_cls.build_from_mongo(value)
 
     def map_to_field(self, mongo_path, path, func):
-        """Apply a function to every field in the schema
-        """
-        for name, field in self._embedded_document_cls.schema.fields.items():
+        """Apply a function to every field in the schema"""
+        for name, field in self.embedded_document_cls.schema.fields.items():
             cur_path = '%s.%s' % (path, name)
             cur_mongo_path = '%s.%s' % (mongo_path, field.attribute or name)
             func(cur_mongo_path, cur_path, field)

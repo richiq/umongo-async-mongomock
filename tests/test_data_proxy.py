@@ -81,7 +81,8 @@ class TestDataProxy(BaseTest):
             aa = fields.IntField()
 
         class MySchema(EmbeddedSchema):
-            a = fields.EmbeddedField(MyEmbedded)
+            # EmbeddedField need instance to retrieve implementation
+            a = fields.EmbeddedField(MyEmbedded, instance=self.instance)
             b = fields.ListField(fields.IntField)
 
         d = DataProxy(MySchema())

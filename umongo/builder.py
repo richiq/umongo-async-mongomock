@@ -2,13 +2,14 @@ import re
 from copy import copy
 from marshmallow.fields import Field
 
-from .document import (Template, DocumentTemplate, DocumentOpts,
-                       Implementation, DocumentImplementation)
-from .embedded_document import (EmbeddedDocumentOpts, EmbeddedDocumentTemplate,
-                                EmbeddedDocumentImplementation)
+from .template import Template, Implementation
+from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
+from .embedded_document import (
+    EmbeddedDocumentTemplate, EmbeddedDocumentOpts, EmbeddedDocumentImplementation)
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
 from .schema import Schema, on_need_add_id_field, add_child_field
 from .indexes import parse_index
+from .fields import ListField, EmbeddedField
 
 
 def camel_to_snake(name):
@@ -36,12 +37,11 @@ def _collect_fields(nmspc):
     return doc_nmspc, schema_nmspc
 
 
-def _collect_indexes(nmspc, bases):
+def _collect_indexes(meta, schema_nmspc, bases):
     """
     Retrieve all indexes (custom defined in meta class, by inheritances
     and unique attribut in fields)
     """
-    meta = nmspc.get('Meta')
     indexes = []
     is_child = _is_child(bases)
 
@@ -71,7 +71,7 @@ def _collect_indexes(nmspc, bases):
                 index['key'].append('_cls')
             indexes.append(parse_index(index))
 
-    for name, field in _collect_fields(nmspc)[1].items():
+    for name, field in schema_nmspc.items():
         parse_field(name or field.attribute, name, field)
         if hasattr(field, 'map_to_field'):
             field.map_to_field(name or field.attribute, name, parse_field)
@@ -88,7 +88,6 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
     kwargs['base_schema_cls'] = getattr(meta, 'base_schema_cls', Schema)
-    kwargs['indexes'] = _collect_indexes(nmspc, bases)
     kwargs['is_child'] = _is_child(bases)
 
     # Handle option inheritance and integrity checks
@@ -159,9 +158,7 @@ class BaseBuilder:
         Overload this function to customize schema
         """
 
-        # Set the instance to all fields
-        from .fields import ListField, EmbeddedField
-
+        # Set the instance attribute to all fields
         def patch_field(field):
             field.instance = self.instance
             if isinstance(field, ListField):
@@ -203,7 +200,12 @@ class BaseBuilder:
             add_child_field(name, schema_nmspc)
         schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
         nmspc['Schema'] = schema_cls
-        nmspc['schema'] = schema_cls()
+        schema = schema_cls()
+        nmspc['schema'] = schema
+
+        # _build_document_opts cannot determine the indexes given we need to
+        # visit the document's fields which weren't defined at this time
+        opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation

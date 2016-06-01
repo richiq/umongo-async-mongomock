@@ -1,6 +1,22 @@
-from .document import Implementation, MetaTemplate, MetaImplementation
+from .document import Implementation, Template
 from .data_objects import BaseDataObject
 from .data_proxy import DataProxy
+
+
+class EmbeddedDocumentTemplate(Template):
+    """
+    Base class to define a umongo embedded document.
+
+    .. note::
+        Once defined, this class must be registered inside a
+        :class:`umongo.instance.BaseInstance` to obtain it corresponding
+        :class:`umongo.embedded_document.EmbeddedDocumentImplementation`.
+    """
+    pass
+
+
+EmbeddedDocument = EmbeddedDocumentTemplate
+"Shortcut to EmbeddedDocumentTemplate"
 
 
 class EmbeddedDocumentOpts:
@@ -17,15 +33,11 @@ class EmbeddedDocumentOpts:
         self.template = template
 
 
-class EmbeddedDocumentTemplate(metaclass=MetaTemplate):
-    pass
-
-
-EmbeddedDocument = EmbeddedDocumentTemplate
-"Shortcut to EmbeddedDocumentTemplate"
-
-
-class EmbeddedDocumentImplementation(Implementation, BaseDataObject, metaclass=MetaImplementation):
+class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
+    """
+    Represent an embedded document once it has been implemented inside a
+    :class:`umongo.instance.BaseInstance`.
+    """
 
     __slots__ = ('_callback', '_data', '_modified')
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate)

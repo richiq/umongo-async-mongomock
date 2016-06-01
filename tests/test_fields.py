@@ -144,8 +144,11 @@ class TestFields(BaseTest):
             a = fields.IntField(attribute='in_mongo_a')
             b = fields.IntField()
 
-        class MySchema(Schema):
+        @self.instance.register
+        class MyDoc(Document):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+
+        MySchema = MyDoc.Schema
 
         # Make sure embedded document doesn't have implicit _id field
         assert '_id' not in MyEmbeddedDocument.Schema().fields
@@ -210,9 +213,11 @@ class TestFields(BaseTest):
             required_field = fields.IntField(required=True)
             optional_field = fields.IntField()
 
-        class MySchema(Schema):
+        @self.instance.register
+        class MyDoc(Document):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
 
+        MySchema = MyDoc.Schema
         # with pytest.raises(ValidationError):
         #     MyEmbeddedDocument()
 
@@ -297,9 +302,13 @@ class TestFields(BaseTest):
         class ToRefDoc(Document):
             pass
 
-        class MySchema(Schema):
-            embeds = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
+        @self.instance.register
+        class MyDoc(Document):
+            embeds = fields.ListField(
+                fields.EmbeddedField(MyEmbeddedDocument))
             refs = fields.ListField(fields.ReferenceField(ToRefDoc))
+
+        MySchema = MyDoc.Schema
 
         obj_id1 = ObjectId()
         obj_id2 = ObjectId()
@@ -387,8 +396,11 @@ class TestFields(BaseTest):
         assert to_refer_doc == ref
         assert to_refer_doc == dbref
 
-        class MySchema(Schema):
+        @self.instance.register
+        class MyDoc(Document):
             ref = fields.ReferenceField(MyReferencedDoc, attribute='in_mongo_ref')
+
+        MySchema = MyDoc.Schema
 
         d = DataProxy(MySchema())
         d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
@@ -421,9 +433,11 @@ class TestFields(BaseTest):
         to_refer_doc = MyReferencedDocLazy.build_from_mongo(
             {'_id': ObjectId("5672d47b1d41c88dcd37ef05")})
 
-        class MySchema(Schema):
-            ref = fields.ReferenceField(
-                "MyReferencedDocLazy", attribute='in_mongo_ref', instance=self.instance)
+        @self.instance.register
+        class MyDoc(Document):
+            ref = fields.ReferenceField("MyReferencedDocLazy", attribute='in_mongo_ref')
+
+        MySchema = MyDoc.Schema
 
         d = DataProxy(MySchema())
         d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
@@ -447,8 +461,11 @@ class TestFields(BaseTest):
         doc1 = ToRef1.build_from_mongo({'_id': ObjectId()})
         ref1 = Reference(ToRef1, doc1.pk)
 
-        class MySchema(Schema):
-            gref = fields.GenericReferenceField(attribute='in_mongo_gref', instance=self.instance)
+        @self.instance.register
+        class MyDoc(Document):
+            gref = fields.GenericReferenceField(attribute='in_mongo_gref')
+
+        MySchema = MyDoc.Schema
 
         d = DataProxy(MySchema())
         d.load({'gref': {'id': ObjectId("5672d47b1d41c88dcd37ef05"), 'cls': ToRef2.__name__}})

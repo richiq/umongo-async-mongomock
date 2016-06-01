@@ -1,13 +1,3 @@
-class Implementation:
-    pass
-
-
-class Template:
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError('Cannot instantiate a template, '
-                                  'use instance.register result instead.')
-
-
 class MetaTemplate(type):
 
     def __new__(cls, name, bases, nmspc):
@@ -18,12 +8,20 @@ class MetaTemplate(type):
             if issubclass(base, Implementation):
                 base = base.opts.template
             cooked_bases.append(base)
-        if not cooked_bases:
-            cooked_bases.append(Template)
         return type.__new__(cls, name, tuple(cooked_bases), nmspc)
 
     def __repr__(cls):
         return "<Template class '%s.%s'>" % (cls.__module__, cls.__name__)
+
+
+class Template(metaclass=MetaTemplate):
+    """
+    Base class to represent a template.
+    """
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError('Cannot instantiate a template, '
+                                  'use instance.register result instead.')
+
 
 class MetaImplementation(MetaTemplate):
 
@@ -39,3 +37,21 @@ class MetaImplementation(MetaTemplate):
 
     def __repr__(cls):
         return "<Implementation class '%s.%s'>" % (cls.__module__, cls.__name__)
+
+
+class Implementation(metaclass=MetaImplementation):
+    """
+    Base class to represent an implementation.
+    """
+    @property
+    def opts(self):
+        "An implementation must provide it configuration though this attribute."
+        raise NotImplementedError()
+
+
+def get_template(template_or_implementation):
+    if issubclass(template_or_implementation, Implementation):
+        return template_or_implementation.opts.template
+    else:
+        assert issubclass(template_or_implementation, Template)
+        return template_or_implementation

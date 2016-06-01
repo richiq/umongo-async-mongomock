@@ -2,6 +2,11 @@
 History
 =======
 
+dev
+---
+
+* ``EmbeddedDocument`` also need to be registered by and instance before use
+
 0.8.1 (2016-05.19)
 ------------------
 

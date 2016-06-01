@@ -4,17 +4,17 @@ from .data_proxy import DataProxy
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .schema import Schema
-from .template import Implementation, Template, MetaTemplate, MetaImplementation
+from .template import Implementation, Template, MetaImplementation
 
 
-class DocumentTemplate(metaclass=MetaTemplate):
+class DocumentTemplate(Template):
     """
-    Base class to define a umongo Document.
+    Base class to define a umongo document.
 
     .. note::
-        Once defined, this class should be implemented by a
-        :class:`umongo.builder.BaseBuilder` to be able to use it
-        inside an :class:`umongo.instance.BaseInstance`.
+        Once defined, this class must be registered inside a
+        :class:`umongo.instance.BaseInstance` to obtain it corresponding
+        :class:`umongo.document.DocumentImplementation`.
     """
     pass
 
@@ -102,7 +102,7 @@ class MetaDocumentImplementation(MetaImplementation):
 
 class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementation):
     """
-    Represent a Document once it has been implemented inside a
+    Represent a document once it has been implemented inside a
     :class:`umongo.instance.BaseInstance`.
 
     .. note:: This class should not be used directly, it should be inherited by
