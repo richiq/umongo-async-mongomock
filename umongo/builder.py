@@ -2,7 +2,10 @@ import re
 from copy import copy
 from marshmallow.fields import Field
 
-from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
+from .document import (Template, DocumentTemplate, DocumentOpts,
+                       Implementation, DocumentImplementation)
+from .embedded_document import (EmbeddedDocumentOpts, EmbeddedDocumentTemplate,
+                                EmbeddedDocumentImplementation)
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
 from .schema import Schema, on_need_add_id_field, add_child_field
 from .indexes import parse_index
@@ -119,9 +122,9 @@ def _build_document_opts(instance, template, name, nmspc, bases):
 
 class BaseBuilder:
     """
-    A builder connect a :class:`umongo.document.DocumentTemplate` with an
-    :class:`umongo.instance.BaseInstance` by generating a
-    :class:`umongo.document.DocumentImplementation`.
+    A builder connect a :class:`umongo.document.Template` with a
+    :class:`umongo.instance.BaseInstance` by generating an
+    :class:`umongo.document.Implementation`.
 
     .. note:: This class should not be used directly, it should be inherited by
               concrete implementations such as :class:`umongo.frameworks.pymongo.PyMongoBuilder`
@@ -132,15 +135,18 @@ class BaseBuilder:
     def __init__(self, instance):
         assert self.BASE_DOCUMENT_CLS
         self.instance = instance
-        self._templates_lookup = {DocumentTemplate: self.BASE_DOCUMENT_CLS}
+        self._templates_lookup = {
+            DocumentTemplate: self.BASE_DOCUMENT_CLS,
+            EmbeddedDocumentTemplate: EmbeddedDocumentImplementation
+        }
 
     def _convert_bases(self, bases):
         "Replace template parents by their implementation inside this instance"
         converted_bases = []
         for base in bases:
-            assert not issubclass(base, DocumentImplementation), \
+            assert not issubclass(base, Implementation), \
                 'Document cannot inherit of implementations'
-            if issubclass(base, DocumentTemplate):
+            if issubclass(base, Template):
                 if base not in self._templates_lookup:
                     raise NotRegisteredDocumentError('Unknown document `%r`' % base)
                 converted_bases.append(self._templates_lookup[base])
@@ -148,7 +154,7 @@ class BaseBuilder:
                 converted_bases.append(base)
         return tuple(converted_bases)
 
-    def _build_schema(self, doc_template, schema_bases, schema_nmspc):
+    def _build_schema(self, template, schema_bases, schema_nmspc):
         """
         Overload this function to customize schema
         """
@@ -168,18 +174,18 @@ class BaseBuilder:
             patch_field(field)
 
         # Finally build the schema class
-        return type('%sSchema' % doc_template.__name__, schema_bases, schema_nmspc)
+        return type('%sSchema' % template.__name__, schema_bases, schema_nmspc)
 
-    def build_from_template(self, doc_template):
+    def build_document_from_template(self, template):
         """
         Generate a :class:`umongo.document.DocumentImplementation` for this
         instance from the given :class:`umongo.document.DocumentTemplate`.
         """
-        assert issubclass(doc_template, DocumentTemplate)
-        name = doc_template.__name__
-        bases = self._convert_bases(doc_template.__bases__)
-        opts = _build_document_opts(self.instance, doc_template, name, doc_template.__dict__, bases)
-        nmspc, schema_template_fields = _collect_fields(doc_template.__dict__)
+        assert issubclass(template, DocumentTemplate)
+        name = template.__name__
+        bases = self._convert_bases(template.__bases__)
+        opts = _build_document_opts(self.instance, template, name, template.__dict__, bases)
+        nmspc, schema_template_fields = _collect_fields(template.__dict__)
         nmspc['opts'] = opts
 
         # Given the fields provided by the template are going to be
@@ -195,10 +201,39 @@ class BaseBuilder:
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
             add_child_field(name, schema_nmspc)
-        schema_cls = self._build_schema(doc_template, schema_bases, schema_nmspc)
+        schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
         nmspc['Schema'] = schema_cls
         nmspc['schema'] = schema_cls()
 
-        doc_cls = type(name, bases, nmspc)
-        self._templates_lookup[doc_template] = doc_cls
-        return doc_cls
+        implementation = type(name, bases, nmspc)
+        self._templates_lookup[template] = implementation
+        return implementation
+
+    def build_embedded_document_from_template(self, template):
+        """
+        Generate a :class:`umongo.document.EmbeddedDocumentImplementation` for this
+        instance from the given :class:`umongo.document.EmbeddedDocumentTemplate`.
+        """
+        assert issubclass(template, EmbeddedDocumentTemplate)
+        name = template.__name__
+        bases = self._convert_bases(template.__bases__)
+        opts = EmbeddedDocumentOpts(self.instance, template)
+        nmspc, schema_template_fields = _collect_fields(template.__dict__)
+        nmspc['opts'] = opts
+
+        # Given the fields provided by the template are going to be
+        # customized in the implementation, we copy them to avoid
+        # overwriting if two implementations are created
+        schema_nmspc = {k: copy(v) for k, v in schema_template_fields.items()}
+        # Create schema by retrieving inherited schema classes
+        schema_bases = tuple([base.Schema for base in bases
+                              if hasattr(base, 'Schema')])
+        if not schema_bases:
+            schema_bases = (Schema, )
+        schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
+        nmspc['Schema'] = schema_cls
+        nmspc['schema'] = schema_cls()
+
+        implementation = type(name, bases, nmspc)
+        self._templates_lookup[template] = implementation
+        return implementation

@@ -216,6 +216,7 @@ class ReferenceField(ObjectIdField):
 
     def __init__(self, document_cls, *args, reference_cls=Reference, **kwargs):
         super().__init__(*args, **kwargs)
+        # TODO : check document_cls is implementation or string
         self.reference_cls = reference_cls
         self._document_cls = document_cls
         # Avoid importing multiple times
@@ -323,6 +324,7 @@ class GenericReferenceField(BaseField):
 class EmbeddedField(BaseField, ma_fields.Nested):
 
     def __init__(self, embedded_document_cls, *args, **kwargs):
+        # TODO : check embedded_document_cls to be compatible
         super().__init__(embedded_document_cls.Schema, *args, **kwargs)
         self._embedded_document_cls = embedded_document_cls
 

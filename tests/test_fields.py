@@ -139,6 +139,7 @@ class TestFields(BaseTest):
 
     def test_embedded_document(self):
 
+        @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             a = fields.IntField(attribute='in_mongo_a')
             b = fields.IntField()
@@ -288,6 +289,7 @@ class TestFields(BaseTest):
 
     def test_complexe_list(self):
 
+        @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             field = fields.IntField()
 

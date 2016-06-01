@@ -1,13 +1,13 @@
 from .exceptions import (
     NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
-from .document import DocumentImplementation
+from .document import Template, DocumentTemplate, Implementation
 
 
 class BaseInstance:
     """
     Base class for instance.
 
-    Instances aims at collecting and implementing :class:`umongo.document.DocumentTemplate`::
+    Instances aims at collecting and implementing :class:`umongo.document.Template`::
 
         # Doc is a template, cannot use it for the moment
         class Doc(DocumentTemplate):
@@ -21,16 +21,20 @@ class BaseInstance:
         # Now we can work with the implementations
         doc_cls.find()
 
+    .. note::
+        Instance registration is divided between :class:`umongo.Document` and
+        :class:`umongo.EmbeddedDocument`.
     """
 
     BUILDER_CLS = None
 
-    def __init__(self, doc_templates=()):
+    def __init__(self, templates=()):
         assert self.BUILDER_CLS, 'BUILDER_CLS must be defined.'
         self.builder = self.BUILDER_CLS(self)
         self._doc_lookup = {}
-        for doc_template in doc_templates:
-            self.register(doc_template)
+        self._embedded_lookup = {}
+        for template in templates:
+            self.register(template)
 
     @property
     def db(self):
@@ -49,12 +53,30 @@ class BaseInstance:
                 'Unknown document class `%s`' % name_or_template)
         return self._doc_lookup[name_or_template]
 
-    def register(self, doc_template):
+    def retrieve_embedded_document(self, name_or_template):
         """
-        Generate a :class:`umongo.document.DocumentImplementation` from the given
-        :class:`umongo.Document` template for this instance.
+        Retrieve a :class:`umongo.document.EmbeddedDocumentImplementation`
+        registered into this instance from it name or it template class
+        (i.e. :class:`umongo.EmbeddedDocument`).
+        """
+        if not isinstance(name_or_template, str):
+            name_or_template = name_or_template.__name__
+        if name_or_template not in self._embedded_lookup:
+            raise NotRegisteredDocumentError(
+                'Unknown embedded document class `%s`' % name_or_template)
+        return self._embedded_lookup[name_or_template]
 
-        :return: The :class:`umongo.document.DocumentImplementation` generated
+    def register(self, template, as_attribute=True):
+        """
+        Generate a :class:`umongo.document.Implementation` from the given
+        :class:`umongo.document.Template` for this instance.
+
+        :param template: :class:`umongo.document.Template` to implement
+        :param as_attribute:
+            Make the generated :class:`umongo.document.Implementation` available
+            as this instance's attribute.
+
+        :return: The :class:`umongo.document.Implementation` generated
 
         .. note::
             This method can be used as a decorator. This is useful when you
@@ -62,22 +84,43 @@ class BaseInstance:
             class you defined::
 
                 @instance.register
-                class MyDoc(Document):
+                class MyEmbedded(EmbeddedDocument):
                     pass
+
+                @instance.register
+                class MyDoc(Document):
+                    emb = fields.EmbeddedField(MyEmbedded)
 
                 MyDoc.find()
 
         """
         # Retrieve the template if another implementation has been provided instead
-        if issubclass(doc_template, DocumentImplementation):
-            doc_template = doc_template.opts.template
-        doc_cls = self.builder.build_from_template(doc_template)
-        if hasattr(self, doc_cls.__name__):
+        if issubclass(template, Implementation):
+            template = template.opts.template
+        assert issubclass(template, Template)
+        if issubclass(template, DocumentTemplate):
+            implementation = self._register_doc(template)
+        else:  # EmbeddedDocumentTemplate
+            implementation = self._register_embedded_doc(template)
+        if as_attribute:
+            setattr(self, implementation.__name__, implementation)
+        return implementation
+
+    def _register_doc(self, template):
+        implementation = self.builder.build_document_from_template(template)
+        if hasattr(self, implementation.__name__):
             raise AlreadyRegisteredDocumentError(
-                'Document `%s` already registered' % doc_cls.__name__)
-        setattr(self, doc_cls.__name__, doc_cls)
-        self._doc_lookup[doc_cls.__name__] = doc_cls
-        return doc_cls
+                'Document `%s` already registered' % implementation.__name__)
+        self._doc_lookup[implementation.__name__] = implementation
+        return implementation
+
+    def _register_embedded_doc(self, template):
+        implementation = self.builder.build_embedded_document_from_template(template)
+        if hasattr(self, implementation.__name__):
+            raise AlreadyRegisteredDocumentError(
+                'EmbeddedDocument `%s` already registered' % implementation.__name__)
+        self._embedded_lookup[implementation.__name__] = implementation
+        return implementation
 
 
 class Instance(BaseInstance):
@@ -86,12 +129,12 @@ class Instance(BaseInstance):
     the provided database.
     """
 
-    def __init__(self, db, doc_templates=()):
+    def __init__(self, db, templates=()):
         self._db = db
         # Dynamically find a builder compatible with the db
         from .frameworks import find_builder_from_db
         self.BUILDER_CLS = find_builder_from_db(db)
-        super().__init__(doc_templates=doc_templates)
+        super().__init__(templates=templates)
 
     @property
     def db(self):
@@ -108,9 +151,9 @@ class LazyLoaderInstance(BaseInstance):
 
     """
 
-    def __init__(self, doc_templates=()):
+    def __init__(self, templates=()):
         self._db = None
-        super().__init__(doc_templates=doc_templates)
+        super().__init__(templates=templates)
 
     @property
     def db(self):

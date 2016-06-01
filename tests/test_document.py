@@ -333,7 +333,7 @@ class TestConfig(BaseTest):
             class ImpossibleChildDoc1(NotParent):
                 pass
         assert exc.value.args[0] == ("Document"
-            " <Document implementation class 'tests.test_document.NotParent'>"
+            " <Implementation class 'tests.test_document.NotParent'>"
             " doesn't allow inheritance")
 
         @self.instance.register

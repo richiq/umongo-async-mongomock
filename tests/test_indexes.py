@@ -94,6 +94,7 @@ class TestIndexes(BaseTest):
 
     def test_nested_indexes(self):
 
+        @self.instance.register
         class NestedDoc(EmbeddedDocument):
             simple = fields.StrField()
             listed = fields.ListField(fields.StrField())

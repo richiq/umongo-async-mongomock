@@ -4,8 +4,9 @@ import pytest
 from umongo.data_proxy import DataProxy
 from umongo import EmbeddedSchema, fields, EmbeddedDocument, validate
 
+from .common import BaseTest
 
-class TestDataProxy:
+class TestDataProxy(BaseTest):
 
     def test_repr(self):
 
@@ -75,6 +76,7 @@ class TestDataProxy:
 
     def test_complexe_field_clear_modified(self):
 
+        @self.instance.register
         class MyEmbedded(EmbeddedDocument):
             aa = fields.IntField()
 

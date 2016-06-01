@@ -4,25 +4,10 @@ from .data_proxy import DataProxy
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .schema import Schema
+from .template import Implementation, Template, MetaTemplate, MetaImplementation
 
 
-class MetaDocumentTemplate(type):
-
-    def __new__(cls, name, bases, nmspc):
-        # If user has passed parent documents as implementation, we need
-        # to retrieve the original templates
-        cooked_bases = []
-        for base in bases:
-            if issubclass(base, DocumentImplementation):
-                base = base.opts.template
-            cooked_bases.append(base)
-        return type.__new__(cls, name, tuple(cooked_bases), nmspc)
-
-    def __repr__(cls):
-        return "<Document template class '%s.%s'>" % (cls.__module__, cls.__name__)
-
-
-class DocumentTemplate(metaclass=MetaDocumentTemplate):
+class DocumentTemplate(metaclass=MetaTemplate):
     """
     Base class to define a umongo Document.
 
@@ -31,10 +16,7 @@ class DocumentTemplate(metaclass=MetaDocumentTemplate):
         :class:`umongo.builder.BaseBuilder` to be able to use it
         inside an :class:`umongo.instance.BaseInstance`.
     """
-
-    def __init__(self, **kwargs):
-        raise NotImplementedError('Cannot instantiate a template, '
-                                  'use instance.register result instead.')
+    pass
 
 
 Document = DocumentTemplate
@@ -104,17 +86,7 @@ class DocumentOpts:
             raise DocumentDefinitionError("Abstract document cannot disable inheritance")
 
 
-class MetaDocumentImplementation(MetaDocumentTemplate):
-
-    def __new__(cls, name, bases, nmspc):
-        # `opts` is only defined by the builder to implement a template.
-        # If this field is missing, the user is subclassing an implementation
-        # to define a new type of document, thus we should construct a template class.
-        if 'opts' not in nmspc:
-            # Inheritance to avoid metaclass conflicts
-            return super().__new__(cls, name, bases, nmspc)
-        else:
-            return type.__new__(cls, name, bases, nmspc)
+class MetaDocumentImplementation(MetaImplementation):
 
     @property
     def collection(cls):
@@ -127,11 +99,8 @@ class MetaDocumentImplementation(MetaDocumentTemplate):
             raise NoDBDefinedError('Instance must be initialized first')
         return cls.opts.instance.db[cls.opts.collection_name]
 
-    def __repr__(cls):
-        return "<Document implementation class '%s.%s'>" % (cls.__module__, cls.__name__)
 
-
-class DocumentImplementation(metaclass=MetaDocumentImplementation):
+class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementation):
     """
     Represent a Document once it has been implemented inside a
     :class:`umongo.instance.BaseInstance`.

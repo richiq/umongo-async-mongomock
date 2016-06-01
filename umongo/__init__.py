@@ -22,7 +22,8 @@ from .exceptions import (
 )
 from . import fields, validate
 from .schema import BaseSchema, Schema, EmbeddedSchema
-from .data_objects import EmbeddedDocument, Reference
+from .data_objects import Reference
+from .embedded_document import EmbeddedDocument
 from .i18n import set_gettext
 
 

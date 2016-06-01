@@ -1,93 +1,9 @@
 from bson import DBRef
 
 from .abstract import BaseDataObject, I18nErrorDict
-from .data_proxy import DataProxy
-from .schema import EmbeddedSchema
 
 
-__all__ = ('EmbeddedDocument', 'List', 'Reference')
-
-
-class MetaEmbeddedDocument(type):
-
-    def __new__(cls, name, bases, nmspc):
-        # Retrieve inherited schema classes
-        schema_bases = tuple([getattr(base, 'Schema') for base in bases
-                              if hasattr(base, 'Schema')])
-        if not schema_bases:
-            schema_bases = (EmbeddedSchema,)
-        from .builder import _collect_fields
-        doc_nmspc, schema_nmspc = _collect_fields(nmspc)
-        # Need to create a custom Schema class to use the provided fields
-        schema_cls = type('%sSchema' % name, schema_bases, schema_nmspc)
-        doc_nmspc['Schema'] = schema_cls
-        doc_nmspc['schema'] = schema_cls()
-
-        return type.__new__(cls, name, bases, doc_nmspc)
-
-
-class EmbeddedDocument(BaseDataObject, metaclass=MetaEmbeddedDocument):
-
-    __slots__ = ('_callback', '_data', '_modified')
-
-    def is_modified(self):
-        return self._modified
-
-    def set_modified(self):
-        self._modified = True
-
-    def clear_modified(self):
-        self._modified = False
-        self._data.clear_modified()
-
-    def __init__(self, **kwargs):
-        schema = self.Schema()
-        self._modified = False
-        self._data = DataProxy(schema, kwargs)
-
-    def from_mongo(self, data):
-        self._data.from_mongo(data)
-
-    def to_mongo(self, update=False):
-        return self._data.to_mongo(update=update)
-
-    def dump(self):
-        return self._data.dump()
-
-    def __getitem__(self, name):
-        return self._data.get(name)
-
-    def __delitem__(self, name):
-        self.set_modified()
-        self._data.delete(name)
-
-    def __setitem__(self, name, value):
-        self.set_modified()
-        self._data.set(name, value)
-
-    def __setattr__(self, name, value):
-        if name in EmbeddedDocument.__dict__:
-            EmbeddedDocument.__dict__[name].__set__(self, value)
-        else:
-            self.set_modified()
-            self._data.set(name, value)
-
-    def __getattr__(self, name):
-        return self._data.get(name)
-
-    def __delattr__(self, name):
-        self.set_modified()
-        self._data.delete(name)
-
-    def __eq__(self, other):
-        if isinstance(other, dict):
-            return self._data == other
-        else:
-            return self._data == other._data
-
-    def __repr__(self):
-        return '<object EmbeddedDocument %s.%s(%s)>' % (
-            self.__module__, self.__class__.__name__, self._data._data)
+__all__ = ('List', 'Reference')
 
 
 class List(BaseDataObject, list):
