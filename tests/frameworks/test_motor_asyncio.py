@@ -14,8 +14,8 @@ else:
 from ..common import BaseDBTest, TEST_DB
 from ..fixtures import classroom_model, instance
 
-from umongo import (Document, fields, exceptions, Reference, Instance,
-                    MotorAsyncIOInstance, NoDBDefinedError)
+from umongo import (Document, EmbeddedDocument, fields, exceptions, Reference,
+                    Instance, MotorAsyncIOInstance, NoDBDefinedError)
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import motor_asyncio as framework
@@ -727,6 +727,68 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
+    def test_search(self, loop, instance):
+
+        @asyncio.coroutine
+        def do_test():
+
+            @instance.register
+            class Author(EmbeddedDocument):
+                name = fields.StrField(attribute='an')
+
+            @instance.register
+            class Chapter(EmbeddedDocument):
+                name = fields.StrField(attribute='cn')
+
+            @instance.register
+            class Book(Document):
+                title = fields.StrField(attribute='t')
+                author = fields.EmbeddedField(Author, attribute='a')
+                chapters = fields.ListField(fields.EmbeddedField(Chapter), attribute='c')
+
+            Book.collection.drop()
+            yield from Book(
+                title='The Hobbit',
+                author={'name': 'JRR Tolkien'},
+                chapters=[
+                    {'name': 'An Unexpected Party'},
+                    {'name': 'Roast Mutton'},
+                    {'name': 'A Short Rest'},
+                    {'name': 'Over Hill And Under Hill'},
+                    {'name': 'Riddles In The Dark'}
+            ]).commit()
+            yield from Book(
+                title="Harry Potter and the Philosopher's Stone",
+                 author={'name': 'JK Rowling'},
+                 chapters=[
+                    {'name': 'The Boy Who Lived'},
+                    {'name': 'The Vanishing Glass'},
+                    {'name': 'The Letters from No One'},
+                    {'name': 'The Keeper of the Keys'},
+                    {'name': 'Diagon Alley'}
+            ]).commit()
+            yield from Book(
+                title='A Game of Thrones',
+                author={'name': 'George RR Martin'},
+                chapters=[
+                    {'name': 'Prologue'},
+                    {'name': 'Bran I'},
+                    {'name': 'Catelyn I'},
+                    {'name': 'Daenerys I'},
+                    {'name': 'Eddard I'},
+                    {'name': 'Jon I'}
+            ]).commit()
+
+            res = yield from Book.find({'title': 'The Hobbit'}).count()
+            assert res == 1
+            res = yield from Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}).count()
+            assert res == 2
+            res = yield from Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}).count()
+            assert res == 1
+            res = yield from Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}).count()
+            assert res == 1
+
+        loop.run_until_complete(do_test())
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestAwaitSyntax(BaseDBTest):

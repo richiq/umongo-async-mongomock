@@ -6,8 +6,8 @@ from pymongo import MongoClient
 from ..common import BaseDBTest, get_pymongo_version, TEST_DB
 from ..fixtures import classroom_model, instance
 
-from umongo import (Document, fields, exceptions, Reference, Instance,
-                    PyMongoInstance, NoDBDefinedError)
+from umongo import (Document, EmbeddedDocument, fields, exceptions, Reference,
+                    Instance, PyMongoInstance, NoDBDefinedError)
 
 
 # Check if the required dependancies are met to run this driver's tests
@@ -560,3 +560,50 @@ class TestPymongo(BaseDBTest):
         res = InheritanceSearchParent.find({'pf': 1})
         for r in res:
             assert isinstance(r, InheritanceSearchChild1)
+
+    def test_search(self, instance):
+
+        @instance.register
+        class Author(EmbeddedDocument):
+            name = fields.StrField(attribute='an')
+
+        @instance.register
+        class Chapter(EmbeddedDocument):
+            name = fields.StrField(attribute='cn')
+
+        @instance.register
+        class Book(Document):
+            title = fields.StrField(attribute='t')
+            author = fields.EmbeddedField(Author, attribute='a')
+            chapters = fields.ListField(fields.EmbeddedField(Chapter), attribute='c')
+
+        Book.collection.drop()
+        Book(title='The Hobbit', author={'name': 'JRR Tolkien'}, chapters=[
+            {'name': 'An Unexpected Party'},
+            {'name': 'Roast Mutton'},
+            {'name': 'A Short Rest'},
+            {'name': 'Over Hill And Under Hill'},
+            {'name': 'Riddles In The Dark'}
+        ]).commit()
+        Book(title="Harry Potter and the Philosopher's Stone",
+             author={'name': 'JK Rowling'},
+             chapters=[
+                {'name': 'The Boy Who Lived'},
+                {'name': 'The Vanishing Glass'},
+                {'name': 'The Letters from No One'},
+                {'name': 'The Keeper of the Keys'},
+                {'name': 'Diagon Alley'}
+        ]).commit()
+        Book(title='A Game of Thrones', author={'name': 'George RR Martin'}, chapters=[
+            {'name': 'Prologue'},
+            {'name': 'Bran I'},
+            {'name': 'Catelyn I'},
+            {'name': 'Daenerys I'},
+            {'name': 'Eddard I'},
+            {'name': 'Jon I'}
+        ]).commit()
+
+        assert Book.find({'title': 'The Hobbit'}).count() == 1
+        assert Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}).count() == 2
+        assert Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}).count() == 1
+        assert Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}).count() == 1

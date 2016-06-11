@@ -71,6 +71,11 @@ class DictField(BaseField, ma_fields.Dict):
         else:
             return Dict()
 
+    def translate_query(self, key, query):
+        keys = key.split('.')
+        self.attribute or keys[0] + '.' + '.'.join(keys[1:])
+        return {self.attribute or key: query}
+
 
 class ListField(BaseField, ma_fields.List):
 

@@ -153,22 +153,19 @@ class BaseBuilder:
                 converted_bases.append(base)
         return tuple(converted_bases)
 
+    def _patch_field(self, field):
+        # Recursively set the `instance` attribute to all fields
+        field.instance = self.instance
+        if isinstance(field, ListField):
+            self._patch_field(field.container)
+        if isinstance(field, EmbeddedField):
+            for embedded_field in field.schema.fields.values():
+                self._patch_field(embedded_field)
+
     def _build_schema(self, template, schema_bases, schema_nmspc):
-        """
-        Overload this function to customize schema
-        """
-
-        # Set the instance attribute to all fields
-        def patch_field(field):
-            field.instance = self.instance
-            if isinstance(field, ListField):
-                patch_field(field.container)
-            if isinstance(field, EmbeddedField):
-                for embedded_field in field.schema.fields.values():
-                    patch_field(embedded_field)
-
+        # Recursively set the `instance` attribute to all fields
         for field in schema_nmspc.values():
-            patch_field(field)
+            self._patch_field(field)
 
         # Finally build the schema class
         return type('%sSchema' % template.__name__, schema_bases, schema_nmspc)

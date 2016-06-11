@@ -1,5 +1,12 @@
+from ..query_mapper import map_query
+
 
 def cook_find_filter(doc_cls, filter):
+    """
+    Add the `_cls` field if needed and replace the fields' name by the one
+    they have in database.
+    """
+    filter = map_query(filter, doc_cls.schema.fields)
     if doc_cls.opts.is_child:
         filter = filter or {}
         # Current document shares the collection with a parent,

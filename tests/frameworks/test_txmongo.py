@@ -31,8 +31,8 @@ else:
     dep_error = None
     pytest_inlineCallbacks = pytest.inlineCallbacks
 
-from umongo import (Document, fields, exceptions, Reference, Instance,
-                    TxMongoInstance, NoDBDefinedError)
+from umongo import (Document, EmbeddedDocument, fields, exceptions, Reference,
+                    Instance, TxMongoInstance, NoDBDefinedError)
 
 
 if not dep_error:  # Make sure the module is valid by importing it
@@ -649,3 +649,59 @@ class TestTxMongo(BaseDBTest):
         res = yield InheritanceSearchParent.find({'pf': 1})
         for r in res:
             assert isinstance(r, InheritanceSearchChild1)
+
+    @pytest_inlineCallbacks
+    def test_search(self, instance):
+
+        @instance.register
+        class Author(EmbeddedDocument):
+            name = fields.StrField(attribute='an')
+
+        @instance.register
+        class Chapter(EmbeddedDocument):
+            name = fields.StrField(attribute='cn')
+
+        @instance.register
+        class Book(Document):
+            title = fields.StrField(attribute='t')
+            author = fields.EmbeddedField(Author, attribute='a')
+            chapters = fields.ListField(fields.EmbeddedField(Chapter), attribute='c')
+
+        Book.collection.drop()
+        yield Book(title='The Hobbit',
+            author={'name': 'JRR Tolkien'},
+            chapters=[
+                {'name': 'An Unexpected Party'},
+                {'name': 'Roast Mutton'},
+                {'name': 'A Short Rest'},
+                {'name': 'Over Hill And Under Hill'},
+                {'name': 'Riddles In The Dark'}
+        ]).commit()
+        yield Book(title="Harry Potter and the Philosopher's Stone",
+             author={'name': 'JK Rowling'},
+             chapters=[
+                {'name': 'The Boy Who Lived'},
+                {'name': 'The Vanishing Glass'},
+                {'name': 'The Letters from No One'},
+                {'name': 'The Keeper of the Keys'},
+                {'name': 'Diagon Alley'}
+        ]).commit()
+        yield Book(title='A Game of Thrones',
+            author={'name': 'George RR Martin'},
+            chapters=[
+                {'name': 'Prologue'},
+                {'name': 'Bran I'},
+                {'name': 'Catelyn I'},
+                {'name': 'Daenerys I'},
+                {'name': 'Eddard I'},
+                {'name': 'Jon I'}
+        ]).commit()
+
+        res = yield Book.find({'title': 'The Hobbit'})
+        assert len(res) == 1
+        res = yield Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
+        assert len(res) == 2
+        res = yield Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
+        assert len(res) == 1
+        res = yield Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
+        assert len(res) == 1

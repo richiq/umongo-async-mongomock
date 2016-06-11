@@ -131,6 +131,9 @@ class BaseField(ma_fields.Field):
     #         msg = msg.format(**kwargs)
     #     raise ValidationError(msg)
 
+    def translate_query(self, key, query):
+        return {self.attribute or key: query}
+
 
 class BaseValidator(ma_validate.Validator):
     """

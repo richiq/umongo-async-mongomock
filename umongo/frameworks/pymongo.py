@@ -280,7 +280,21 @@ class PyMongoBuilder(BaseBuilder):
     def is_compatible_with(db):
         return isinstance(db, Database)
 
-    def _build_schema(self, doc_template, schema_bases, schema_nmspc):
-        _io_validate_patch_schema(schema_nmspc)
-        # Patch schema fields to add io_validate attributes
-        return super()._build_schema(doc_template, schema_bases, schema_nmspc)
+    def _patch_field(self, field):
+        super()._patch_field(field)
+
+        validators = field.io_validate
+        if not validators:
+            field.io_validate = []
+        else:
+            if hasattr(validators, '__iter__'):
+                field.io_validate = list(validators)
+            else:
+                field.io_validate = [validators]
+        if isinstance(field, ListField):
+            field.io_validate.append(_list_io_validate)
+        if isinstance(field, ReferenceField):
+            field.io_validate.append(_reference_io_validate)
+            field.reference_cls = PyMongoReference
+        if isinstance(field, EmbeddedField):
+            field.io_validate.append(_embedded_document_io_validate)

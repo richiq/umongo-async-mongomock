@@ -272,35 +272,6 @@ def _embedded_document_io_validate(field, value):
     yield from _io_validate_data_proxy(value.schema, value._data)
 
 
-def _io_validate_patch_schema(fields):
-    """Add default io validators to the given schema
-    """
-
-    def patch_field(field):
-        validators = field.io_validate
-        if not validators:
-            field.io_validate = []
-        else:
-            if hasattr(validators, '__iter__'):
-                validators = list(validators)
-            else:
-                validators = [validators]
-            field.io_validate = [v if asyncio.iscoroutinefunction(v) else asyncio.coroutine(v)
-                                 for v in validators]
-        if isinstance(field, ListField):
-            field.io_validate.append(_list_io_validate)
-            patch_field(field.container)
-        if isinstance(field, ReferenceField):
-            field.io_validate.append(_reference_io_validate)
-            field.reference_cls = MotorAsyncIOReference
-        if isinstance(field, EmbeddedField):
-            field.io_validate.append(_embedded_document_io_validate)
-            _io_validate_patch_schema(field.schema)
-
-    for field in fields.values():
-        patch_field(field)
-
-
 class MotorAsyncIOReference(Reference):
 
     def __init__(self, *args, **kwargs):
@@ -327,7 +298,23 @@ class MotorAsyncIOBuilder(BaseBuilder):
     def is_compatible_with(db):
         return isinstance(db, AsyncIOMotorDatabase)
 
-    def _build_schema(self, doc_template, schema_bases, schema_nmspc):
-        _io_validate_patch_schema(schema_nmspc)
-        # Patch schema fields to add io_validate attributes
-        return super()._build_schema(doc_template, schema_bases, schema_nmspc)
+    def _patch_field(self, field):
+        super()._patch_field(field)
+
+        validators = field.io_validate
+        if not validators:
+            field.io_validate = []
+        else:
+            if hasattr(validators, '__iter__'):
+                validators = list(validators)
+            else:
+                validators = [validators]
+            field.io_validate = [v if asyncio.iscoroutinefunction(v) else asyncio.coroutine(v)
+                                 for v in validators]
+        if isinstance(field, ListField):
+            field.io_validate.append(_list_io_validate)
+        if isinstance(field, ReferenceField):
+            field.io_validate.append(_reference_io_validate)
+            field.reference_cls = MotorAsyncIOReference
+        if isinstance(field, EmbeddedField):
+            field.io_validate.append(_embedded_document_io_validate)
