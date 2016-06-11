@@ -5,6 +5,8 @@ History
 dev
 ---
 
+* Queries can now be expressed with the document's fields name instead of the
+  name in database
 * ``EmbeddedDocument`` also need to be registered by and instance before use
 
 0.8.1 (2016-05.19)
