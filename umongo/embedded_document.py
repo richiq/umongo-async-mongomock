@@ -73,8 +73,8 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def to_mongo(self, update=False):
         return self._data.to_mongo(update=update)
 
-    def dump(self):
-        return self._data.dump()
+    def dump(self, schema=None):
+        return self._data.dump(schema=schema)
 
     # Data-proxy accessor shortcuts
 
