@@ -73,6 +73,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def to_mongo(self, update=False):
         return self._data.to_mongo(update=update)
 
+    def update(self, data, schema=None):
+        return self._data.update(data, schema=schema)
+
     def dump(self, schema=None):
         return self._data.dump(schema=schema)
 
