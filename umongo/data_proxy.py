@@ -58,7 +58,7 @@ class DataProxy:
         if set_data:
             mongo_data['$set'] = set_data
         if unset_data:
-            mongo_data['$unset'] = sorted(unset_data)
+            mongo_data['$unset'] = {k: "" for k in unset_data}
         return mongo_data or None
 
     def from_mongo(self, data, partial=False):
