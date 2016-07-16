@@ -340,6 +340,15 @@ class TestFields(BaseTest):
         embeds_list.extend([{'field': 4}, {'field': 5}])
         for e in embeds_list:
             assert isinstance(e, MyEmbeddedDocument)
+        # Modifying an EmbeddedDocument inside a list should count a list modification
+        d.clear_modified()
+        d.get('refs')[0] = obj_id2
+        assert d.to_mongo(update=True) == {'$set': {'refs': [
+            obj_id2, obj_id2, obj_id1, obj_id1, obj_id2]}}
+        d.clear_modified()
+        d.get('embeds')[1].field = 42
+        assert d.to_mongo(update=True) == {'$set': {'embeds': [
+            {'field': 1}, {'field': 42}, {'field': 3}, {'field': 4}, {'field': 5}]}}
 
     def test_objectid(self):
 
