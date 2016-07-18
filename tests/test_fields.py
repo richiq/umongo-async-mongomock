@@ -1,6 +1,7 @@
 from bson import ObjectId, DBRef
 import pytest
 from datetime import datetime
+from dateutil.tz.tz import tzutc
 from marshmallow import ValidationError
 from uuid import UUID
 
@@ -95,9 +96,9 @@ class TestFields(BaseTest):
         data, _ = s.load({'a': datetime(2016, 8, 6)})
         assert data['a'] == datetime(2016, 8, 6)
         data, _ = s.load({'a': "2016-08-06T00:00:00Z"})
+        assert data['a'] == datetime(2016, 8, 6, tzinfo=tzutc())
+        data, _ = s.load({'a': "2016-08-06T00:00:00"})
         assert data['a'] == datetime(2016, 8, 6)
-        with pytest.raises(ValidationError):
-            s.load({'a': "2016-08-06"})
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
