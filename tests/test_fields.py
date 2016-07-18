@@ -149,6 +149,8 @@ class TestFields(BaseTest):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
 
         MySchema = MyDoc.Schema
+        modified_schema = MyDoc.Schema(load_only=('embedded',))
+        modified_embedded_schema = MyEmbeddedDocument.Schema(load_only=('a',))
 
         # Make sure embedded document doesn't have implicit _id field
         assert '_id' not in MyEmbeddedDocument.Schema().fields
@@ -157,11 +159,13 @@ class TestFields(BaseTest):
         d = DataProxy(MySchema())
         d.load(data={'embedded': {'a': 1, 'b': 2}})
         assert d.dump() == {'embedded': {'a': 1, 'b': 2}}
+        assert d.dump(schema=modified_schema) == {}
         embedded = d.get('embedded')
         assert type(embedded) == MyEmbeddedDocument
         assert embedded.a == 1
         assert embedded.b == 2
         assert embedded.dump() == {'a': 1, 'b': 2}
+        assert embedded.dump(schema=modified_embedded_schema) == {'b': 2}
         assert embedded.to_mongo() == {'in_mongo_a': 1, 'b': 2}
         assert d.to_mongo() == {'in_mongo_embedded': {'in_mongo_a': 1, 'b': 2}}
 
