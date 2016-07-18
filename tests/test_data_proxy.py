@@ -69,7 +69,7 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo(update=True) is None
         d.set('a', 3)
         d.delete('b')
-        assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': ['in_mongo_b']}
+        assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': {'in_mongo_b': ''}}
         d.clear_modified()
         assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
@@ -126,9 +126,9 @@ class TestDataProxy(BaseTest):
         d.load({'a': 1, 'b': 2})
         d.delete('b')
         assert d.to_mongo() == {'a': 1}
-        assert d.to_mongo(update=True) == {'$unset': ['in_mongo_b']}
+        assert d.to_mongo(update=True) == {'$unset': {'in_mongo_b': ''}}
         d.delete('a')
-        assert d.to_mongo(update=True) == {'$unset': ['a', 'in_mongo_b']}
+        assert d.to_mongo(update=True) == {'$unset': {'a': '', 'in_mongo_b': ''}}
 
         with pytest.raises(KeyError):
             d.delete('in_mongo_b')
@@ -191,7 +191,7 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_b': 3}}
         assert d.get_by_mongo_name('in_mongo_b') == 3
         d.delete_by_mongo_name('in_mongo_b')
-        assert d.to_mongo(update=True) == {'$unset': ['in_mongo_b']}
+        assert d.to_mongo(update=True) == {'$unset': {'in_mongo_b': ''}}
 
     def test_set_to_missing_fields(self):
 
