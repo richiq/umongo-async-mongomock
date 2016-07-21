@@ -94,11 +94,11 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
             EmbeddedDocumentImplementation.__dict__[name].__set__(self, value)
         else:
             self.set_modified()
-            self._data.set(name, value)
+            self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):
-        return self._data.get(name)
+        return self._data.get(name, to_raise=AttributeError)
 
     def __delattr__(self, name):
         self.set_modified()
-        self._data.delete(name)
+        self._data.delete(name, to_raise=AttributeError)
