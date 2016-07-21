@@ -249,6 +249,8 @@ class ReferenceField(ObjectIdField):
         return self._document_cls
 
     def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
         return super()._serialize(value.pk, attr, obj)
 
     def _deserialize(self, value, attr, data):
@@ -300,6 +302,8 @@ class GenericReferenceField(BaseField):
         self._document_implementation_cls = DocumentImplementation
 
     def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
         return {'id': str(value.pk), 'cls': value.document_cls.__name__}
 
     def _deserialize(self, value, attr, data):
@@ -379,6 +383,8 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return self._embedded_document_cls
 
     def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
         return value.dump()
 
     def _deserialize(self, value, attr, data):
