@@ -211,6 +211,20 @@ class TestFields(BaseTest):
         assert "'in_mongo_a': 1" in repr_d
         assert "'b': 2" in repr_d
 
+        # Test unknown fields
+        with pytest.raises(AttributeError):
+            embedded_doc.dummy
+        with pytest.raises(AttributeError):
+            embedded_doc.dummy = None
+        with pytest.raises(AttributeError):
+            del embedded_doc.dummy
+        with pytest.raises(KeyError):
+            embedded_doc['dummy']
+        with pytest.raises(KeyError):
+            embedded_doc['dummy'] = None
+        with pytest.raises(KeyError):
+            del embedded_doc['dummy']
+
     @pytest.mark.xfail()
     def test_embedded_document_required(self):
         # TODO
