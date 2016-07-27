@@ -9,7 +9,7 @@ __all__ = ('DataProxy', 'missing')
 
 class DataProxy:
 
-    __slots__ = ('not_loaded_fields', 'not_loaded_fields_from_mongo_key', '_schema', '_fields', '_data',
+    __slots__ = ('not_loaded_fields', '_schema', '_fields', '_data',
                  '_modified_data', '_fields_from_mongo_key')
 
     def __init__(self, schema, data=None):
