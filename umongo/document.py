@@ -1,6 +1,6 @@
 from bson import DBRef
 
-from .data_proxy import DataProxy
+from .data_proxy import DataProxy, missing
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .schema import Schema
@@ -153,7 +153,8 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
                      has already been commited to database given ``_id``
                      field could be generated before insertion
         """
-        return self._data.get_by_mongo_name('_id')
+        value = self._data.get_by_mongo_name('_id')
+        return value if value is not missing else None
 
     @property
     def dbref(self):
@@ -229,7 +230,8 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):
-        return self._data.get(name)
+        value = self._data.get(name)
+        return value if value is not missing else None
 
     def __delitem__(self, name):
         self._data.delete(name)
@@ -244,7 +246,8 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
             self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):
-        return self._data.get(name, to_raise=AttributeError)
+        value = self._data.get(name, to_raise=AttributeError)
+        return value if value is not missing else None
 
     def __delattr__(self, name):
         self._data.delete(name, to_raise=AttributeError)
