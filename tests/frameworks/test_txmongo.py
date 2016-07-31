@@ -7,11 +7,14 @@ from ..common import BaseDBTest, get_pymongo_version, TEST_DB, con
 from ..fixtures import classroom_model, instance
 
 # Check if the required dependancies are met to run this driver's tests
+dep_error = None
 try:
     from txmongo import MongoConnection
     major, minor, _ = get_pymongo_version()
     if major != 3 or minor < 2:
-        dep_error = "txmongo requires pymongo>=3.2.0"
+        dep_error = "txmongo driver requires pymongo>=3.2.0"
+    else:
+        from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
     dep_error = 'Missing txmongo module'
@@ -28,7 +31,6 @@ except ImportError:
 
     pytest_inlineCallbacks = skip_wrapper
 else:
-    dep_error = None
     pytest_inlineCallbacks = pytest.inlineCallbacks
 
 from umongo import (Document, EmbeddedDocument, fields, exceptions, Reference,
@@ -705,3 +707,88 @@ class TestTxMongo(BaseDBTest):
         assert len(res) == 1
         res = yield Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
         assert len(res) == 1
+
+    @pytest_inlineCallbacks
+    def test_pre_post_hooks(self, instance):
+
+        callbacks = []
+
+        @instance.register
+        class Person(Document):
+            name = fields.StrField()
+            age = fields.IntField()
+
+            def pre_insert(self, payload):
+                callbacks.append(('pre_insert', payload))
+
+            def pre_update(self, query, payload):
+                callbacks.append(('pre_update', query, payload))
+
+            def pre_delete(self):
+                callbacks.append(('pre_delete', ))
+
+            def post_insert(self, ret, payload):
+                assert isinstance(ret, InsertOneResult)
+                callbacks.append(('post_insert', 'ret', payload))
+
+            def post_update(self, ret, payload):
+                assert isinstance(ret, UpdateResult)
+                callbacks.append(('post_update', 'ret', payload))
+
+            def post_delete(self, ret):
+                assert isinstance(ret, DeleteResult)
+                callbacks.append(('post_delete', 'ret'))
+
+
+        p = Person(name='John', age=20)
+        yield p.commit()
+        assert callbacks == [
+            ('pre_insert', {'_id': p.pk, 'name': 'John', 'age': 20}),
+            ('post_insert', 'ret', {'_id': p.pk, 'name': 'John', 'age': 20})
+        ]
+
+        callbacks.clear()
+        p.age = 22
+        yield p.commit({'age': 22})
+        assert callbacks == [
+            ('pre_update', {'_id': p.pk}, {'$set': {'age': 22}}),
+            ('post_update', 'ret', {'$set': {'age': 22}})
+        ]
+
+        callbacks.clear()
+        yield p.delete()
+        assert callbacks == [
+            ('pre_delete', ),
+            ('post_delete', 'ret')
+        ]
+
+    @pytest_inlineCallbacks
+    def test_pre_post_hooks_with_defers(self, instance):
+
+        events = []
+
+        @instance.register
+        class Person(Document):
+            name = fields.StrField()
+            age = fields.IntField()
+
+            @inlineCallbacks
+            def pre_insert(self, payload):
+                events.append('start pre_insert')
+                yield succeed
+                events.append('end pre_insert')
+
+            @inlineCallbacks
+            def post_insert(self, ret, payload):
+                events.append('start post_insert')
+                yield succeed
+                events.append('end post_insert')
+
+        p = Person(name='John', age=20)
+        yield p.commit()
+        assert events == [
+            'start pre_insert',
+            'end pre_insert',
+            'start post_insert',
+            'end post_insert'
+        ]

@@ -1,5 +1,6 @@
 from txmongo.database import Database
-from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList, returnValue
+from twisted.internet.defer import (
+    inlineCallbacks, Deferred, DeferredList, returnValue, maybeDeferred)
 from txmongo import filter as qf
 from pymongo.errors import DuplicateKeyError
 
@@ -55,16 +56,20 @@ class TxMongoDocument(DocumentImplementation):
                 if payload:
                     query = conditions or {}
                     query['_id'] = self._data.get_by_mongo_name('_id')
+                    yield maybeDeferred(self.pre_update, query, payload)
                     ret = yield self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
                         raise UpdateError(ret.raw_result)
+                    yield maybeDeferred(self.post_update, ret, payload)
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
+                yield maybeDeferred(self.pre_insert, payload)
                 ret = yield self.collection.insert_one(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret.inserted_id)
                 self.is_created = True
+                yield maybeDeferred(self.post_insert, ret, payload)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -95,10 +100,12 @@ class TxMongoDocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
+        yield maybeDeferred(self.pre_delete)
         ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
         self.is_created = False
+        yield maybeDeferred(self.post_delete, ret)
 
     def io_validate(self, validate_all=False):
         """

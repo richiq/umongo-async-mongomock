@@ -16,6 +16,7 @@ if int(major) != 3 or int(minor) < 2:
     dep_error = "pymongo driver requires pymongo>=3.2.0"
 else:
     dep_error = None
+    from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import pymongo as framework_pymongo
@@ -607,3 +608,56 @@ class TestPymongo(BaseDBTest):
         assert Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}).count() == 2
         assert Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}).count() == 1
         assert Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}).count() == 1
+
+    def test_pre_post_hooks(self, instance):
+
+        callbacks = []
+
+        @instance.register
+        class Person(Document):
+            name = fields.StrField()
+            age = fields.IntField()
+
+            def pre_insert(self, payload):
+                callbacks.append(('pre_insert', payload))
+
+            def pre_update(self, query, payload):
+                callbacks.append(('pre_update', query, payload))
+
+            def pre_delete(self):
+                callbacks.append(('pre_delete', ))
+
+            def post_insert(self, ret, payload):
+                assert isinstance(ret, InsertOneResult)
+                callbacks.append(('post_insert', 'ret', payload))
+
+            def post_update(self, ret, payload):
+                assert isinstance(ret, UpdateResult)
+                callbacks.append(('post_update', 'ret', payload))
+
+            def post_delete(self, ret):
+                assert isinstance(ret, DeleteResult)
+                callbacks.append(('post_delete', 'ret'))
+
+
+        p = Person(name='John', age=20)
+        p.commit()
+        assert callbacks == [
+            ('pre_insert', {'_id': p.pk, 'name': 'John', 'age': 20}),
+            ('post_insert', 'ret', {'_id': p.pk, 'name': 'John', 'age': 20})
+        ]
+
+        callbacks.clear()
+        p.age = 22
+        p.commit({'age': 22})
+        assert callbacks == [
+            ('pre_update', {'_id': p.pk}, {'$set': {'age': 22}}),
+            ('post_update', 'ret', {'$set': {'age': 22}})
+        ]
+
+        callbacks.clear()
+        p.delete()
+        assert callbacks == [
+            ('pre_delete', ),
+            ('post_delete', 'ret')
+        ]

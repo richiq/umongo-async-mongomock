@@ -69,8 +69,8 @@ class PyMongoDocument(DocumentImplementation):
         If the document doesn't already exist it will be inserted, otherwise
         it will be updated.
 
-        :param io_validate_all:
-        :param conditions: only perform commit if matching record in db
+        :param io_validate_all: Validate all field instead of only changed ones.
+        :param conditions: Only perform commit if matching record in db
             satisfies condition(s) (e.g. version number).
             Raises :class:`umongo.exceptions.UpdateError` if the
             conditions are not satisfied.
@@ -82,16 +82,20 @@ class PyMongoDocument(DocumentImplementation):
                 if payload:
                     query = conditions or {}
                     query['_id'] = self._data.get_by_mongo_name('_id')
+                    self.pre_update(query, payload)
                     ret = self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
                         raise UpdateError(ret.raw_result)
+                    self.post_update(ret, payload)
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
+                self.pre_insert(payload)
                 ret = self.collection.insert_one(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret.inserted_id)
                 self.is_created = True
+                self.post_insert(ret, payload)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -123,10 +127,12 @@ class PyMongoDocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
+        self.pre_delete()
         ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret.raw_result)
         self.is_created = False
+        self.post_delete(ret)
 
     def io_validate(self, validate_all=False):
         """

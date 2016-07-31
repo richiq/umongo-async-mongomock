@@ -97,16 +97,20 @@ class MotorAsyncIODocument(DocumentImplementation):
                 if payload:
                     query = conditions or {}
                     query['_id'] = self._data.get_by_mongo_name('_id')
+                    yield from asyncio.coroutine(self.pre_update)(query, payload)
                     ret = yield from self.collection.update(query, payload)
                     if ret.get('ok') != 1 or ret.get('n') != 1:
                         raise UpdateError(ret)
+                    yield from asyncio.coroutine(self.post_update)(ret, payload)
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
+                yield from asyncio.coroutine(self.pre_insert)(payload)
                 ret = yield from self.collection.insert(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret)
                 self.is_created = True
+                yield from asyncio.coroutine(self.post_insert)(ret, payload)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -145,12 +149,14 @@ class MotorAsyncIODocument(DocumentImplementation):
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
         """
+        yield from asyncio.coroutine(self.pre_delete)()
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         ret = yield from self.collection.remove({'_id': self.pk})
         if ret.get('ok') != 1 or ret.get('n') != 1:
             raise DeleteError(ret)
         self.is_created = False
+        yield from asyncio.coroutine(self.post_delete)(ret)
         return ret
 
     def io_validate(self, validate_all=False):

@@ -790,6 +790,102 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
+    def test_pre_post_hooks(self, loop, instance):
+
+        @asyncio.coroutine
+        def do_test():
+
+            callbacks = []
+
+            @instance.register
+            class Person(Document):
+                name = fields.StrField()
+                age = fields.IntField()
+
+                def pre_insert(self, payload):
+                    callbacks.append(('pre_insert', payload))
+
+                def pre_update(self, query, payload):
+                    callbacks.append(('pre_update', query, payload))
+
+                def pre_delete(self):
+                    callbacks.append(('pre_delete', ))
+
+                def post_insert(self, ret, payload):
+                    assert isinstance(ret, ObjectId)
+                    callbacks.append(('post_insert', 'ret', payload))
+
+                def post_update(self, ret, payload):
+                    assert ret == {'ok': 1, 'nModified': 1, 'updatedExisting': True, 'n': 1}
+                    callbacks.append(('post_update', 'ret', payload))
+
+                def post_delete(self, ret):
+                    assert ret == {'n': 1, 'ok': 1}
+                    callbacks.append(('post_delete', 'ret'))
+
+
+            p = Person(name='John', age=20)
+            yield from p.commit()
+            assert callbacks == [
+                ('pre_insert', {'_id': p.pk, 'name': 'John', 'age': 20}),
+                ('post_insert', 'ret', {'_id': p.pk, 'name': 'John', 'age': 20})
+            ]
+
+            callbacks.clear()
+            p.age = 22
+            yield from p.commit({'age': 22})
+            assert callbacks == [
+                ('pre_update', {'_id': p.pk}, {'$set': {'age': 22}}),
+                ('post_update', 'ret', {'$set': {'age': 22}})
+            ]
+
+            callbacks.clear()
+            yield from p.delete()
+            assert callbacks == [
+                ('pre_delete', ),
+                ('post_delete', 'ret')
+            ]
+
+        loop.run_until_complete(do_test())
+
+    def test_pre_post_hooks_with_defers(self, loop, instance):
+
+        @asyncio.coroutine
+        def do_test():
+
+            events = []
+
+            @instance.register
+            class Person(Document):
+                name = fields.StrField()
+                age = fields.IntField()
+
+                def pre_insert(self, payload):
+                    events.append('start pre_insert')
+                    future = asyncio.Future()
+                    future.set_result(True)
+                    yield from future
+                    events.append('end pre_insert')
+
+                def post_insert(self, ret, payload):
+                    events.append('start post_insert')
+                    future = asyncio.Future()
+                    future.set_result(True)
+                    yield from future
+                    events.append('end post_insert')
+
+            p = Person(name='John', age=20)
+            yield from p.commit()
+            assert events == [
+                'start pre_insert',
+                'end pre_insert',
+                'start post_insert',
+                'end post_insert'
+            ]
+
+        loop.run_until_complete(do_test())
+
+
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestAwaitSyntax(BaseDBTest):
 

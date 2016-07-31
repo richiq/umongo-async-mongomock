@@ -251,3 +251,62 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
 
     def __delattr__(self, name):
         self._data.delete(name, to_raise=AttributeError)
+
+    def pre_insert(self, payload):
+        """
+        Overload this method to get a callback before document insertion.
+        :param payload: Data to insert in database, you can modify
+            this dict.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
+
+    def pre_update(self, query, payload):
+        """
+        Overload this method to get a callback before document update.
+        :param query: Query to select the document to update, you can modify
+            this dict.
+        :param payload: Data to send in database, you can modify
+            this dict.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
+
+    def pre_delete(self):
+        """
+        Overload this method to get a callback before document deletion.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
+
+    def post_insert(self, ret, payload):
+        """
+        Overload this method to get a callback after document insertion.
+        :param ret: Pymongo response sent by the database.
+        :param payload: Data that have been inserted in database.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
+
+    def post_update(self, ret, payload):
+        """
+        Overload this method to get a callback after document update.
+        :param ret: Pymongo response sent by the database.
+        :param payload: Data used for the update in database.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
+
+    def post_delete(self, ret):
+        """
+        Overload this method to get a callback after document deletion.
+        :param ret: Pymongo response sent by the database.
+
+        .. note:: If you use an async driver, this callback can return a defer/future.
+        """
+        pass
