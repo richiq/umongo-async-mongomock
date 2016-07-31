@@ -74,6 +74,8 @@ class PyMongoDocument(DocumentImplementation):
             satisfies condition(s) (e.g. version number).
             Raises :class:`umongo.exceptions.UpdateError` if the
             conditions are not satisfied.
+        :return: A :class:`pymongo.results.UpdateResult` or
+            :class:`pymongo.results.InsertOneResult` depending of the operation.
         """
         self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.is_created)
@@ -115,6 +117,7 @@ class PyMongoDocument(DocumentImplementation):
             # Unknown index, cannot wrap the error so just reraise it
             raise
         self._data.clear_modified()
+        return ret
 
     def delete(self):
         """
@@ -124,6 +127,8 @@ class PyMongoDocument(DocumentImplementation):
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
+
+        :return: A :class:`pymongo.results.DeleteResult`
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
@@ -133,6 +138,7 @@ class PyMongoDocument(DocumentImplementation):
             raise DeleteError(ret.raw_result)
         self.is_created = False
         self.post_delete(ret)
+        return ret
 
     def io_validate(self, validate_all=False):
         """

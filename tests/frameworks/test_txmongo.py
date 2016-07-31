@@ -81,7 +81,8 @@ class TestTxMongo(BaseDBTest):
     def test_create(self, classroom_model):
         Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
-        yield john.commit()
+        ret = yield john.commit()
+        assert isinstance(ret, InsertOneResult)
         assert john.to_mongo() == {
             '_id': john.id,
             'name': 'John Doe',
@@ -98,7 +99,8 @@ class TestTxMongo(BaseDBTest):
         yield john.commit()
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
-        yield john.commit()
+        ret = yield john.commit()
+        assert isinstance(ret, UpdateResult)
         assert john.to_mongo(update=True) is None
         john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
@@ -126,7 +128,8 @@ class TestTxMongo(BaseDBTest):
         yield john.commit()
         students = yield Student.find()
         assert len(students) == 1
-        yield john.delete()
+        ret = yield john.delete()
+        assert isinstance(ret, DeleteResult)
         assert not john.is_created
         students = yield Student.find()
         assert len(students) == 0

@@ -69,7 +69,8 @@ class TestMotorAsyncio(BaseDBTest):
         @asyncio.coroutine
         def do_test():
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
-            yield from john.commit()
+            ret = yield from john.commit()
+            assert isinstance(ret, ObjectId)
             assert john.to_mongo() == {
                 '_id': john.id,
                 'name': 'John Doe',
@@ -90,7 +91,8 @@ class TestMotorAsyncio(BaseDBTest):
             yield from john.commit()
             john.name = 'William Doe'
             assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
-            yield from john.commit()
+            ret = yield from john.commit()
+            assert ret == {'ok': 1, 'nModified': 1, 'updatedExisting': True, 'n': 1}
             assert john.to_mongo(update=True) is None
             john2 = yield from Student.find_one(john.id)
             assert john2._data == john._data

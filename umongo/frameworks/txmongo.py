@@ -48,7 +48,9 @@ class TxMongoDocument(DocumentImplementation):
             satisfies condition(s) (e.g. version number).
             Raises :class:`umongo.exceptions.UpdateError` if the
             conditions are not satisfied.
-        """
+         :return: A :class:`pymongo.results.UpdateResult` or
+            :class:`pymongo.results.InsertOneResult` depending of the operation.
+       """
         yield self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.is_created)
         try:
@@ -87,6 +89,7 @@ class TxMongoDocument(DocumentImplementation):
                         raise ValidationError({k: fields[k].error_messages[
                             'unique_compound'].format(fields=keys) for k in keys})
         self._data.clear_modified()
+        return ret
 
     @inlineCallbacks
     def delete(self):
@@ -97,6 +100,8 @@ class TxMongoDocument(DocumentImplementation):
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
+
+        :return: A :class:`pymongo.results.DeleteResult`
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
@@ -106,6 +111,7 @@ class TxMongoDocument(DocumentImplementation):
             raise DeleteError(ret.raw_result)
         self.is_created = False
         yield maybeDeferred(self.post_delete, ret)
+        return ret
 
     def io_validate(self, validate_all=False):
         """

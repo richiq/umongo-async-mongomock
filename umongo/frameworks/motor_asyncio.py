@@ -89,6 +89,8 @@ class MotorAsyncIODocument(DocumentImplementation):
             satisfies condition(s) (e.g. version number).
             Raises :class:`umongo.exceptions.UpdateError` if the
             conditions are not satisfied.
+        :return: Update result dict returned by underlaying driver or
+            ObjectId of the inserted document.
         """
         yield from self.io_validate(validate_all=io_validate_all)
         payload = self._data.to_mongo(update=self.is_created)
@@ -131,6 +133,7 @@ class MotorAsyncIODocument(DocumentImplementation):
             # Unknown index, cannot wrap the error so just reraise it
             raise
         self._data.clear_modified()
+        return ret
 
     @asyncio.coroutine
     def delete(self):
@@ -148,6 +151,8 @@ class MotorAsyncIODocument(DocumentImplementation):
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
         doesn't exist in database.
+
+        :return: Delete result dict returned by underlaying driver.
         """
         yield from asyncio.coroutine(self.pre_delete)()
         if not self.is_created:

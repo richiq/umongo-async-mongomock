@@ -61,7 +61,8 @@ class TestPymongo(BaseDBTest):
     def test_create(self, classroom_model):
         Student = classroom_model.Student
         john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
-        john.commit()
+        ret = john.commit()
+        assert isinstance(ret, InsertOneResult)
         assert john.to_mongo() == {
             '_id': john.id,
             'name': 'John Doe',
@@ -76,7 +77,8 @@ class TestPymongo(BaseDBTest):
         john.commit()
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
-        john.commit()
+        ret = john.commit()
+        assert isinstance(ret, UpdateResult)
         assert john.to_mongo(update=True) is None
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
@@ -102,7 +104,8 @@ class TestPymongo(BaseDBTest):
             john.delete()
         john.commit()
         assert Student.collection.find().count() == 1
-        john.delete()
+        ret = john.delete()
+        assert isinstance(ret, DeleteResult)
         assert not john.is_created
         assert Student.collection.find().count() == 0
         with pytest.raises(exceptions.NotCreatedError):
