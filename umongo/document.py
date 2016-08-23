@@ -210,7 +210,7 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
 
         :param schema: use this schema for the load instead of the default one
         """
-        return self._data.update(data, schema=schema)
+        self._data.update(data, schema=schema)
 
     def dump(self, schema=None):
         """

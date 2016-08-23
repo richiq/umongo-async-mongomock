@@ -75,7 +75,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
 
     def update(self, data, schema=None):
         self.set_modified()
-        return self._data.update(data, schema=schema)
+        self._data.update(data, schema=schema)
 
     def dump(self, schema=None):
         return self._data.dump(schema=schema)
