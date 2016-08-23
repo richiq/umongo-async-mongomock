@@ -1,6 +1,6 @@
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
-from .data_proxy import DataProxy
+from .data_proxy import DataProxy, missing
 
 
 class EmbeddedDocumentTemplate(Template):
@@ -83,7 +83,8 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):
-        return self._data.get(name)
+        value = self._data.get(name)
+        return value if value is not missing else None
 
     def __delitem__(self, name):
         self.set_modified()
@@ -98,11 +99,12 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
             EmbeddedDocumentImplementation.__dict__[name].__set__(self, value)
         else:
             self.set_modified()
-            self._data.set(name, value)
+            self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):
-        return self._data.get(name)
+        value = self._data.get(name, to_raise=AttributeError)
+        return value if value is not missing else None
 
     def __delattr__(self, name):
         self.set_modified()
-        self._data.delete(name)
+        self._data.delete(name, to_raise=AttributeError)
