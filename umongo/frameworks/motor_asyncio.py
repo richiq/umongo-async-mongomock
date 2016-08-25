@@ -131,6 +131,8 @@ class MotorAsyncIODocument(DocumentImplementation):
                     if ret.get('ok') != 1 or ret.get('n') != 1:
                         raise UpdateError(ret)
                     yield from self.__coroutined_post_update(ret, payload)
+                else:
+                    ret = None
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:

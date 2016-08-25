@@ -79,6 +79,9 @@ class TestMotorAsyncio(BaseDBTest):
 
             john2 = yield from Student.find_one(john.id)
             assert john2._data == john._data
+            # Double commit should do nothing
+            ret = yield from john.commit()
+            assert ret is None
 
         loop.run_until_complete(do_test())
 

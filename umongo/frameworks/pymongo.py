@@ -89,6 +89,8 @@ class PyMongoDocument(DocumentImplementation):
                     if ret.matched_count != 1:
                         raise UpdateError(ret.raw_result)
                     self.post_update(ret, payload)
+                else:
+                    ret = None
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:

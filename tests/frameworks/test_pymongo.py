@@ -70,6 +70,8 @@ class TestPymongo(BaseDBTest):
         }
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
+        # Double commit should do nothing
+        assert john.commit() is None
 
     def test_update(self, classroom_model):
         Student = classroom_model.Student

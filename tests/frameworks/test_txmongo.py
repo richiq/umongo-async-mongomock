@@ -91,6 +91,9 @@ class TestTxMongo(BaseDBTest):
 
         john2 = yield Student.find_one(john.id)
         assert john2._data == john._data
+        # Double commit should do nothing
+        ret = yield john.commit()
+        assert ret is None
 
     @pytest_inlineCallbacks
     def test_update(self, classroom_model):
