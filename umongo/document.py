@@ -1,5 +1,6 @@
 from bson import DBRef
 
+from .abstract import BaseDataObject
 from .data_proxy import DataProxy, missing
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
@@ -100,7 +101,7 @@ class MetaDocumentImplementation(MetaImplementation):
         return cls.opts.instance.db[cls.opts.collection_name]
 
 
-class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementation):
+class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocumentImplementation):
     """
     Represent a document once it has been implemented inside a
     :class:`umongo.instance.BaseInstance`.
@@ -251,6 +252,8 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
 
     def __delattr__(self, name):
         self._data.delete(name, to_raise=AttributeError)
+
+    # Callbacks
 
     def pre_insert(self, payload):
         """

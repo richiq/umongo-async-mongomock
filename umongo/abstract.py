@@ -8,17 +8,19 @@ from .i18n import gettext as _
 __all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
 
 
+def _check_unknown_fields(self, data, original_data):
+    loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
+    for key in original_data:
+        if key not in loadable_fields:
+            raise ValidationError(_('Unknown field name {field}.').format(field=key))
+
+
 class BaseSchema(MaSchema):
     """
     All schema used in umongo should inherit from this base schema
     """
 
-    @validates_schema(pass_original=True)
-    def check_unknown_fields(self, data, original_data):
-        loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
-        for key in original_data:
-            if key not in loadable_fields:
-                raise ValidationError(_('Unknown field name {field}.').format(field=key))
+    __check_unknown_fields = validates_schema(pass_original=True)(_check_unknown_fields)
 
     def map_to_field(self, func):
         """
@@ -32,6 +34,26 @@ class BaseSchema(MaSchema):
             func(mongo_path, name, field)
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
+
+    def as_marshmallow_schema(self, params=None, base_schema_cls=MaSchema,
+                              check_unknown_fields=True, mongo_world=False):
+        """
+        Return a pure-marshmallow version of this schema class.
+
+        :param params: Per-field dict to pass parameters to their field creation.
+        :param base_schema_cls: Class the schema will inherit from (
+            default: :class:`marshmallow.Schema`).
+        :param check_unknown_fields: Unknown fields are considered as errors (default: True).
+        :param mongo_world: If True the schema will work against the mongo world
+            instead of the OO world (default: False).
+        """
+        params = params or {}
+        nmspc = {name: field.as_marshmallow_field(params=params.get(name), mongo_world=mongo_world)
+                 for name, field in self.fields.items()}
+        if check_unknown_fields:
+            nmspc['__check_unknown_fields'] = validates_schema(
+                pass_original=True)(_check_unknown_fields)
+        return type('Marshmallow%s' % type(self).__name__, (base_schema_cls, ), nmspc)
 
 
 class I18nErrorDict(dict):
@@ -134,6 +156,37 @@ class BaseField(ma_fields.Field):
     def translate_query(self, key, query):
         return {self.attribute or key: query}
 
+    def _extract_marshmallow_field_params(self, mongo_world):
+        params = {field: getattr(self, field)
+                  for field in ('default', 'load_from', 'validate',
+                                'required', 'allow_none', 'load_only',
+                                'dump_only', 'missing', 'error_messages')}
+        if mongo_world and self.attribute:
+            params['attribute'] = self.attribute
+        return params
+
+    def as_marshmallow_field(self, params=None, mongo_world=False):
+        """
+        Return a pure-marshmallow version of this field.
+
+        :param params: Additional parameters passed to the mashmallow field
+            class constructor.
+        :param mongo_world: If True the field will work against the mongo world
+            instead of the OO world (default: False)
+        """
+        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            kwargs.update(params)
+        # Retrieve the marshmallow class we inherit from
+        for m_class in type(self).mro():
+            if (not issubclass(m_class, BaseField) and
+                    issubclass(m_class, ma_fields.Field)):
+                m_field = m_class(**kwargs)
+                # Add i18n support to the field
+                m_field.error_messages = I18nErrorDict(m_field.error_messages)
+                return m_field
+        # Cannot escape the loop given BaseField itself inherits marshmallow's Field
+
 
 class BaseValidator(ma_validate.Validator):
     """
@@ -151,6 +204,28 @@ class BaseValidator(ma_validate.Validator):
     @error.setter
     def error(self, value):
         self._error = value
+
+    def as_marshmallow_validator(self, params=None, mongo_world=False):
+        """
+        Return a pure-marshmallow version of this validator.
+
+        :param params: Additional parameters passed to the mashmallow validator
+            class constructor.
+        :param mongo_world: If True the field will work against the mongo world
+            instead of the OO world (default: False)
+        """
+        kwargs = {field: getattr(self, field)
+                  for field in ('default', 'attribute', 'load_from',
+                                'validate', 'required', 'allow_none', 'load_only',
+                                'dump_only', 'missing', 'error_messages')}
+        if params:
+            kwargs.update(params)
+        # Retrieve the marshmallow class we inherit from
+        for m_class in type(self).mro():
+            if (not issubclass(m_class, BaseField) and
+                    issubclass(m_class, ma_fields.Field)):
+                return m_class(**kwargs)
+        # Cannot escape the loop given BaseField itself inherits marshmallow's Field
 
 
 class BaseDataObject:

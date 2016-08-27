@@ -1,14 +1,16 @@
 from datetime import datetime
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
-from bson import DBRef, ObjectId, errors as bson_errors
+from bson import DBRef, ObjectId
 
 # from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
 from .template import get_template
 from .data_objects import Reference, List, Dict
+from . import marshmallow_bonus_fields as ma_bonus_fields
 from .abstract import BaseField
 from .i18n import gettext as _
+
 
 __all__ = (
     # 'RawField',
@@ -107,6 +109,15 @@ class ListField(BaseField, ma_fields.List):
         if hasattr(self.container, 'map_to_field'):
             self.container.map_to_field(mongo_path, path, func)
 
+    def as_marshmallow_field(self, params=None, mongo_world=False):
+        # Overwrite default `as_marshmallow_field` to handle deserialization
+        # difference (`_id` vs `id`)
+        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            kwargs.update(params)
+        return ma_fields.List(self.container.as_marshmallow_field(
+            mongo_world=mongo_world), **kwargs)
+
 
 class StringField(BaseField, ma_fields.String):
     pass
@@ -198,26 +209,11 @@ IntField = IntegerField
 # Bonus: new fields !
 
 
-class ObjectIdField(BaseField, ma_fields.Field):
-    """
-    Marshmallow field for :class:`bson.ObjectId`
-    """
-
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        return str(value)
-
-    def _deserialize(self, value, attr, data):
-        if value is None:
-            return None
-        try:
-            return ObjectId(value)
-        except bson_errors.InvalidId:
-            raise ValidationError(_('Invalid ObjectId.'))
+class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
+    pass
 
 
-class ReferenceField(ObjectIdField):
+class ReferenceField(BaseField, ma_bonus_fields.Reference):
 
     def __init__(self, document, *args, reference_cls=Reference, **kwargs):
         """
@@ -247,11 +243,6 @@ class ReferenceField(ObjectIdField):
         if not self._document_cls:
             self._document_cls = self.instance.retrieve_document(self.document)
         return self._document_cls
-
-    def _serialize(self, value, attr, obj):
-        if value is None:
-            return None
-        return super()._serialize(value.pk, attr, obj)
 
     def _deserialize(self, value, attr, data):
         if value is None:
@@ -285,14 +276,16 @@ class ReferenceField(ObjectIdField):
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
 
-    def fetch(self):
-        """
-        Retrieve in database the document referenced.
-        """
-        raise NotImplementedError
+    def as_marshmallow_field(self, params=None, mongo_world=False):
+        # Overwrite default `as_marshmallow_field` to handle deserialization
+        # difference (`_id` vs `id`)
+        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            kwargs.update(params)
+        return ma_bonus_fields.Reference(mongo_world=mongo_world, **kwargs)
 
 
-class GenericReferenceField(BaseField):
+class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
 
     def __init__(self, *args, reference_cls=Reference, **kwargs):
         super().__init__(*args, **kwargs)
@@ -322,7 +315,7 @@ class GenericReferenceField(BaseField):
             if value.keys() != {'cls', 'id'}:
                 raise ValidationError(_("Generic reference must have `id` and `cls` fields."))
             try:
-                _id = ObjectId(super()._deserialize(value['id'], attr, data))
+                _id = ObjectId(value['id'])
             except ValueError:
                 raise ValidationError(_("Invalid `id` field."))
             return self._deserialize_from_mongo({
@@ -342,6 +335,14 @@ class GenericReferenceField(BaseField):
             raise ValidationError(_('Unknown document `{document}`.').format(
                 document=value['_cls']))
         return self.reference_cls(document_cls, value['_id'])
+
+    def as_marshmallow_field(self, params=None, mongo_world=False):
+        # Overwrite default `as_marshmallow_field` to handle deserialization
+        # difference (`_id` vs `id`)
+        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            kwargs.update(params)
+        return ma_bonus_fields.GenericReference(mongo_world=mongo_world, **kwargs)
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):
@@ -407,3 +408,15 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             func(cur_mongo_path, cur_path, field)
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(cur_mongo_path, cur_path, func)
+
+    def as_marshmallow_field(self, params=None, mongo_world=False):
+        # Overwrite default `as_marshmallow_field` to handle nesting
+        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            nested_params = params.pop('params')
+            kwargs.update(params)
+        else:
+            nested_params = None
+        nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema(
+            params=nested_params, mongo_world=mongo_world)
+        return ma_fields.Nested(nested_ma_schema, **kwargs)
