@@ -215,7 +215,7 @@ class TestMarshmallow(BaseTest):
         assert ret.data == serialized
         ret = ma_schema.load(serialized)
         assert not ret.errors
-        assert ret.data == oo_data  
+        assert ret.data == oo_data
 
         # schema to mongo world
         ma_mongo_schema_cls = Doc.schema.as_marshmallow_schema(mongo_world=True)
