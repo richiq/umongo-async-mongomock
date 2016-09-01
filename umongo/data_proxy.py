@@ -176,6 +176,11 @@ class DataProxy:
             if isinstance(v, BaseDataObject):
                 v.clear_modified()
 
+    def is_modified(self):
+        return (bool(self._modified_data) or
+            any(isinstance(v, BaseDataObject) and v.is_modified()
+                for v in self._data.values()))
+
     def _collect_partial_fields(self, loaded_fields, as_mongo_fields=False):
         if as_mongo_fields:
             self.not_loaded_fields = set(

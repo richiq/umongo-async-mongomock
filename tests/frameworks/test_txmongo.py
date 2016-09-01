@@ -200,7 +200,7 @@ class TestTxMongo(BaseDBTest):
         yield student.commit()
         teacher = classroom_model.Teacher(name='M. Strickland')
         yield teacher.commit()
-        course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+        course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
         yield course.commit()
         assert student.courses == []
         student.courses.append(course)
@@ -216,7 +216,7 @@ class TestTxMongo(BaseDBTest):
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')
         yield teacher.commit()
-        course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+        course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
         yield course.commit()
         assert isinstance(course.teacher, Reference)
         teacher_fetched = yield course.teacher.fetch()

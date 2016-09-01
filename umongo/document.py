@@ -227,6 +227,12 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
         """
         self._data.clear_modified()
 
+    def is_modified(self):
+        """
+        Returns True if and only if the document was modified since last commit
+        """
+        return not self.is_created or self._data.is_modified()
+
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):

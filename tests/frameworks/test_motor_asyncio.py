@@ -236,7 +236,7 @@ class TestMotorAsyncio(BaseDBTest):
             yield from student.commit()
             teacher = classroom_model.Teacher(name='M. Strickland')
             yield from teacher.commit()
-            course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+            course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
             yield from course.commit()
             assert student.courses == []
             student.courses.append(course)
@@ -257,7 +257,7 @@ class TestMotorAsyncio(BaseDBTest):
 
             teacher = classroom_model.Teacher(name='M. Strickland')
             yield from teacher.commit()
-            course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+            course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
             yield from course.commit()
             assert isinstance(course.teacher, Reference)
             teacher_fetched = yield from course.teacher.fetch()

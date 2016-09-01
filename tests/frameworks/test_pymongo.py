@@ -164,7 +164,7 @@ class TestPymongo(BaseDBTest):
         student.commit()
         teacher = classroom_model.Teacher(name='M. Strickland')
         teacher.commit()
-        course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+        course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
         course.commit()
         assert student.courses == []
         student.courses.append(course)
@@ -179,7 +179,7 @@ class TestPymongo(BaseDBTest):
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')
         teacher.commit()
-        course = classroom_model.Course(name='Overboard 101', teacher=teacher)
+        course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
         course.commit()
         assert isinstance(course.teacher, Reference)
         teacher_fetched = course.teacher.fetch()
