@@ -242,33 +242,6 @@ def _embedded_document_io_validate(field, value):
     _io_validate_data_proxy(value.schema, value._data)
 
 
-def _io_validate_patch_schema(fields):
-    """Add default io validators to the given schema
-    """
-
-    def patch_field(field):
-        validators = field.io_validate
-        if not validators:
-            field.io_validate = []
-        else:
-            if hasattr(validators, '__iter__'):
-                field.io_validate = list(validators)
-            else:
-                field.io_validate = [validators]
-        if isinstance(field, ListField):
-            field.io_validate.append(_list_io_validate)
-            patch_field(field.container)
-        if isinstance(field, ReferenceField):
-            field.io_validate.append(_reference_io_validate)
-            field.reference_cls = PyMongoReference
-        if isinstance(field, EmbeddedField):
-            field.io_validate.append(_embedded_document_io_validate)
-            _io_validate_patch_schema(field.schema.fields)
-
-    for field in fields.values():
-        patch_field(field)
-
-
 class PyMongoReference(Reference):
 
     def __init__(self, *args, **kwargs):

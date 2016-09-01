@@ -149,7 +149,9 @@ class TestPymongo(BaseDBTest):
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
         cursor = Student.find(limit=5, skip=6)
-        assert isinstance(cursor[0], Student)
+        elem0 = cursor[0]
+        assert isinstance(elem0, Student)
+        assert next(cursor) == elem0
 
         # Make sure this kind of notation doesn't create new cursor
         cursor = Student.find()
