@@ -72,6 +72,8 @@ class DataProxy:
             self._data[k] = field.deserialize_from_mongo(v)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
+        else:
+            self.not_loaded_fields = ()
         self._add_missing_fields()
         self.clear_modified()
 
@@ -104,6 +106,8 @@ class DataProxy:
         self._data = loaded_data
         if partial:
             self._collect_partial_fields(data)
+        else:
+            self.not_loaded_fields = ()
         self._add_missing_fields()
         self.clear_modified()
 
