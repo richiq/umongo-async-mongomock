@@ -91,14 +91,17 @@ class TestFields(BaseTest):
 
         class MySchema(EmbeddedSchema):
             a = fields.DateTimeField()
+            b = fields.DateTimeField(tz_aware=True)
 
         s = MySchema(strict=True)
-        data, _ = s.load({'a': datetime(2016, 8, 6)})
-        assert data['a'] == datetime(2016, 8, 6)
-        data, _ = s.load({'a': "2016-08-06T00:00:00Z"})
-        assert data['a'] == datetime(2016, 8, 6, tzinfo=tzutc())
-        data, _ = s.load({'a': "2016-08-06T00:00:00"})
-        assert data['a'] == datetime(2016, 8, 6)
+        for date in (
+            datetime(2016, 8, 6),
+            "2016-08-06T00:00:00Z",
+            "2016-08-06T00:00:00",
+        ):
+            data, _ = s.load({'a': date, 'b': date})
+            assert data['a'] == datetime(2016, 8, 6)
+            assert data['b'] == datetime(2016, 8, 6, tzinfo=tzutc())
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
