@@ -177,7 +177,7 @@ class DataProxy:
                 v.clear_modified()
 
     def is_modified(self):
-        return bool(len(self._modified_data) or
+        return (bool(self._modified_data) or
             any(isinstance(v, BaseDataObject) and v.is_modified()
                 for v in self._data.values()))
 
