@@ -242,6 +242,8 @@ class TestDocument(BaseTest):
             vehicle = fields.EmbeddedField(Vehicle)
 
         driver = Driver(name='Marty')
+        assert driver.is_modified()
+        driver.is_created = True
         assert not driver.is_modified()
         driver.name = 'Marty McFly'
         assert driver.is_modified()

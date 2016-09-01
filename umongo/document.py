@@ -231,7 +231,7 @@ class DocumentImplementation(Implementation, metaclass=MetaDocumentImplementatio
         """
         Returns True if and only if the document was modified since last commit
         """
-        return self._data.is_modified()
+        return not self.is_created or self._data.is_modified()
 
     # Data-proxy accessor shortcuts
 
