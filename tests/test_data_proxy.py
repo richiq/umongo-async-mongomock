@@ -303,3 +303,16 @@ class TestDataProxy(BaseTest):
         assert d.get('normal') is missing
         assert d.get('loaded') == "foo"
         assert d.get('loaded_but_empty') == missing
+
+        # Partial, then not partial
+        d = DataProxy(MySchema())
+        d.from_mongo({'loaded': "foo", 'loaded_but_empty': missing}, partial=True)
+        assert d.partial is True
+        d.from_mongo({'loaded': "foo", 'loaded_but_empty': missing})
+        assert d.partial is False
+        # Same test with load
+        d = DataProxy(MySchema())
+        d.load({'loaded': "foo", 'loaded_but_empty': missing}, partial=True)
+        assert d.partial is True
+        d.load({'loaded': "foo", 'loaded_but_empty': missing})
+        assert d.partial is False
