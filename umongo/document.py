@@ -261,23 +261,19 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     # Callbacks
 
-    def pre_insert(self, payload):
+    def pre_insert(self):
         """
         Overload this method to get a callback before document insertion.
-        :param payload: Data to insert in database, you can modify
-            this dict.
 
         .. note:: If you use an async driver, this callback can return a defer/future.
         """
         pass
 
-    def pre_update(self, query, payload):
+    def pre_update(self):
         """
         Overload this method to get a callback before document update.
-        :param query: Query to select the document to update, you can modify
-            this dict.
-        :param payload: Data to send in database, you can modify
-            this dict.
+        :return: Additional filters dict that will be used for the query to
+            select the document to update.
 
         .. note:: If you use an async driver, this callback can return a defer/future.
         """
@@ -291,21 +287,19 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         """
         pass
 
-    def post_insert(self, ret, payload):
+    def post_insert(self, ret):
         """
         Overload this method to get a callback after document insertion.
         :param ret: Pymongo response sent by the database.
-        :param payload: Data that have been inserted in database.
 
         .. note:: If you use an async driver, this callback can return a defer/future.
         """
         pass
 
-    def post_update(self, ret, payload):
+    def post_update(self, ret):
         """
         Overload this method to get a callback after document update.
         :param ret: Pymongo response sent by the database.
-        :param payload: Data used for the update in database.
 
         .. note:: If you use an async driver, this callback can return a defer/future.
         """

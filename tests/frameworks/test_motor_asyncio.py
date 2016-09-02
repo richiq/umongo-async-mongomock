@@ -807,49 +807,40 @@ class TestMotorAsyncio(BaseDBTest):
                 name = fields.StrField()
                 age = fields.IntField()
 
-                def pre_insert(self, payload):
-                    callbacks.append(('pre_insert', payload))
+                def pre_insert(self):
+                    callbacks.append('pre_insert')
 
-                def pre_update(self, query, payload):
-                    callbacks.append(('pre_update', query, payload))
+                def pre_update(self):
+                    callbacks.append('pre_update')
 
                 def pre_delete(self):
-                    callbacks.append(('pre_delete', ))
+                    callbacks.append('pre_delete')
 
-                def post_insert(self, ret, payload):
+                def post_insert(self, ret):
                     assert isinstance(ret, ObjectId)
-                    callbacks.append(('post_insert', 'ret', payload))
+                    callbacks.append('post_insert')
 
-                def post_update(self, ret, payload):
+                def post_update(self, ret):
                     assert ret == {'ok': 1, 'nModified': 1, 'updatedExisting': True, 'n': 1}
-                    callbacks.append(('post_update', 'ret', payload))
+                    callbacks.append('post_update')
 
                 def post_delete(self, ret):
                     assert ret == {'n': 1, 'ok': 1}
-                    callbacks.append(('post_delete', 'ret'))
+                    callbacks.append('post_delete')
 
 
             p = Person(name='John', age=20)
             yield from p.commit()
-            assert callbacks == [
-                ('pre_insert', {'_id': p.pk, 'name': 'John', 'age': 20}),
-                ('post_insert', 'ret', {'_id': p.pk, 'name': 'John', 'age': 20})
-            ]
+            assert callbacks == ['pre_insert', 'post_insert']
 
             callbacks.clear()
             p.age = 22
             yield from p.commit({'age': 22})
-            assert callbacks == [
-                ('pre_update', {'_id': p.pk}, {'$set': {'age': 22}}),
-                ('post_update', 'ret', {'$set': {'age': 22}})
-            ]
+            assert callbacks == ['pre_update', 'post_update']
 
             callbacks.clear()
             yield from p.delete()
-            assert callbacks == [
-                ('pre_delete', ),
-                ('post_delete', 'ret')
-            ]
+            assert callbacks == ['pre_delete', 'post_delete']
 
         loop.run_until_complete(do_test())
 
@@ -865,14 +856,14 @@ class TestMotorAsyncio(BaseDBTest):
                 name = fields.StrField()
                 age = fields.IntField()
 
-                def pre_insert(self, payload):
+                def pre_insert(self):
                     events.append('start pre_insert')
                     future = asyncio.Future()
                     future.set_result(True)
                     yield from future
                     events.append('end pre_insert')
 
-                def post_insert(self, ret, payload):
+                def post_insert(self, ret):
                     events.append('start post_insert')
                     future = asyncio.Future()
                     future.set_result(True)
@@ -887,6 +878,47 @@ class TestMotorAsyncio(BaseDBTest):
                 'start post_insert',
                 'end post_insert'
             ]
+
+        loop.run_until_complete(do_test())
+
+    def test_modify_in_pre_hook(self, loop, instance):
+
+        @asyncio.coroutine
+        def do_test():
+
+            @instance.register
+            class Person(Document):
+                version = fields.IntField(required=True, attribute='_version')
+                name = fields.StrField()
+                age = fields.IntField()
+
+                def pre_insert(self):
+                    self.version = 1
+
+                def pre_update(self):
+                    # Prevent concurrency by checking a version number on update
+                    last_version = self.version
+                    self.version += 1
+                    return {'version': last_version}
+
+
+            p = Person(name='John', age=20)
+            yield from p.commit()
+
+            assert p.version == 1
+            p_concurrent = yield from Person.find_one(p.pk)
+
+            p.age = 22
+            yield from p.commit()
+            assert p.version == 2
+
+            # Concurrent should not be able to commit it modifications
+            p_concurrent.name = 'John'
+            with pytest.raises(exceptions.UpdateError):
+                yield from p_concurrent.commit()
+
+            yield from p_concurrent.reload()
+            assert p_concurrent.version == 2
 
         loop.run_until_complete(do_test())
 

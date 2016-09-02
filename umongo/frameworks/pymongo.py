@@ -8,6 +8,7 @@ from ..data_proxy import DataProxy, missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
+from ..query_mapper import map_query
 
 from .tools import cook_find_filter
 
@@ -77,29 +78,35 @@ class PyMongoDocument(DocumentImplementation):
         :return: A :class:`pymongo.results.UpdateResult` or
             :class:`pymongo.results.InsertOneResult` depending of the operation.
         """
-        self.io_validate(validate_all=io_validate_all)
-        payload = self._data.to_mongo(update=self.is_created)
         try:
             if self.is_created:
-                if payload:
+                if self.is_modified():
                     query = conditions or {}
-                    query['_id'] = self._data.get_by_mongo_name('_id')
-                    self.pre_update(query, payload)
+                    query['_id'] = self.pk
+                    # pre_update can provide additional query filter and/or
+                    # modify the fields' values
+                    additional_filter = self.pre_update()
+                    if additional_filter:
+                        query.update(map_query(additional_filter, self.schema.fields))
+                    self.io_validate(validate_all=io_validate_all)
+                    payload = self._data.to_mongo(update=True)
                     ret = self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
-                        raise UpdateError(ret.raw_result)
-                    self.post_update(ret, payload)
+                        raise UpdateError(ret)
+                    self.post_update(ret)
                 else:
                     ret = None
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
-                self.pre_insert(payload)
+                self.pre_insert()
+                self.io_validate(validate_all=io_validate_all)
+                payload = self._data.to_mongo(update=False)
                 ret = self.collection.insert_one(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret.inserted_id)
                 self.is_created = True
-                self.post_insert(ret, payload)
+                self.post_insert(ret)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -137,7 +144,7 @@ class PyMongoDocument(DocumentImplementation):
         self.pre_delete()
         ret = self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
-            raise DeleteError(ret.raw_result)
+            raise DeleteError(ret)
         self.is_created = False
         self.post_delete(ret)
         return ret
