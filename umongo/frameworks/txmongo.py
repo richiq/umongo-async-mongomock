@@ -66,7 +66,7 @@ class TxMongoDocument(DocumentImplementation):
                     payload = self._data.to_mongo(update=True)
                     ret = yield self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
-                        raise UpdateError(ret.raw_result)
+                        raise UpdateError(ret)
                     yield maybeDeferred(self.post_update, ret)
                 else:
                     ret = None
@@ -117,7 +117,7 @@ class TxMongoDocument(DocumentImplementation):
         yield maybeDeferred(self.pre_delete)
         ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
-            raise DeleteError(ret.raw_result)
+            raise DeleteError(ret)
         self.is_created = False
         yield maybeDeferred(self.post_delete, ret)
         return ret
