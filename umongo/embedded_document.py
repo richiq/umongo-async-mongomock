@@ -40,6 +40,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     """
 
     __slots__ = ('_callback', '_data', '_modified')
+    __real_attributes = None
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate)
 
     def __init__(self, **kwargs):
@@ -58,7 +59,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
             return self._data == other._data
 
     def is_modified(self):
-        return self._modified
+        return self._data.is_modified()
 
     def set_modified(self):
         self._modified = True
@@ -91,10 +92,14 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
-        if name in EmbeddedDocumentImplementation.__dict__:
-            EmbeddedDocumentImplementation.__dict__[name].__set__(self, value)
+        # Try to retrieve name among class's attributes and __slots__
+        if not self.__real_attributes:
+            # `dir(self)` result only depend on self's class so we can
+            # compute it once and store it inside the class
+            type(self).__real_attributes = dir(self)
+        if name in self.__real_attributes:
+            object.__setattr__(self, name, value)
         else:
-            self.set_modified()
             self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):

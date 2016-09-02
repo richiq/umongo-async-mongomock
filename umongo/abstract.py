@@ -233,18 +233,11 @@ class BaseDataObject:
     All data objects in umongo should inherit from this base data object.
     """
 
-    def __init__(self, *args, **kwargs):
-        self._modified = False
-        super().__init__(*args, **kwargs)
-
     def is_modified(self):
-        return self._modified
-
-    def set_modified(self):
-        self._modified = True
+        raise NotImplementedError()
 
     def clear_modified(self):
-        self._modified = False
+        raise NotImplementedError()
 
     @classmethod
     def build_from_mongo(cls, data):

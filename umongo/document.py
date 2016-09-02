@@ -111,9 +111,11 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
     """
 
     __slots__ = ('is_created', '_data')
+    __real_attributes = None
     opts = DocumentOpts(None, DocumentTemplate, abstract=True, allow_inheritance=True)
 
     def __init__(self, **kwargs):
+        super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
@@ -247,8 +249,13 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
-        if name in DocumentImplementation.__dict__:
-            DocumentImplementation.__dict__[name].__set__(self, value)
+        # Try to retrieve name among class's attributes and __slots__
+        if not self.__real_attributes:
+            # `dir(self)` result only depend on self's class so we can
+            # compute it once and store it inside the class
+            type(self).__real_attributes = dir(self)
+        if name in self.__real_attributes:
+            object.__setattr__(self, name, value)
         else:
             self._data.set(name, value, to_raise=AttributeError)
 
