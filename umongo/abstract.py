@@ -1,18 +1,22 @@
 from marshmallow import (Schema as MaSchema, fields as ma_fields,
                          validate as ma_validate, missing, validates_schema)
 
-from .exceptions import ValidationError
 from .i18n import gettext as _
+from .exceptions import ValidationError
 
 
 __all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
 
 
 def _check_unknown_fields(self, data, original_data):
+    """
+    Raise ValidationError for unknown fields in a marshmallow schema.
+    """
     loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
-    for key in original_data:
-        if key not in loadable_fields:
-            raise ValidationError(_('Unknown field name {field}.').format(field=key))
+    unknown_fields = {key for key in original_data if key not in loadable_fields}
+    if unknown_fields:
+        raise ValidationError([_('Unknown field name {field}.').format(field=field)
+                               for field in unknown_fields])
 
 
 class BaseSchema(MaSchema):
@@ -36,13 +40,16 @@ class BaseSchema(MaSchema):
                 field.map_to_field(mongo_path, name, func)
 
     def as_marshmallow_schema(self, params=None, base_schema_cls=MaSchema,
-                              check_unknown_fields=True, mongo_world=False):
+                              check_unknown_fields=True, missing_accessor=True,
+                              mongo_world=False):
         """
         Return a pure-marshmallow version of this schema class.
 
         :param params: Per-field dict to pass parameters to their field creation.
         :param base_schema_cls: Class the schema will inherit from (
             default: :class:`marshmallow.Schema`).
+        :param missing_accessor: Provide the schema with a custom `get_attribute`
+            method to access umongo missing fields instead of returning `None` (default: True).
         :param check_unknown_fields: Unknown fields are considered as errors (default: True).
         :param mongo_world: If True the schema will work against the mongo world
             instead of the OO world (default: False).
@@ -50,10 +57,22 @@ class BaseSchema(MaSchema):
         params = params or {}
         nmspc = {name: field.as_marshmallow_field(params=params.get(name), mongo_world=mongo_world)
                  for name, field in self.fields.items()}
+        name = 'Marshmallow%s' % type(self).__name__
         if check_unknown_fields:
-            nmspc['__check_unknown_fields'] = validates_schema(
+            nmspc['_%s__check_unknown_fields' % name] = validates_schema(
                 pass_original=True)(_check_unknown_fields)
-        return type('Marshmallow%s' % type(self).__name__, (base_schema_cls, ), nmspc)
+        if missing_accessor:
+
+            def get_attribute(self, attr, obj, default):
+                ret = base_schema_cls.get_attribute(self, attr, obj, default)
+                if ret is None and ret is not default:
+                    raw_ret = self._data.get(attr)
+                    return default if raw_ret is missing else raw_ret
+                else:
+                    return ret
+
+            nmspc['get_attribute'] = get_attribute
+        return type(name, (base_schema_cls, ), nmspc)
 
 
 class I18nErrorDict(dict):

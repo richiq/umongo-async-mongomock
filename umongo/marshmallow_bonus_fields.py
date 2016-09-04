@@ -7,7 +7,7 @@ from .i18n import gettext as _
 
 __all__ = (
     'ObjectId',
-    'GenericReference',
+    'GenericReference'
 )
 
 

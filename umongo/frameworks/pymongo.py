@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
-from ..data_proxy import DataProxy, missing
+from ..data_proxy import missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
@@ -61,7 +61,7 @@ class PyMongoDocument(DocumentImplementation):
         ret = self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        self._data = DataProxy(self.schema)
+        self._data = self.DataProxy()
         self._data.from_mongo(ret)
 
     def commit(self, io_validate_all=False, conditions=None):

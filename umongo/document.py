@@ -1,7 +1,7 @@
 from bson import DBRef
 
 from .abstract import BaseDataObject
-from .data_proxy import DataProxy, missing
+from .data_proxy import missing
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .schema import Schema
@@ -120,7 +120,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
         "Return True if the document has been commited to database"  # is_created's docstring
-        self._data = DataProxy(self.schema, data=kwargs if kwargs else None)
+        self._data = self.DataProxy(kwargs if kwargs else None)
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
@@ -197,7 +197,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     def to_mongo(self, update=False):
         """
-        Return the document as a dict compatible with MongoDB driver
+        Return the document as a dict compatible with MongoDB driver.
 
         :param update: if True the return dict should be used as an
                        update payload instead of containing the entire document
@@ -207,32 +207,27 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
                                   ' using update')
         return self._data.to_mongo(update=update)
 
-    def update(self, data, schema=None):
+    def update(self, data):
         """
-        Update the document with the given data
+        Update the document with the given data.
+        """
+        return self._data.update(data)
 
-        :param schema: use this schema for the load instead of the default one
+    def dump(self):
         """
-        return self._data.update(data, schema=schema)
-
-    def dump(self, schema=None):
+        Dump the document.
         """
-        Dump the document
-
-        :param schema: use this schema for the dump instead of the default one
-        :return: a JSON compatible ``dict`` representing the document
-        """
-        return self._data.dump(schema=schema)
+        return self._data.dump()
 
     def clear_modified(self):
         """
-        Reset the list of document's modified items
+        Reset the list of document's modified items.
         """
         self._data.clear_modified()
 
     def is_modified(self):
         """
-        Returns True if and only if the document was modified since last commit
+        Returns True if and only if the document was modified since last commit.
         """
         return not self.is_created or self._data.is_modified()
 

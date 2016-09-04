@@ -1,6 +1,6 @@
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
-from .data_proxy import DataProxy, missing
+from .data_proxy import missing
 
 
 class EmbeddedDocumentTemplate(Template):
@@ -44,9 +44,8 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate)
 
     def __init__(self, **kwargs):
-        schema = self.Schema()
         self._modified = False
-        self._data = DataProxy(schema, kwargs)
+        self._data = self.DataProxy(kwargs)
 
     def __repr__(self):
         return '<object EmbeddedDocument %s.%s(%s)>' % (
@@ -74,8 +73,17 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def to_mongo(self, update=False):
         return self._data.to_mongo(update=update)
 
-    def dump(self, schema=None):
-        return self._data.dump(schema=schema)
+    def update(self, data):
+        """
+        Update the embedded document with the given data.
+        """
+        return self._data.update(data)
+
+    def dump(self):
+        """
+        Dump the embedded document.
+        """
+        return self._data.dump()
 
     # Data-proxy accessor shortcuts
 

@@ -51,16 +51,27 @@ class TestMarshmallow(BaseTest):
         ret = schema.dump({'name': "42", 'age': 42, 'dummy': False})
         assert not ret.errors
         assert ret.data == {'name': "42", 'age': 42}
+        ret = schema.load({'name': "42", 'age': 42, 'dummy': False})
+        assert ret.errors == {'_schema': ['Unknown field name dummy.']}
+        ret = schema.load({'name': "42", 'age': 42})
+        assert not ret.errors
+        assert ret.data == {'name': "42", 'age': 42}
 
     def test_customize_params(self):
         ma_field = self.User.schema.fields['name'].as_marshmallow_field(params={'load_only': True})
         assert ma_field.load_only is True
 
-        ma_schema_cls = self.User.schema.as_marshmallow_schema(params={'name': {'load_only': True}})
+        ma_schema_cls = self.User.schema.as_marshmallow_schema(params={'name': {'load_only': True, 'dump_only': True}})
         schema = ma_schema_cls()
         ret = schema.dump({'name': "42", 'birthday': datetime(1990, 10, 23), 'dummy': False})
         assert not ret.errors
         assert ret.data == {'birthday': '1990-10-23T00:00:00+00:00'}
+        ret = schema.load({'name': "42", 'birthday': '1990-10-23T00:00:00+00:00', 'dummy': False})
+        assert (ret.errors == {'_schema': ['Unknown field name name.', 'Unknown field name dummy.']} or
+                ret.errors == {'_schema': ['Unknown field name dummy.', 'Unknown field name name.']})
+        ret = schema.load({'birthday': '1990-10-23T00:00:00'})
+        assert not ret.errors
+        assert ret.data == {'birthday': datetime(1990, 10, 23)}
 
     def test_keep_attributes(self):
         @self.instance.register
@@ -139,6 +150,10 @@ class TestMarshmallow(BaseTest):
         ret = ma_schema_cls().load({'name': 'John', 'dummy_field': 'dummy'})
         assert not ret.errors
         assert ret.data == {'name': 'John'}
+
+    def test_missing_accessor(self):
+        # TODO
+        pass
 
     def test_nested_field(self):
         @self.instance.register
