@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime
-from bson import ObjectId, DBRef
+from bson import ObjectId
 import marshmallow
 
-from umongo import Document, EmbeddedDocument, Schema, fields, exceptions, set_gettext, validate
+from umongo import Document, EmbeddedDocument, fields, set_gettext, validate
 from umongo import marshmallow_bonus as ma_bonus_fields
 from umongo.abstract import BaseField, BaseSchema
 from umongo.marshmallow_bonus import (
@@ -267,7 +267,7 @@ class TestMarshmallow(BaseTest):
 
             @property
             def prop(self):
-                return "I'm a proerty !"
+                return "I'm a property !"
 
         class VanillaSchema(marshmallow.Schema):
             a = marshmallow.fields.Int()
@@ -277,15 +277,15 @@ class TestMarshmallow(BaseTest):
 
         data, errors = VanillaSchema().dump(Doc())
         assert not errors
-        data == {'a': None}
+        assert data == {'a': None}
 
         data, errors = CustomGetAttributeSchema().dump(Doc())
         assert not errors
-        data == {}
+        assert data == {}
 
         data, errors = CustomGetAttributeSchema().dump(Doc(a=1))
         assert not errors
-        data == {'a': 1}
+        assert data == {'a': 1}
 
         class MySchemaFromUmongo(SchemaFromUmongo):
             a = marshmallow.fields.Int()
@@ -293,7 +293,7 @@ class TestMarshmallow(BaseTest):
 
         data, errors = MySchemaFromUmongo().dump(Doc())
         assert not errors
-        data == {'prop': "I'm a property !"}
+        assert data == {'prop': "I'm a property !"}
 
         _, errors = MySchemaFromUmongo().load({'a': 1, 'dummy': 2})
         assert errors == {'_schema': ['Unknown field name dummy.']}
