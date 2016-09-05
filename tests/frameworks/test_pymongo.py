@@ -159,6 +159,11 @@ class TestPymongo(BaseDBTest):
         cursor_skip = cursor.skip(6)
         assert cursor is cursor_limit is cursor_skip
 
+        # Cursor slicing
+        cursor = Student.find()
+        names = (elem.name for elem in cursor[2:5])
+        assert sorted(names) == ['student-%s' % i for i in range(2, 5)]
+
     def test_classroom(self, classroom_model):
         student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
         student.commit()
