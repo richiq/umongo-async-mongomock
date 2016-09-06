@@ -195,6 +195,12 @@ class TestFields(BaseTest):
         assert embedded_doc['a'] == 1
         assert embedded_doc['b'] == 2
 
+        embedded_doc.clear_modified()
+        embedded_doc.update({'b': 42})
+        assert embedded_doc.is_modified()
+        assert embedded_doc.a == 1
+        assert embedded_doc.b == 42
+
         with pytest.raises(ValidationError):
             MyEmbeddedDocument(in_mongo_a=1, b=2)
 
