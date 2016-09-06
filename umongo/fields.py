@@ -7,7 +7,7 @@ from bson import DBRef, ObjectId
 from .exceptions import NotRegisteredDocumentError
 from .template import get_template
 from .data_objects import Reference, List, Dict
-from . import marshmallow_bonus_fields as ma_bonus_fields
+from . import marshmallow_bonus as ma_bonus_fields
 from .abstract import BaseField
 from .i18n import gettext as _
 

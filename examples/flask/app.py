@@ -6,7 +6,7 @@ from pymongo import MongoClient
 import marshmallow
 
 from umongo import Instance, Document, fields, ValidationError, set_gettext
-from umongo.marshmallow_bonus_fields import UMongoMarshmallowSchema
+from umongo.marshmallow_bonus import SchemaFromUmongo
 
 
 app = Flask(__name__)
@@ -171,11 +171,11 @@ def change_password_user(nick_or_id):
         abort(404)
 
     # Use a field from our document to create a marshmallow schema
-    # Note that we use `UMongoMarshmallowSchema` to get unknown field
-    # check on deserialization and skip missing fields instead of returning None
-    class ChangePasswordSchema(UMongoMarshmallowSchema):
+    # Note that we use `SchemaFromUmongo` to get unknown fields check on
+    # deserialization and skip missing fields instead of returning None
+    class ChangePasswordSchema(SchemaFromUmongo):
         password = User.schema.fields['password'].as_marshmallow_field(params={'required': True})
-    # with `strict`, marshmallow raise ValidationError if something is wrong
+    # with `strict`, marshmallow raises a ValidationError if something is wrong
     schema = ChangePasswordSchema(strict=True)
     try:
         data, _ = schema.load(payload)

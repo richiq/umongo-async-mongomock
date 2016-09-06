@@ -3,20 +3,10 @@ from marshmallow import (Schema as MaSchema, fields as ma_fields,
 
 from .i18n import gettext as _
 from .exceptions import ValidationError
-
+from .marshmallow_bonus import (schema_validator_check_unknown_fields,
+                                schema_from_umongo_get_attribute)
 
 __all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
-
-
-def _check_unknown_fields(self, data, original_data):
-    """
-    Raise ValidationError for unknown fields in a marshmallow schema.
-    """
-    loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
-    unknown_fields = {key for key in original_data if key not in loadable_fields}
-    if unknown_fields:
-        raise ValidationError([_('Unknown field name {field}.').format(field=field)
-                               for field in unknown_fields])
 
 
 class BaseSchema(MaSchema):
@@ -24,7 +14,8 @@ class BaseSchema(MaSchema):
     All schema used in umongo should inherit from this base schema
     """
 
-    __check_unknown_fields = validates_schema(pass_original=True)(_check_unknown_fields)
+    __check_unknown_fields = validates_schema(pass_original=True)(
+        schema_validator_check_unknown_fields)
 
     def map_to_field(self, func):
         """
@@ -60,18 +51,9 @@ class BaseSchema(MaSchema):
         name = 'Marshmallow%s' % type(self).__name__
         if check_unknown_fields:
             nmspc['_%s__check_unknown_fields' % name] = validates_schema(
-                pass_original=True)(_check_unknown_fields)
+                pass_original=True)(schema_validator_check_unknown_fields)
         if missing_accessor:
-
-            def get_attribute(self, attr, obj, default):
-                ret = base_schema_cls.get_attribute(self, attr, obj, default)
-                if ret is None and ret is not default:
-                    raw_ret = self._data.get(attr)
-                    return default if raw_ret is missing else raw_ret
-                else:
-                    return ret
-
-            nmspc['get_attribute'] = get_attribute
+            nmspc['get_attribute'] = schema_from_umongo_get_attribute
         return type(name, (base_schema_cls, ), nmspc)
 
 

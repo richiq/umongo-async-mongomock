@@ -124,7 +124,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
-            self.__module__, self.__class__.__name__, self._data._data)
+            self.__module__, self.__class__.__name__, dict(self._data.items()))
 
     def __eq__(self, other):
         from .data_objects import Reference

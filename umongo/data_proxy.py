@@ -144,9 +144,7 @@ class BaseDataProxy:
 
     def __repr__(self):
         # Display data in oo world format
-        oo_world_data = {key: self._data[field.attribute or key]
-                         for key, field in self._fields.items()}
-        return "<%s(%s)>" % (self.__class__.__name__, oo_world_data)
+        return "<%s(%s)>" % (self.__class__.__name__, dict(self.items()))
 
     def __eq__(self, other):
         if isinstance(other, dict):
@@ -194,6 +192,24 @@ class BaseDataProxy:
                     self._data[mongo_name] = field.missing()
                 else:
                     self._data[mongo_name] = field.missing
+
+    # Standards iterators providing oo and mongo worlds views
+
+    def items(self):
+        return ((key, self._data[field.attribute or key])
+                 for key, field in self._fields.items())
+
+    def items_by_mongo_name(self):
+        return self._data.items()
+
+    def keys(self):
+        return (field.attribute or key for key, field in self._fields.items())
+
+    def keys_by_mongo_name(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
 
 
 def data_proxy_factory(basename, schema):

@@ -57,6 +57,13 @@ Data objects
 
 .. _api_exceptions:
 
+Marshmallow integration
+=======================
+
+.. automodule:: umongo.marshmallow_bonus
+  :members:
+  :undoc-members:
+
 Exceptions
 ==========
 

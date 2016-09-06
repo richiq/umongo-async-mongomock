@@ -4,8 +4,10 @@ from bson import ObjectId, DBRef
 import marshmallow
 
 from umongo import Document, EmbeddedDocument, Schema, fields, exceptions, set_gettext, validate
-from umongo import marshmallow_bonus_fields as ma_bonus_fields
+from umongo import marshmallow_bonus as ma_bonus_fields
 from umongo.abstract import BaseField, BaseSchema
+from umongo.marshmallow_bonus import (
+    schema_validator_check_unknown_fields, schema_from_umongo_get_attribute, SchemaFromUmongo)
 
 from .common import BaseTest
 
@@ -244,3 +246,49 @@ class TestMarshmallow(BaseTest):
         # Cannot load mongo form
         ret = ma_mongo_schema.load({"gen_ref": {'_cls': 'Doc', '_id': "57c1a71113adf27ab96b2c4f"}})
         assert ret.errors == {'gen_ref': ['Generic reference must have `id` and `cls` fields.']}
+
+    def test_marshmallow_schema_helpers(self):
+
+        class CheckUnknownSchema(marshmallow.Schema):
+            __check_unknown_fields = marshmallow.validates_schema(
+                pass_original=True)(schema_validator_check_unknown_fields)
+            a = marshmallow.fields.Int()
+
+        _, errors = CheckUnknownSchema().load({'a': 1, 'dummy': 2})
+        assert errors == {'_schema': ['Unknown field name dummy.']}
+
+        data, errors = CheckUnknownSchema().load({'a': 1})
+        assert not errors
+        assert data == {'a': 1}
+
+        @self.instance.register
+        class Doc(Document):
+            a = fields.IntField()
+
+        class VanillaSchema(marshmallow.Schema):
+            a = marshmallow.fields.Int()
+
+        class CustomGetAttributeSchema(VanillaSchema):
+            get_attribute = schema_from_umongo_get_attribute
+
+        data, errors = VanillaSchema().dump(Doc())
+        assert not errors
+        data == {'a': None}
+
+        data, errors = CustomGetAttributeSchema().dump(Doc())
+        assert not errors
+        data == {}
+
+        data, errors = CustomGetAttributeSchema().dump(Doc(a=1))
+        assert not errors
+        data == {'a': 1}
+
+        class MySchemaFromUmongo(SchemaFromUmongo):
+            a = marshmallow.fields.Int()
+
+        data, errors = MySchemaFromUmongo().dump(Doc())
+        assert not errors
+        data == {}
+
+        _, errors = MySchemaFromUmongo().load({'a': 1, 'dummy': 2})
+        assert errors == {'_schema': ['Unknown field name dummy.']}

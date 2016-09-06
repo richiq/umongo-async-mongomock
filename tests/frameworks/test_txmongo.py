@@ -9,6 +9,7 @@ from ..fixtures import classroom_model, instance
 # Check if the required dependancies are met to run this driver's tests
 dep_error = None
 try:
+    import pytest_twisted as _
     from txmongo import MongoConnection
     major, minor, _ = get_pymongo_version()
     if major != 3 or minor < 2:
@@ -17,7 +18,7 @@ try:
         from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
-    dep_error = 'Missing txmongo module'
+    dep_error = 'Missing txmongo module or pytest_twisted'
 
     # Given the test function are generator, we must wrap them into a dummy
     # function that pytest can skip
