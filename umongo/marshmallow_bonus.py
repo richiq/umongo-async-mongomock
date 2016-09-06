@@ -24,7 +24,7 @@ def schema_validator_check_unknown_fields(self, data, original_data):
     Schema validator, raise ValidationError for unknown fields in a
     marshmallow schema.
 
-    ..example:
+    example::
 
         class MySchema(marshsmallow.Schema):
             # method's name is not important
@@ -47,7 +47,7 @@ def schema_from_umongo_get_attribute(self, attr, obj, default):
     Overwrite default `Schema.get_attribute` method by this one to access
         umongo missing fields instead of returning `None`.
 
-    ..example:
+    example::
 
         class MySchema(marshsmallow.Schema):
             get_attribute = schema_from_umongo_get_attribute

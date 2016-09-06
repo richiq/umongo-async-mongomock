@@ -67,18 +67,20 @@ class BaseField(ma_fields.Field):
     """
     All fields used in umongo should inherit from this base field.
 
-    Enabled flags                 | resulting index
-    ------------------------------+----------------
-    <no flags>                    |
-    allow_none                    |
-    required                      |
-    required, allow_none          |
-    required, unique, allow_none  | unique
-    unique                        | unique, sparse
-    unique, required              | unique
-    unique, allow_none            | unique, sparse
+    ==============================   ===============
+    Enabled flags                    resulting index
+    ==============================   ===============
+    <no flags>
+    allow_none
+    required
+    required, allow_none
+    required, unique, allow_none     unique
+    unique                           unique, sparse
+    unique, required                 unique
+    unique, allow_none               unique, sparse
+    ==============================   ===============
 
-    Note: Even with allow_none flag, the unique flag will refuse duplicated
+    .. note:: Even with allow_none flag, the unique flag will refuse duplicated
     `null` value (consider unsetting the field with `del` instead)
     """
 

@@ -365,7 +365,7 @@ class EmbeddedField(BaseField, ma_fields.Nested):
 
     @property
     def nested(self):
-        """Overload `nested` attribute to be able to fetch it lazily"""
+        # Overload `nested` attribute to be able to fetch it lazily
         return self.embedded_document_cls.Schema
 
     @nested.setter
