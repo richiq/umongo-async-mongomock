@@ -563,11 +563,11 @@ from scratch... almost:
 .. code-block:: python
 
     >>> MassiveBreedSchema(marshmallow.Schema):
-    ...     name = Duck.schema.fields['name'].as_marshmallow_field()
+    ...     name = Duck.schema.fields['breed'].as_marshmallow_field()
     ...     births = marshmallow.fields.List(
-    ...         Duck.schema.fields['name'].as_marshmallow_field())
+    ...         Duck.schema.fields['birthday'].as_marshmallow_field())
     >>> MassiveDuckSchema(marshmallow.Schema):
-    ... breeds = marshmallow.fields.List(marshmallow.fields.Nested(MassiveBreedSchema))
+    ...     breeds = marshmallow.fields.List(marshmallow.fields.Nested(MassiveBreedSchema))
 
 .. note:: A custom marshmallow schema :class:`umongo.marshmallow_bonus.SchemaFromUmongo`
     can be used instead of regular :class:`marshmallow.Schema` to benefit a tighter
