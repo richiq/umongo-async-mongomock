@@ -30,12 +30,12 @@ class WrappedCursor(Cursor):
         return setattr(self.raw_cursor, name, value)
 
     def __getitem__(self, index):
-        data = self.raw_cursor[index]
-        if isinstance(data, Cursor):
+        if isinstance(index, slice):
+            elems = self.raw_cursor[index]
             return (self.document_cls.build_from_mongo(elem, use_cls=True)
-                    for elem in data)
-        else:
-            return self.document_cls.build_from_mongo(data, use_cls=True)
+                    for elem in elems)
+        elem = self.raw_cursor[index]
+        return self.document_cls.build_from_mongo(elem, use_cls=True)
 
     def __next__(self):
         elem = next(self.raw_cursor)
