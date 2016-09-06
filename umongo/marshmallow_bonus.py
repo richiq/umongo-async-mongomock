@@ -74,7 +74,7 @@ class SchemaFromUmongo(MaSchema):
     """
 
     __check_unknown_fields = validates_schema(pass_original=True)(
-                schema_validator_check_unknown_fields)
+        schema_validator_check_unknown_fields)
     get_attribute = schema_from_umongo_get_attribute
 
 

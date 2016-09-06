@@ -2,7 +2,6 @@ from marshmallow import (Schema as MaSchema, fields as ma_fields,
                          validate as ma_validate, missing, validates_schema)
 
 from .i18n import gettext as _
-from .exceptions import ValidationError
 from .marshmallow_bonus import (schema_validator_check_unknown_fields,
                                 schema_from_umongo_get_attribute)
 
