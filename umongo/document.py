@@ -211,7 +211,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         """
         Update the document with the given data.
         """
-        return self._data.update(data)
+        self._data.update(data)
 
     def dump(self):
         """

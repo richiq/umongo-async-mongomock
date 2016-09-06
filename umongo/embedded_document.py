@@ -77,6 +77,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         """
         Update the embedded document with the given data.
         """
+        self.set_modified()
         return self._data.update(data)
 
     def dump(self):
