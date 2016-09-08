@@ -265,6 +265,10 @@ class TestMarshmallow(BaseTest):
         class Doc(Document):
             a = fields.IntField()
 
+            @property
+            def prop(self):
+                return "I'm a proerty !"
+
         class VanillaSchema(marshmallow.Schema):
             a = marshmallow.fields.Int()
 
@@ -285,10 +289,33 @@ class TestMarshmallow(BaseTest):
 
         class MySchemaFromUmongo(SchemaFromUmongo):
             a = marshmallow.fields.Int()
+            prop = marshmallow.fields.String(dump_only=True)
 
         data, errors = MySchemaFromUmongo().dump(Doc())
         assert not errors
-        data == {}
+        data == {'prop': "I'm a property !"}
 
         _, errors = MySchemaFromUmongo().load({'a': 1, 'dummy': 2})
         assert errors == {'_schema': ['Unknown field name dummy.']}
+
+        _, errors = MySchemaFromUmongo().load({'a': 1, 'prop': '2'})
+        assert errors == {'_schema': ['Unknown field name prop.']}
+
+    def test_dump_only(self):
+
+        @self.instance.register
+        class Doc(Document):
+            dl = fields.IntField()
+            do = fields.IntField(dump_only=True)
+            lo = fields.IntField(load_only=True)
+            nope = fields.IntField(dump_only=True, load_only=True)
+
+        with pytest.raises(marshmallow.ValidationError):
+            Doc(do=1)
+
+        with pytest.raises(marshmallow.ValidationError):
+            Doc(nope=1)
+
+        assert Doc(dl=1, lo=2).dump() == {'dl': 1}
+
+        assert Doc(nope=marshmallow.missing, do=marshmallow.missing).dump() == {}

@@ -34,9 +34,11 @@ def schema_validator_check_unknown_fields(self, data, original_data):
             # Define the rest of your schema
             ...
 
+    ..note:: Unknown fields with `missing` value will be ignored
     """
     loadable_fields = [k for k, v in self.fields.items() if not v.dump_only]
-    unknown_fields = {key for key in original_data if key not in loadable_fields}
+    unknown_fields = {key for key, value in original_data.items()
+                      if value is not missing and key not in loadable_fields}
     if unknown_fields:
         raise ValidationError([_('Unknown field name {field}.').format(field=field)
                                for field in unknown_fields])
