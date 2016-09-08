@@ -126,7 +126,7 @@ class TestFields(BaseTest):
         assert d.to_mongo(update=True) is None
 
         d2 = MyDataProxy({'dict': {}})
-        d2.to_mongo() == {'dict': {}}
+        assert d2.to_mongo() == {'dict': {}}
 
         d3 = MyDataProxy()
         d3.from_mongo({})
@@ -392,11 +392,11 @@ class TestFields(BaseTest):
         assert d.get('objid') == ObjectId("5672d47b1d41c88dcd37ef05")
 
         d.set('objid', ObjectId("5672d5e71d41c88f914b77c4"))
-        d.to_mongo(update=True) == {
+        assert d.to_mongo(update=True) == {
             '$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
 
         d.set('objid', ObjectId("5672d5e71d41c88f914b77c4"))
-        d.to_mongo(update=True) == {
+        assert d.to_mongo(update=True) == {
             '$set': {'in_mongo_objid': ObjectId("5672d5e71d41c88f914b77c4")}}
 
         d.set('objid', "5672d5e71d41c88f914b77c4")
@@ -443,7 +443,7 @@ class TestFields(BaseTest):
         d.load({'ref': ObjectId("5672d47b1d41c88dcd37ef05")})
         d.load({'ref': "5672d47b1d41c88dcd37ef05"})
         assert d.dump() == {'ref': "5672d47b1d41c88dcd37ef05"}
-        d.get('ref').document_cls == MyReferencedDoc
+        assert d.get('ref').document_cls == MyReferencedDoc
         d.set('ref', to_refer_doc)
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_ref': to_refer_doc.pk}}
         assert d.get('ref') == ref
@@ -509,7 +509,7 @@ class TestFields(BaseTest):
         d = MyDataProxy()
         d.load({'gref': {'id': ObjectId("5672d47b1d41c88dcd37ef05"), 'cls': ToRef2.__name__}})
         assert d.dump() == {'gref': {'id': "5672d47b1d41c88dcd37ef05", 'cls': 'ToRef2'}}
-        d.get('gref').document_cls == ToRef2
+        assert d.get('gref').document_cls == ToRef2
         d.set('gref', doc1)
         assert d.to_mongo(update=True) == {
             '$set': {'in_mongo_gref': {'_id': doc1.pk, '_cls': 'ToRef1'}}}
