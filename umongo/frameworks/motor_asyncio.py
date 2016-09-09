@@ -172,17 +172,21 @@ class MotorAsyncIODocument(DocumentImplementation):
         return ret
 
     @asyncio.coroutine
-    def delete(self):
+    def delete(self, conditions=None):
         """
         Alias of :meth:`remove` to enforce default api.
         """
-        return self.remove()
+        return self.remove(conditions=conditions)
 
     @asyncio.coroutine
-    def remove(self):
+    def remove(self, conditions=None):
         """
         Remove the document from database.
 
+        :param conditions: Only perform delete if matching record in db
+            satisfies condition(s) (e.g. version number).
+            Raises :class:`umongo.exceptions.DeleteError` if the
+            conditions are not satisfied.
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
@@ -190,10 +194,15 @@ class MotorAsyncIODocument(DocumentImplementation):
 
         :return: Delete result dict returned by underlaying driver.
         """
-        yield from self.__coroutined_pre_delete()
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
-        ret = yield from self.collection.remove({'_id': self.pk})
+        query = conditions or {}
+        query['_id'] = self.pk
+        # pre_delete can provide additional query filter
+        additional_filter = yield from self.__coroutined_pre_delete()
+        if additional_filter:
+            query.update(map_query(additional_filter, self.schema.fields))
+        ret = yield from self.collection.remove(query)
         if ret.get('ok') != 1 or ret.get('n') != 1:
             raise DeleteError(ret)
         self.is_created = False
