@@ -101,10 +101,14 @@ class TxMongoDocument(DocumentImplementation):
         return ret
 
     @inlineCallbacks
-    def delete(self):
+    def delete(self, conditions=None):
         """
         Remove the document from database.
 
+        :param conditions: Only perform delete if matching record in db
+            satisfies condition(s) (e.g. version number).
+            Raises :class:`umongo.exceptions.DeleteError` if the
+            conditions are not satisfied.
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
@@ -114,7 +118,12 @@ class TxMongoDocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
-        yield maybeDeferred(self.pre_delete)
+        query = conditions or {}
+        query['_id'] = self.pk
+        # pre_delete can provide additional query filter
+        additional_filter = yield maybeDeferred(self.pre_delete)
+        if additional_filter:
+            query.update(map_query(additional_filter, self.schema.fields))
         ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
             raise DeleteError(ret)
