@@ -125,8 +125,13 @@ class TestFields(BaseTest):
         dict_.clear_modified()
         assert d.to_mongo(update=True) is None
 
-        d2 = MyDataProxy({'dict': {}})
-        assert d2.to_mongo() == {'dict': {}}
+        d2 = MyDataProxy({'dict': {'a': 1}})
+        assert d2.to_mongo() == {'in_mongo_dict': {'a': 1}}
+
+        # Empty dict is considered as missing field
+        d2.set('dict', {})
+        assert d2.to_mongo() == {}
+        assert d2.to_mongo(update=True) == {'$unset': {'in_mongo_dict': ''}}
 
         d3 = MyDataProxy()
         d3.from_mongo({})
