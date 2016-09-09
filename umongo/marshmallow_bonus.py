@@ -59,7 +59,7 @@ def schema_from_umongo_get_attribute(self, attr, obj, default):
 
     """
     ret = MaSchema.get_attribute(self, attr, obj, default)
-    if ret is None and ret is not default:
+    if ret is None and ret is not default and attr in obj.schema.fields:
         raw_ret = obj._data.get(attr)
         return default if raw_ret is missing else raw_ret
     else:

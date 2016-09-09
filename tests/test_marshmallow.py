@@ -301,6 +301,46 @@ class TestMarshmallow(BaseTest):
         _, errors = MySchemaFromUmongo().load({'a': 1, 'prop': '2'})
         assert errors == {'_schema': ['Unknown field name prop.']}
 
+    def test_marshmallow_access_custom_attributes(self):
+
+        @self.instance.register
+        class Doc(EmbeddedDocument):
+            a = fields.IntField()
+
+            attribute_foo = 'foo'
+
+            @property
+            def str_prop(self):
+                return "I'm a property !"
+
+            @property
+            def none_prop(self):
+                return None
+
+            @property
+            def missing_prop(self):
+                return marshmallow.missing
+
+            def func_get_42(self):
+                return 42
+
+        class Schema(Doc.schema.as_marshmallow_schema()):
+            str_prop = marshmallow.fields.Str(dump_only=True)
+            none_prop = marshmallow.fields.Str(allow_none=True, dump_only=True)
+            missing_prop = marshmallow.fields.Str(dump_only=True)
+            attribute_foo = marshmallow.fields.Str(dump_only=True)
+            get_42 = marshmallow.fields.Int(dump_only=True, attribute="func_get_42")
+
+        ret = Schema().dump(Doc(a=1))
+        assert not ret.errors
+        assert ret.data == {
+            'a': 1,
+            'str_prop': "I'm a property !",
+            'none_prop': None,
+            'attribute_foo': 'foo',
+            'get_42': 42
+        }
+
     def test_dump_only(self):
 
         @self.instance.register
