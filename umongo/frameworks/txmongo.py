@@ -124,7 +124,7 @@ class TxMongoDocument(DocumentImplementation):
         additional_filter = yield maybeDeferred(self.pre_delete)
         if additional_filter:
             query.update(map_query(additional_filter, self.schema.fields))
-        ret = yield self.collection.delete_one({'_id': self.pk})
+        ret = yield self.collection.delete_one(query)
         if ret.deleted_count != 1:
             raise DeleteError(ret)
         self.is_created = False
