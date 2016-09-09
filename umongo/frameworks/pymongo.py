@@ -149,9 +149,12 @@ class PyMongoDocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
-        self.pre_delete()
         query = conditions or {}
         query['_id'] = self.pk
+        # pre_delete can provide additional query filter
+        additional_filter = self.pre_delete()
+        if additional_filter:
+            query.update(map_query(additional_filter, self.schema.fields))
         ret = self.collection.delete_one(query)
         if ret.deleted_count != 1:
             raise DeleteError(ret)
