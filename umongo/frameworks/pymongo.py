@@ -132,10 +132,14 @@ class PyMongoDocument(DocumentImplementation):
         self._data.clear_modified()
         return ret
 
-    def delete(self):
+    def delete(self, conditions=None):
         """
         Remove the document from database.
 
+        :param conditions: Only perform delete if matching record in db
+            satisfies condition(s) (e.g. version number).
+            Raises :class:`umongo.exceptions.DeleteError` if the
+            conditions are not satisfied.
         Raises :class:`umongo.exceptions.NotCreatedError` if the document
         is not created (i.e. ``doc.is_created`` is False)
         Raises :class:`umongo.exceptions.DeleteError` if the document
@@ -146,7 +150,9 @@ class PyMongoDocument(DocumentImplementation):
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
         self.pre_delete()
-        ret = self.collection.delete_one({'_id': self.pk})
+        query = conditions or {}
+        query['_id'] = self.pk
+        ret = self.collection.delete_one(query)
         if ret.deleted_count != 1:
             raise DeleteError(ret)
         self.is_created = False
