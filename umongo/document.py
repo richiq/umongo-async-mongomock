@@ -284,6 +284,8 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
     def pre_delete(self):
         """
         Overload this method to get a callback before document deletion.
+        :return: Additional filters dict that will be used for the query to
+            select the document to update.
 
         .. note:: If you use an async driver, this callback can return a defer/future.
         """

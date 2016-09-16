@@ -144,7 +144,12 @@ class TestTxMongo(BaseDBTest):
         assert john.is_created
         students = yield Student.find()
         assert len(students) == 1
+        # Test conditional delete
+        with pytest.raises(exceptions.DeleteError):
+            yield john.delete(conditions={'name': 'Bad Name'})
+        yield john.delete(conditions={'name': 'John Doe'})
         # Finally try to delete a doc no longer in database
+        yield john.commit()
         yield students[0].delete()
         with pytest.raises(exceptions.DeleteError):
             yield john.delete()

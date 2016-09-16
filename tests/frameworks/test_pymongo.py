@@ -116,7 +116,12 @@ class TestPymongo(BaseDBTest):
         john.commit()
         assert john.is_created
         assert Student.collection.find().count() == 1
+        # Test conditional delete
+        with pytest.raises(exceptions.DeleteError):
+            john.delete(conditions={'name': 'Bad Name'})
+        john.delete(conditions={'name': 'John Doe'})
         # Finally try to delete a doc no longer in database
+        john.commit()
         Student.find_one(john.id).delete()
         with pytest.raises(exceptions.DeleteError):
             john.delete()
