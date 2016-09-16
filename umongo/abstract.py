@@ -92,7 +92,11 @@ class BaseField(ma_fields.Field):
         super().__init__(*args, **kwargs)
         # Overwrite error_messages to handle i18n translation
         self.error_messages = I18nErrorDict(self.error_messages)
+        # `io_validate` will be run after `io_validate_resursive`
+        # only if this one doesn't returns errors. This is useful for
+        # list and embedded fields.
         self.io_validate = io_validate
+        self.io_validate_recursive = None
         self.unique = unique
         self.instance = instance
 
@@ -103,7 +107,9 @@ class BaseField(ma_fields.Field):
                 'load_only={self.load_only}, dump_only={self.dump_only}, '
                 'missing={self.missing}, allow_none={self.allow_none}, '
                 'error_messages={self.error_messages}, '
-                'io_validate={self.io_validate}, unique={self.unique}, '
+                'io_validate={self.io_validate}, ',
+                'io_validate_recursive={self.io_validate_recursive}, ',
+                'unique={self.unique}, '
                 'instance={self.instance})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 

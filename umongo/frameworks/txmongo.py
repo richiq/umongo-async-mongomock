@@ -206,7 +206,7 @@ def _errback_factory(errors, field=None):
 
     def errback(err):
         if isinstance(err.value, ValidationError):
-            if field:
+            if field is not None:
                 errors[field] = err.value.messages
             else:
                 errors.extend(err.value.messages)
@@ -222,10 +222,14 @@ def _run_validators(validators, field, value):
     errors = []
     defers = []
     for validator in validators:
-        defer = validator(field, value)
-        assert isinstance(defer, Deferred), 'io_validate functions must return a Deferred'
-        defer.addErrback(_errback_factory(errors))
-        defers.append(defer)
+        try:
+            defer = validator(field, value)
+        except ValidationError as ve:
+            errors.extend(ve.messages)
+        else:
+            assert isinstance(defer, Deferred), 'io_validate functions must return a Deferred'
+            defer.addErrback(_errback_factory(errors))
+            defers.append(defer)
     yield DeferredList(defers)
     if errors:
         raise ValidationError(errors)
@@ -244,6 +248,8 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
             # Also look for required
             field._validate_missing(value)
             if value is not missing:
+                if field.io_validate_recursive:
+                    yield field.io_validate_recursive(field, value)
                 if field.io_validate:
                     defer = _run_validators(field.io_validate, field, value)
                     defer.addErrback(_errback_factory(errors, name))
@@ -318,9 +324,9 @@ class TxMongoBuilder(BaseBuilder):
                 validators = [validators]
             field.io_validate = validators
         if isinstance(field, ListField):
-            field.io_validate.append(_list_io_validate)
+            field.io_validate_recursive = _list_io_validate
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = TxMongoReference
         if isinstance(field, EmbeddedField):
-            field.io_validate.append(_embedded_document_io_validate)
+            field.io_validate_recursive = _embedded_document_io_validate

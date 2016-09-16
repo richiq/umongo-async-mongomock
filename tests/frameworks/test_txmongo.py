@@ -281,13 +281,32 @@ class TestTxMongo(BaseDBTest):
             raise exceptions.ValidationError('Ho boys !')
 
         @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField(io_validate=io_validate)
+
+        @instance.register
         class IOStudent(Student):
             io_field = fields.StrField(io_validate=io_validate)
+            list_io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+            reference_io_field = fields.ReferenceField(classroom_model.Course, io_validate=io_validate)
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, io_validate=io_validate)
 
-        student = IOStudent(name='Marty', io_field='io?')
+        bad_reference = ObjectId()
+        student = IOStudent(
+            name='Marty',
+            io_field='io?',
+            list_io_field=[1, 2],
+            reference_io_field=bad_reference,
+            embedded_io_field={'io_field': 42}
+        )
         with pytest.raises(exceptions.ValidationError) as exc:
             yield student.io_validate()
-        assert exc.value.messages == {'io_field': ['Ho boys !']}
+        assert exc.value.messages == {
+            'io_field': ['Ho boys !'],
+            'list_io_field': {0: ['Ho boys !'], 1: ['Ho boys !']},
+            'reference_io_field': ['Ho boys !', 'Reference not found for document Course.'],
+            'embedded_io_field': {'io_field': ['Ho boys !']}
+        }
 
     @pytest_inlineCallbacks
     def test_io_validate_multi_validate(self, instance, classroom_model):
@@ -814,6 +833,9 @@ class TestTxMongo(BaseDBTest):
                 self.version += 1
                 return {'version': last_version}
 
+            def pre_delete(self):
+                return {'version': self.version}
+
 
         p = Person(name='John', age=20)
         yield p.commit()
@@ -832,3 +854,12 @@ class TestTxMongo(BaseDBTest):
 
         yield p_concurrent.reload()
         assert p_concurrent.version == 2
+
+        p.age = 24
+        yield p.commit()
+        assert p.version == 3
+        yield p.delete()
+        yield p.commit()
+        with pytest.raises(exceptions.DeleteError):
+            yield p_concurrent.delete()
+        yield p.delete()

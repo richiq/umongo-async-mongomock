@@ -232,6 +232,8 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
             # Also look for required
             field._validate_missing(value)
             if value is not missing:
+                if field.io_validate_recursive:
+                    field.io_validate_recursive(field, value)
                 if field.io_validate:
                     _run_validators(field.io_validate, field, value)
         except ValidationError as ve:
@@ -299,9 +301,9 @@ class PyMongoBuilder(BaseBuilder):
             else:
                 field.io_validate = [validators]
         if isinstance(field, ListField):
-            field.io_validate.append(_list_io_validate)
+            field.io_validate_recursive = _list_io_validate
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = PyMongoReference
         if isinstance(field, EmbeddedField):
-            field.io_validate.append(_embedded_document_io_validate)
+            field.io_validate_recursive = _embedded_document_io_validate
