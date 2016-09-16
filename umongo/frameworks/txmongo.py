@@ -6,10 +6,11 @@ from pymongo.errors import DuplicateKeyError
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
-from ..data_proxy import DataProxy, missing
+from ..data_proxy import missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
 from ..fields import ReferenceField, ListField, EmbeddedField
+from ..query_mapper import map_query
 
 from .tools import cook_find_filter
 
@@ -33,7 +34,7 @@ class TxMongoDocument(DocumentImplementation):
         ret = yield self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        self._data = DataProxy(self.schema)
+        self._data = self.DataProxy()
         self._data.from_mongo(ret)
 
     @inlineCallbacks
@@ -51,29 +52,35 @@ class TxMongoDocument(DocumentImplementation):
          :return: A :class:`pymongo.results.UpdateResult` or
             :class:`pymongo.results.InsertOneResult` depending of the operation.
        """
-        yield self.io_validate(validate_all=io_validate_all)
-        payload = self._data.to_mongo(update=self.is_created)
         try:
             if self.is_created:
-                if payload:
+                if self.is_modified():
                     query = conditions or {}
-                    query['_id'] = self._data.get_by_mongo_name('_id')
-                    yield maybeDeferred(self.pre_update, query, payload)
+                    query['_id'] = self.pk
+                    # pre_update can provide additional query filter and/or
+                    # modify the fields' values
+                    additional_filter = yield maybeDeferred(self.pre_update)
+                    if additional_filter:
+                        query.update(map_query(additional_filter, self.schema.fields))
+                    yield self.io_validate(validate_all=io_validate_all)
+                    payload = self._data.to_mongo(update=True)
                     ret = yield self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
-                        raise UpdateError(ret.raw_result)
-                    yield maybeDeferred(self.post_update, ret, payload)
+                        raise UpdateError(ret)
+                    yield maybeDeferred(self.post_update, ret)
                 else:
                     ret = None
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
-                yield maybeDeferred(self.pre_insert, payload)
+                yield maybeDeferred(self.pre_insert)
+                yield self.io_validate(validate_all=io_validate_all)
+                payload = self._data.to_mongo(update=False)
                 ret = yield self.collection.insert_one(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret.inserted_id)
                 self.is_created = True
-                yield maybeDeferred(self.post_insert, ret, payload)
+                yield maybeDeferred(self.post_insert, ret)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']
@@ -110,7 +117,7 @@ class TxMongoDocument(DocumentImplementation):
         yield maybeDeferred(self.pre_delete)
         ret = yield self.collection.delete_one({'_id': self.pk})
         if ret.deleted_count != 1:
-            raise DeleteError(ret.raw_result)
+            raise DeleteError(ret)
         self.is_created = False
         yield maybeDeferred(self.post_delete, ret)
         return ret

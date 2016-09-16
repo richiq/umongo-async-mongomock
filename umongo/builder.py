@@ -3,6 +3,7 @@ from copy import copy
 from marshmallow.fields import Field
 
 from .template import Template, Implementation
+from .data_proxy import data_proxy_factory
 from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
 from .embedded_document import (
     EmbeddedDocumentTemplate, EmbeddedDocumentOpts, EmbeddedDocumentImplementation)
@@ -199,6 +200,7 @@ class BaseBuilder:
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
         nmspc['schema'] = schema
+        nmspc['DataProxy'] = data_proxy_factory(name, schema)
 
         # _build_document_opts cannot determine the indexes given we need to
         # visit the document's fields which weren't defined at this time
@@ -231,7 +233,9 @@ class BaseBuilder:
             schema_bases = (Schema, )
         schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
         nmspc['Schema'] = schema_cls
-        nmspc['schema'] = schema_cls()
+        schema = schema_cls()
+        nmspc['schema'] = schema
+        nmspc['DataProxy'] = data_proxy_factory(name, schema)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation

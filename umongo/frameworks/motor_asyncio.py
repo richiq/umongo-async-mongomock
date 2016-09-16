@@ -4,10 +4,11 @@ from pymongo.errors import DuplicateKeyError
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
-from ..data_proxy import DataProxy, missing
+from ..data_proxy import missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, ValidationError, DeleteError
 from ..fields import ReferenceField, ListField, EmbeddedField
+from ..query_mapper import map_query
 
 from .tools import cook_find_filter
 
@@ -65,24 +66,24 @@ class MotorAsyncIODocument(DocumentImplementation):
     # either Future or regular return value.
 
     @asyncio.coroutine
-    def __coroutined_pre_insert(self, payload):
-        return self.pre_insert(payload)
+    def __coroutined_pre_insert(self):
+        return self.pre_insert()
 
     @asyncio.coroutine
-    def __coroutined_pre_update(self, query, payload):
-        return self.pre_update(query, payload)
+    def __coroutined_pre_update(self):
+        return self.pre_update()
 
     @asyncio.coroutine
     def __coroutined_pre_delete(self):
         return self.pre_delete()
 
     @asyncio.coroutine
-    def __coroutined_post_insert(self, ret, payload):
-        return self.post_insert(ret, payload)
+    def __coroutined_post_insert(self, ret):
+        return self.post_insert(ret)
 
     @asyncio.coroutine
-    def __coroutined_post_update(self, ret, payload):
-        return self.post_update(ret, payload)
+    def __coroutined_post_update(self, ret):
+        return self.post_update(ret)
 
     @asyncio.coroutine
     def __coroutined_post_delete(self, ret):
@@ -101,7 +102,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         ret = yield from self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        self._data = DataProxy(self.schema)
+        self._data = self.DataProxy()
         self._data.from_mongo(ret)
 
     @asyncio.coroutine
@@ -119,29 +120,35 @@ class MotorAsyncIODocument(DocumentImplementation):
         :return: Update result dict returned by underlaying driver or
             ObjectId of the inserted document.
         """
-        yield from self.io_validate(validate_all=io_validate_all)
-        payload = self._data.to_mongo(update=self.is_created)
         try:
             if self.is_created:
-                if payload:
+                if self.is_modified():
                     query = conditions or {}
-                    query['_id'] = self._data.get_by_mongo_name('_id')
-                    yield from self.__coroutined_pre_update(query, payload)
+                    query['_id'] = self.pk
+                    # pre_update can provide additional query filter and/or
+                    # modify the fields' values
+                    additional_filter = yield from self.__coroutined_pre_update()
+                    if additional_filter:
+                        query.update(map_query(additional_filter, self.schema.fields))
+                    yield from self.io_validate(validate_all=io_validate_all)
+                    payload = self._data.to_mongo(update=True)
                     ret = yield from self.collection.update(query, payload)
                     if ret.get('ok') != 1 or ret.get('n') != 1:
                         raise UpdateError(ret)
-                    yield from self.__coroutined_post_update(ret, payload)
+                    yield from self.__coroutined_post_update(ret)
                 else:
                     ret = None
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
-                yield from self.__coroutined_pre_insert(payload)
+                yield from self.__coroutined_pre_insert()
+                yield from self.io_validate(validate_all=io_validate_all)
+                payload = self._data.to_mongo(update=False)
                 ret = yield from self.collection.insert(payload)
                 # TODO: check ret ?
                 self._data.set_by_mongo_name('_id', ret)
                 self.is_created = True
-                yield from self.__coroutined_post_insert(ret, payload)
+                yield from self.__coroutined_post_insert(ret)
         except DuplicateKeyError as exc:
             # Need to dig into error message to find faulting index
             errmsg = exc.details['errmsg']

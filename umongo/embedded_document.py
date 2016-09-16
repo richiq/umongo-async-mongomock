@@ -1,6 +1,6 @@
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
-from .data_proxy import DataProxy, missing
+from .data_proxy import missing
 
 
 class EmbeddedDocumentTemplate(Template):
@@ -40,12 +40,12 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     """
 
     __slots__ = ('_callback', '_data', '_modified')
+    __real_attributes = None
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate)
 
     def __init__(self, **kwargs):
-        schema = self.Schema()
         self._modified = False
-        self._data = DataProxy(schema, kwargs)
+        self._data = self.DataProxy(kwargs)
 
     def __repr__(self):
         return '<object EmbeddedDocument %s.%s(%s)>' % (
@@ -58,7 +58,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
             return self._data == other._data
 
     def is_modified(self):
-        return self._modified
+        return self._data.is_modified()
 
     def set_modified(self):
         self._modified = True
@@ -73,8 +73,18 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def to_mongo(self, update=False):
         return self._data.to_mongo(update=update)
 
-    def dump(self, schema=None):
-        return self._data.dump(schema=schema)
+    def update(self, data):
+        """
+        Update the embedded document with the given data.
+        """
+        self.set_modified()
+        return self._data.update(data)
+
+    def dump(self):
+        """
+        Dump the embedded document.
+        """
+        return self._data.dump()
 
     # Data-proxy accessor shortcuts
 
@@ -91,10 +101,14 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
-        if name in EmbeddedDocumentImplementation.__dict__:
-            EmbeddedDocumentImplementation.__dict__[name].__set__(self, value)
+        # Try to retrieve name among class's attributes and __slots__
+        if not self.__real_attributes:
+            # `dir(self)` result only depend on self's class so we can
+            # compute it once and store it inside the class
+            type(self).__real_attributes = dir(self)
+        if name in self.__real_attributes:
+            object.__setattr__(self, name, value)
         else:
-            self.set_modified()
             self._data.set(name, value, to_raise=AttributeError)
 
     def __getattr__(self, name):

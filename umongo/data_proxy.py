@@ -4,30 +4,25 @@ from .abstract import BaseDataObject
 from .exceptions import FieldNotLoadedError
 
 
-__all__ = ('DataProxy', 'missing')
+__all__ = ('data_proxy_factory', 'missing')
 
 
-class DataProxy:
+class BaseDataProxy:
 
-    __slots__ = ('not_loaded_fields', '_schema', '_fields', '_data',
-                 '_modified_data', '_fields_from_mongo_key')
+    __slots__ = ('not_loaded_fields', '_data', '_modified_data')
+    schema = None
+    _fields = None
+    _fields_from_mongo_key = None
 
-    def __init__(self, schema, data=None):
+    def __init__(self, data=None):
         self.not_loaded_fields = ()
-        self._schema = schema
-        self._fields = schema.fields
-        self._data = {}
+        # Inside data proxy, data are stored in mongo world representation
         self._modified_data = set()
-        fields_from_mongo_key = {}
-        for k, v in self._fields.items():
-            if v.attribute:
-                k = v.attribute
-            fields_from_mongo_key[k] = v
-        self._fields_from_mongo_key = fields_from_mongo_key
-        self.load(data if data else {})
+        self.load(data or {})
 
     @property
     def partial(self):
+        # TODO: rename to `is_partialy_loaded` ?
         return bool(self.not_loaded_fields)
 
     def to_mongo(self, update=False):
@@ -75,9 +70,8 @@ class DataProxy:
         self._add_missing_fields()
         self.clear_modified()
 
-    def dump(self, schema=None):
-        schema = schema or self._schema
-        data, err = schema.dump(self._data)
+    def dump(self):
+        data, err = self.schema.dump(self._data)
         if err:
             raise ValidationError(err)
         return data
@@ -85,20 +79,18 @@ class DataProxy:
     def _mark_as_modified(self, key):
         self._modified_data.add(key)
 
-    def update(self, data, schema=None):
-        schema = schema or self._schema
+    def update(self, data):
         # Always use marshmallow partial load to skip required checks
-        loaded_data, err = schema.load(data, partial=True)
+        loaded_data, err = self.schema.load(data, partial=True)
         if err:
             raise ValidationError(err)
         self._data.update(loaded_data)
         for key in loaded_data:
             self._mark_as_modified(key)
 
-    def load(self, data, partial=False, schema=None):
-        schema = schema or self._schema
+    def load(self, data, partial=False):
         # Always use marshmallow partial load to skip required checks
-        loaded_data, err = schema.load(data, partial=True)
+        loaded_data, err = self.schema.load(data, partial=True)
         if err:
             raise ValidationError(err)
         self._data = loaded_data
@@ -151,7 +143,8 @@ class DataProxy:
         self._mark_as_modified(name)
 
     def __repr__(self):
-        return "<DataProxy(%s)>" % self._data
+        # Display data in oo world format
+        return "<%s(%s)>" % (self.__class__.__name__, dict(self.items()))
 
     def __eq__(self, other):
         if isinstance(other, dict):
@@ -199,3 +192,42 @@ class DataProxy:
                     self._data[mongo_name] = field.missing()
                 else:
                     self._data[mongo_name] = field.missing
+
+    # Standards iterators providing oo and mongo worlds views
+
+    def items(self):
+        return ((key, self._data[field.attribute or key])
+                 for key, field in self._fields.items())
+
+    def items_by_mongo_name(self):
+        return self._data.items()
+
+    def keys(self):
+        return (field.attribute or key for key, field in self._fields.items())
+
+    def keys_by_mongo_name(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+
+def data_proxy_factory(basename, schema):
+    """
+    Generate a DataProxy from the given schema.
+
+    This way all generic informations (like schema and fields lookups)
+    are kept inside the  DataProxy class and it instances are just flyweights.
+    """
+
+    cls_name = "%sDataProxy" % basename
+
+    nmspc = {
+        '__slots__': (),
+        'schema': schema,
+        '_fields': schema.fields,
+        '_fields_from_mongo_key': {v.attribute or k: v for k, v in schema.fields.items()}
+    }
+
+    data_proxy_cls = type(cls_name, (BaseDataProxy, ), nmspc)
+    return data_proxy_cls
