@@ -180,11 +180,11 @@ class BaseDataProxy:
 
     def _collect_partial_fields(self, loaded_fields, as_mongo_fields=False):
         if as_mongo_fields:
-            self.not_loaded_fields = set(
+            self.not_loaded_fields = tuple(
                 self._fields_from_mongo_key[k]
                 for k in self._fields_from_mongo_key.keys() - set(loaded_fields))
         else:
-            self.not_loaded_fields = set(
+            self.not_loaded_fields = tuple(
                 self._fields[k] for k in self._fields.keys() - set(loaded_fields))
 
     def _add_missing_fields(self):
