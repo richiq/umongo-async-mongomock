@@ -217,7 +217,8 @@ class TestFields(BaseTest):
         # Test repr readability
         repr_d = repr(MyEmbeddedDocument(a=1, b=2))
         assert 'tests.test_fields.MyEmbeddedDocument' in repr_d
-        assert "'in_mongo_a': 1" in repr_d
+        assert "'in_mongo_a'" not in repr_d
+        assert "'a': 1" in repr_d
         assert "'b': 2" in repr_d
 
         # Test unknown fields
