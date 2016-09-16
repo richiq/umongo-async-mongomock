@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from dateutil.tz import tzutc
 
 from marshmallow import ValidationError, missing
@@ -40,6 +39,7 @@ __all__ = (
     'BoolField',
     'IntField',
     'ConstantField',
+    'StrictDateTimeField',
     'ObjectIdField',
     'ReferenceField',
     'GenericReferenceField',
@@ -156,25 +156,10 @@ class FloatField(BaseField, ma_fields.Float):
 
 class DateTimeField(BaseField, ma_fields.DateTime):
 
-    def __init__(self, tz_aware=False, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tz_aware = tz_aware
-
     def _deserialize(self, value, attr, data):
         if isinstance(value, datetime):
-            date = value
-        else:
-            date = super()._deserialize(value, attr, data)
-        if self.tz_aware:
-            # If datetime is TZ naive, set UTC timezone
-            if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
-                date = date.replace(tzinfo=tzutc())
-        if not self.tz_aware:
-            # If datetime is TZ aware, convert it to UTC and remove TZ info
-            if date.tzinfo is not None and date.tzinfo.utcoffset(date) is not None:
-                date.astimezone(tzutc())
-            date = date.replace(tzinfo=None)
-        return date
+            return value
+        return super()._deserialize(value, attr, data)
 
 
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
@@ -225,6 +210,21 @@ IntField = IntegerField
 
 
 # Bonus: new fields !
+
+class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
+
+    def _deserialize_from_mongo(self, value):
+        date = value
+        if self.load_as_tz_aware:
+            # If datetime is TZ naive, set UTC timezone
+            if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
+                date = date.replace(tzinfo=tzutc())
+        else:
+            # If datetime is TZ aware, convert it to UTC and remove TZ info
+            if date.tzinfo is not None and date.tzinfo.utcoffset(date) is not None:
+                date.astimezone(tzutc())
+            date = date.replace(tzinfo=None)
+        return date
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
