@@ -347,3 +347,14 @@ class TestDataProxy(BaseTest):
         assert d.partial is True
         d.load({'loaded': "foo", 'loaded_but_empty': missing})
         assert d.partial is False
+
+        # Partial, then update turns it into not partial
+        d = MyDataProxy()
+        d.from_mongo({'loaded': "foo", 'loaded_but_empty': missing}, partial=True)
+        assert len(d.not_loaded_fields) == 3
+        d.update({'with_default': 'test', 'with_missing': 'test'})
+        assert len(d.not_loaded_fields) == 1
+        assert d.partial is True
+        d.update({'normal': 'test'})
+        assert d.partial is False
+        assert not d.not_loaded_fields

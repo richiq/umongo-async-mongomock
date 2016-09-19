@@ -15,7 +15,7 @@ class BaseDataProxy:
     _fields_from_mongo_key = None
 
     def __init__(self, data=None):
-        self.not_loaded_fields = ()
+        self.not_loaded_fields = set()
         # Inside data proxy, data are stored in mongo world representation
         self._modified_data = set()
         self.load(data or {})
@@ -68,7 +68,7 @@ class BaseDataProxy:
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:
-            self.not_loaded_fields = ()
+            self.not_loaded_fields.clear()
         self._add_missing_fields()
         self.clear_modified()
 
@@ -87,6 +87,9 @@ class BaseDataProxy:
         if err:
             raise ValidationError(err)
         self._data.update(loaded_data)
+        if self.not_loaded_fields:
+            for k in loaded_data:
+                self.not_loaded_fields.discard(self._fields[k])
         for key in loaded_data:
             self._mark_as_modified(key)
 
@@ -99,7 +102,7 @@ class BaseDataProxy:
         if partial:
             self._collect_partial_fields(data)
         else:
-            self.not_loaded_fields = ()
+            self.not_loaded_fields.clear()
         self._add_missing_fields()
         self.clear_modified()
 
@@ -180,11 +183,11 @@ class BaseDataProxy:
 
     def _collect_partial_fields(self, loaded_fields, as_mongo_fields=False):
         if as_mongo_fields:
-            self.not_loaded_fields = tuple(
+            self.not_loaded_fields = set(
                 self._fields_from_mongo_key[k]
                 for k in self._fields_from_mongo_key.keys() - set(loaded_fields))
         else:
-            self.not_loaded_fields = tuple(
+            self.not_loaded_fields = set(
                 self._fields[k] for k in self._fields.keys() - set(loaded_fields))
 
     def _add_missing_fields(self):
