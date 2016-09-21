@@ -276,6 +276,7 @@ class TestDataProxy(BaseTest):
             normal = fields.StrField()
             loaded = fields.StrField()
             loaded_but_empty = fields.StrField()
+            normal_with_attribute = fields.StrField(attribute='in_mongo_field')
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -351,8 +352,8 @@ class TestDataProxy(BaseTest):
         # Partial, then update turns it into not partial
         d = MyDataProxy()
         d.from_mongo({'loaded': "foo", 'loaded_but_empty': missing}, partial=True)
-        assert len(d.not_loaded_fields) == 3
-        d.update({'with_default': 'test', 'with_missing': 'test'})
+        assert len(d.not_loaded_fields) == 4
+        d.update({'with_default': 'test', 'with_missing': 'test', 'normal_with_attribute': 'foo'})
         assert len(d.not_loaded_fields) == 1
         assert d.partial is True
         d.update({'normal': 'test'})

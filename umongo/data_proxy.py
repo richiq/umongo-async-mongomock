@@ -89,7 +89,7 @@ class BaseDataProxy:
         self._data.update(loaded_data)
         if self.not_loaded_fields:
             for k in loaded_data:
-                self.not_loaded_fields.discard(self._fields[k])
+                self.not_loaded_fields.discard(self._fields_from_mongo_key[k])
         for key in loaded_data:
             self._mark_as_modified(key)
 
