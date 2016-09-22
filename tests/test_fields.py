@@ -102,6 +102,39 @@ class TestFields(BaseTest):
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
+    def test_strictdatetime(self):
+
+        class MySchema(EmbeddedSchema):
+            a = fields.StrictDateTimeField()
+            b = fields.StrictDateTimeField(load_as_tz_aware=False)
+            c = fields.StrictDateTimeField(load_as_tz_aware=True)
+
+        # Test _deserialize
+        s = MySchema(strict=True)
+        for date in (
+            datetime(2016, 8, 6),
+            "2016-08-06T00:00:00Z",
+            "2016-08-06T00:00:00",
+        ):
+            data, _ = s.load({'a': date, 'b': date, 'c': date})
+            assert data['a'] == datetime(2016, 8, 6)
+            assert data['b'] == datetime(2016, 8, 6)
+            assert data['c'] == datetime(2016, 8, 6, tzinfo=tzutc())
+        with pytest.raises(ValidationError):
+            s.load({'a': "dummy"})
+
+        # Test _deserialize_from_mongo
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        for date in (
+            datetime(2016, 8, 6),
+            datetime(2016, 8, 6, tzinfo=tzutc()),
+        ):
+            d.from_mongo({'a': date, 'b': date, 'c': date})
+            assert d.get('a') == datetime(2016, 8, 6)
+            assert d.get('b') == datetime(2016, 8, 6)
+            assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzutc())
+
     def test_dict(self):
 
         class MySchema(Schema):
