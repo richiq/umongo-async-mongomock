@@ -216,6 +216,30 @@ class TestPymongo(BaseDBTest):
         # with pytest.raises(exceptions.ValidationError):
         #     Student.build_from_mongo({})
 
+    def test_required_nested(self, instance):
+        @instance.register
+        class MyEmbeddedDocument(EmbeddedDocument):
+            required_field = fields.IntField(required=True)
+            optional_field = fields.IntField()
+
+        @instance.register
+        class MyDoc(Document):
+            embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+            embedded_list = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument), attribute='embedded_list')
+
+        MySchema = MyDoc.Schema
+        with pytest.raises(exceptions.ValidationError):
+            MyDoc().commit()
+        with pytest.raises(exceptions.ValidationError):
+            MyDoc(embedded={'optional_field': 1}).commit()
+        with pytest.raises(exceptions.ValidationError):
+            MyDoc(embedded={'required_field': 1}, embedded_list=[{'optionial_field': 1}]).commit()
+
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[])
+        doc.commit()
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[{'required_field': 1}])
+        doc.commit()
+
     def test_io_validate(self, instance, classroom_model):
         Student = classroom_model.Student
 

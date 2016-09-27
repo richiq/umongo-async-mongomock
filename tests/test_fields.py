@@ -268,30 +268,6 @@ class TestFields(BaseTest):
         with pytest.raises(KeyError):
             del embedded_doc['dummy']
 
-    @pytest.mark.xfail()
-    def test_embedded_document_required(self):
-        # TODO
-        class MyEmbeddedDocument(EmbeddedDocument):
-            required_field = fields.IntField(required=True)
-            optional_field = fields.IntField()
-
-        @self.instance.register
-        class MyDoc(Document):
-            embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
-
-        MySchema = MyDoc.Schema
-        # with pytest.raises(ValidationError):
-        #     MyEmbeddedDocument()
-
-        # with pytest.raises(ValidationError):
-        #     MyEmbeddedDocument(optional_field=1)
-
-        # embedded = MyEmbeddedDocument(optional_field=1, required_field=2)
-        embedded = MyEmbeddedDocument()
-        MyDataProxy = data_proxy_factory('My', MySchema())
-        d = MyDataProxy()
-        d.set('embedded', embedded)
-
     def test_list(self):
 
         class MySchema(Schema):

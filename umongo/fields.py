@@ -418,6 +418,30 @@ class EmbeddedField(BaseField, ma_fields.Nested):
     def _deserialize_from_mongo(self, value):
         return self.embedded_document_cls.build_from_mongo(value)
 
+    def _validate_missing(self, value):
+        # Overload default to handle recursive check
+        super()._validate_missing(value)
+        errors = {}
+        if value is missing:
+            def get_sub_value(key):
+                return missing
+        elif isinstance(value, dict):
+            # value is a dict for deserialization
+            def get_sub_value(key):
+                return value.get(key, missing)
+        else:
+            # value is a EmbeddedDocument
+            def get_sub_value(key):
+                return value._data.get(key)
+        for name, field in self.embedded_document_cls.schema.fields.items():
+            sub_value = get_sub_value(name)
+            try:
+                field._validate_missing(sub_value)
+            except ValidationError as ve:
+                errors[name] = ve.messages
+        if errors:
+            raise ValidationError(errors)
+
     def map_to_field(self, mongo_path, path, func):
         """Apply a function to every field in the schema"""
         for name, field in self.embedded_document_cls.schema.fields.items():

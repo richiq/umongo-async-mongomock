@@ -250,6 +250,31 @@ class TestTxMongo(BaseDBTest):
         #     Student.build_from_mongo({})
 
     @pytest_inlineCallbacks
+    def test_required_nested(self, instance):
+        @instance.register
+        class MyEmbeddedDocument(EmbeddedDocument):
+            required_field = fields.IntField(required=True)
+            optional_field = fields.IntField()
+
+        @instance.register
+        class MyDoc(Document):
+            embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+            embedded_list = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument), attribute='embedded_list')
+
+        MySchema = MyDoc.Schema
+        with pytest.raises(exceptions.ValidationError):
+            yield MyDoc().commit()
+        with pytest.raises(exceptions.ValidationError):
+            yield MyDoc(embedded={'optional_field': 1}).commit()
+        with pytest.raises(exceptions.ValidationError):
+            yield MyDoc(embedded={'required_field': 1}, embedded_list=[{'optionial_field': 1}]).commit()
+
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[])
+        yield doc.commit()
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[{'required_field': 1}])
+        yield doc.commit()
+
+    @pytest_inlineCallbacks
     def test_io_validate(self, instance, classroom_model):
         Student = classroom_model.Student
 

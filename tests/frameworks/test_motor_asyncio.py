@@ -299,6 +299,35 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
+    def test_required_nested(self, loop, instance):
+
+        @asyncio.coroutine
+        def do_test():
+            @instance.register
+            class MyEmbeddedDocument(EmbeddedDocument):
+                required_field = fields.IntField(required=True)
+                optional_field = fields.IntField()
+
+            @instance.register
+            class MyDoc(Document):
+                embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+                embedded_list = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument), attribute='embedded_list')
+
+            MySchema = MyDoc.Schema
+            with pytest.raises(exceptions.ValidationError):
+                yield from MyDoc().commit()
+            with pytest.raises(exceptions.ValidationError):
+                yield from MyDoc(embedded={'optional_field': 1}).commit()
+            with pytest.raises(exceptions.ValidationError):
+                yield from MyDoc(embedded={'required_field': 1}, embedded_list=[{'optionial_field': 1}]).commit()
+
+            doc = MyDoc(embedded={'required_field': 1}, embedded_list=[])
+            yield from doc.commit()
+            doc = MyDoc(embedded={'required_field': 1}, embedded_list=[{'required_field': 1}])
+            yield from doc.commit()
+
+        loop.run_until_complete(do_test())
+
     def test_io_validate(self, loop, instance, classroom_model):
 
         @asyncio.coroutine
