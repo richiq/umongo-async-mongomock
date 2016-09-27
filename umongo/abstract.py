@@ -213,28 +213,6 @@ class BaseValidator(ma_validate.Validator):
     def error(self, value):
         self._error = value
 
-    def as_marshmallow_validator(self, params=None, mongo_world=False):
-        """
-        Return a pure-marshmallow version of this validator.
-
-        :param params: Additional parameters passed to the mashmallow validator
-            class constructor.
-        :param mongo_world: If True the field will work against the mongo world
-            instead of the OO world (default: False)
-        """
-        kwargs = {field: getattr(self, field)
-                  for field in ('default', 'attribute', 'load_from',
-                                'validate', 'required', 'allow_none', 'load_only',
-                                'dump_only', 'missing', 'error_messages')}
-        if params:
-            kwargs.update(params)
-        # Retrieve the marshmallow class we inherit from
-        for m_class in type(self).mro():
-            if (not issubclass(m_class, BaseField) and
-                    issubclass(m_class, ma_fields.Field)):
-                return m_class(**kwargs)
-        # Cannot escape the loop given BaseField itself inherits marshmallow's Field
-
 
 class BaseDataObject:
     """
