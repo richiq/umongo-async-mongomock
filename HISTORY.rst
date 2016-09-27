@@ -2,8 +2,8 @@
 History
 =======
 
-dev
----
+0.10.0 (2016-09-29)
+-------------------
 
 * Add pre/post update/insert/delete hooks (see #22)
 * Provide Umongo to Marshmallow schema/field conversion with
