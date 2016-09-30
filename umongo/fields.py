@@ -33,8 +33,6 @@ __all__ = (
     'UrlField',
     'URLField',
     'EmailField',
-    # 'MethodField',
-    # 'FunctionField',
     'StrField',
     'BoolField',
     'IntField',
@@ -188,14 +186,6 @@ class UrlField(BaseField, ma_fields.Url):
 
 class EmailField(BaseField, ma_fields.Email):
     pass
-
-
-# class MethodField(BaseField, ma_fields.Method):
-#     pass
-
-
-# class FunctionField(BaseField, ma_fields.Function):
-#     pass
 
 
 class ConstantField(BaseField, ma_fields.Constant):
