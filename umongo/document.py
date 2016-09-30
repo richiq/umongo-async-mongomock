@@ -231,6 +231,9 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         """
         return not self.is_created or self._data.is_modified()
 
+    def items(self):
+        return self._data.items()
+
     # Data-proxy accessor shortcuts
 
     def __getitem__(self, name):

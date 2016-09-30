@@ -25,12 +25,15 @@ class EmbeddedDocumentOpts:
     """
 
     def __repr__(self):
-        return ('<{ClassName}(instance={self.instance}, template={self.template})>'
+        return ('<{ClassName}(instance={self.instance}, template={self.template}, '
+                'is_child={self.is_child}, children={self.children})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def __init__(self, instance, template):
+    def __init__(self, instance, template, is_child=False, children=None):
         self.instance = instance
         self.template = template
+        self.is_child = is_child
+        self.children = set(children) if children else set()
 
 
 class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
@@ -85,6 +88,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         Dump the embedded document.
         """
         return self._data.dump()
+
+    def items(self):
+        return self._data.items()
 
     # Data-proxy accessor shortcuts
 

@@ -268,6 +268,53 @@ class TestFields(BaseTest):
         with pytest.raises(KeyError):
             del embedded_doc['dummy']
 
+    def test_embedded_inheritance(self):
+        @self.instance.register
+        class EmbeddedParent(EmbeddedDocument):
+            a = fields.IntField(attribute='in_mongo_a_parent')
+            b = fields.IntField()
+
+        @self.instance.register
+        class EmbeddedChild(EmbeddedParent):
+            a = fields.IntField(attribute='in_mongo_a_child')
+            c = fields.IntField()
+
+        @self.instance.register
+        class GrandChild(EmbeddedChild):
+            d = fields.IntField()
+
+        @self.instance.register
+        class OtherEmbedded(EmbeddedDocument):
+            pass
+
+        @self.instance.register
+        class MyDoc(Document):
+            parent = fields.EmbeddedField(EmbeddedParent)
+            child = fields.EmbeddedField(EmbeddedChild)
+
+        assert 'EmbeddedChild' in EmbeddedParent.opts.children
+        assert 'OtherEmbedded' not in EmbeddedParent.opts.children
+
+        parent = EmbeddedParent(a=1)
+        child = EmbeddedChild(a=1, b=2, c=3)
+        grandchild = GrandChild(d=4)
+
+        assert parent.to_mongo() == {'in_mongo_a_parent': 1}
+        assert child.to_mongo() == {'in_mongo_a_child': 1, 'b': 2, 'c': 3, '_cls': 'EmbeddedChild'}
+        assert grandchild.to_mongo() == {'d': 4, '_cls': 'GrandChild'}
+
+        with pytest.raises(ValidationError):
+            ret = MyDoc(parent=OtherEmbedded())
+        with pytest.raises(ValidationError):
+            ret = MyDoc(child=parent)
+        doc = MyDoc(parent=child, child=child)
+        assert doc.child == doc.parent
+
+        doc = MyDoc(child={'a': 1, '_cls': 'GrandChild'},
+                    parent={'_cls': 'EmbeddedChild', 'a': 1})
+        assert doc.child.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'GrandChild'}
+        assert doc.parent.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'EmbeddedChild'}
+
     def test_list(self):
 
         class MySchema(Schema):

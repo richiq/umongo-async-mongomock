@@ -397,10 +397,21 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return value.dump()
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, self.embedded_document_cls):
+        embedded_document_cls = self.embedded_document_cls
+        if isinstance(value, embedded_document_cls):
             return value
-        value = super()._deserialize(value, attr, data)
-        return self._deserialize_from_mongo(value)
+        # Handle inheritance deserialization here using `_cls` field as hint
+        if embedded_document_cls.opts.children and isinstance(value, dict) and '_cls' in value:
+            to_use_cls_name = value.pop('_cls')
+            try:
+                to_use_cls = embedded_document_cls.opts.instance.retrieve_embedded_document(
+                    to_use_cls_name)
+            except NotRegisteredDocumentError as e:
+                raise ValidationError(str(e))
+            return to_use_cls(**value)
+        else:
+            value = super()._deserialize(value, attr, data)
+            return self._deserialize_from_mongo(value)
 
     def _serialize_to_mongo(self, obj):
         return obj.to_mongo()
@@ -419,10 +430,14 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             # value is a dict for deserialization
             def get_sub_value(key):
                 return value.get(key, missing)
-        else:
-            # value is a EmbeddedDocument
+        elif isinstance(value, self.embedded_document_cls):
+            # value is a valid EmbeddedDocument
             def get_sub_value(key):
                 return value._data.get(key)
+        else:
+            # value is invalid, just return and let `_deserialize`
+            # raises an error about this
+            return
         for name, field in self.embedded_document_cls.schema.fields.items():
             sub_value = get_sub_value(name)
             try:
