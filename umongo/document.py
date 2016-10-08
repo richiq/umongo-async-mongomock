@@ -16,6 +16,10 @@ class DocumentTemplate(Template):
         Once defined, this class must be registered inside a
         :class:`umongo.instance.BaseInstance` to obtain it corresponding
         :class:`umongo.document.DocumentImplementation`.
+    .. note::
+        You can provide marshmallow tags (e.g. `marshmallow.pre_load`
+        or `marshmallow.post_dump`) to this class that will be passed
+        to the marshmallow schema internally used for this document.
     """
     pass
 

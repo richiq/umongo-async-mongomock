@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
+import marshmallow
 
 from umongo import Document, EmbeddedDocument, Schema, fields, exceptions
 
@@ -344,6 +345,38 @@ class TestConfig(BaseTest):
         assert DocChild1Child.opts.collection_name is 'col1'
         assert DocChild1Child.opts.allow_inheritance is False
         assert DocChild2.opts.collection_name == 'col2'
+
+    def test_mashmallow_tags(self):
+
+        @self.instance.register
+        class Animal(Document):
+            name = fields.StrField(attribute='_id')  # Overwrite automatic pk
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class Dog(Animal):
+            pass
+
+        @self.instance.register
+        class Duck(Animal):
+            @marshmallow.post_dump
+            def dump_custom_cls_name(self, data):
+                data['race'] = data.pop('cls')
+                return data
+
+            @marshmallow.pre_load
+            def load_custom_cls_name(self, data):
+                data.pop('race', None)
+                return data
+
+        duck = Duck(name='Donald')
+        dog = Dog(name='Pluto')
+        assert 'load_custom_cls_name' not in dir(Duck)
+        assert 'dump_custom_cls_name' not in dir(Duck)
+        assert duck.dump() == {'name': 'Donald', 'race': 'Duck'}
+        assert dog.dump() == {'name': 'Pluto', 'cls': 'Dog'}
+        assert Duck(name='Donald', race='Duck')._data == duck._data
 
     def test_bad_inheritance(self):
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
