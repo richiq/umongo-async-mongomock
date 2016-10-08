@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
-import marshmallow
 
-from umongo import Document, EmbeddedDocument, Schema, fields, exceptions
+from umongo import (Document, EmbeddedDocument, Schema, fields, exceptions,
+                    post_dump, pre_load, validates_schema)
 
 from .common import BaseTest
 
@@ -360,15 +360,20 @@ class TestConfig(BaseTest):
 
         @self.instance.register
         class Duck(Animal):
-            @marshmallow.post_dump
+            @post_dump
             def dump_custom_cls_name(self, data):
                 data['race'] = data.pop('cls')
                 return data
 
-            @marshmallow.pre_load
+            @pre_load
             def load_custom_cls_name(self, data):
                 data.pop('race', None)
                 return data
+
+            @validates_schema(pass_original=True)
+            def custom_validate(self, data, original_data):
+                if original_data['name'] != 'Donald':
+                    raise exceptions.ValidationError('Not suitable name for duck !', 'name')
 
         duck = Duck(name='Donald')
         dog = Dog(name='Pluto')
@@ -377,6 +382,10 @@ class TestConfig(BaseTest):
         assert duck.dump() == {'name': 'Donald', 'race': 'Duck'}
         assert dog.dump() == {'name': 'Pluto', 'cls': 'Dog'}
         assert Duck(name='Donald', race='Duck')._data == duck._data
+
+        with pytest.raises(exceptions.ValidationError) as exc:
+            Duck(name='Roger')
+        exc.value.args[0] == {'name': 'Not suitable name for duck !'}
 
     def test_bad_inheritance(self):
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:

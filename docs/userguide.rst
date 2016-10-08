@@ -550,12 +550,13 @@ For more simple usecases we could use the
 
 .. code-block:: python
 
+    >>> from umongo import post_dump  # same as `from marshmallow import post_dump`
     >>> @instance.register
     ... class Dog(Document):
     ...     name = fields.StrField(required=True)
     ...     breed = fields.StrField(missing="Mongrel")
     ...     birthday = fields.DateTimeField()
-    ...     @marshmallow.post_dump
+    ...     @post_dump
     ...     def customize_dump(self, data):
     ...         data['name'] = data['name'].capitalize()
     ...         data['brief'] = "Hi ! My name is %s and I'm a %s" % (data['name'], data['breed'])"
