@@ -1,7 +1,7 @@
 from marshmallow import (Schema as MaSchema, fields as ma_fields,
                          validate as ma_validate, missing, validates_schema)
 
-from .i18n import gettext as _
+from .i18n import gettext as _, N_
 from .marshmallow_bonus import (schema_validator_check_unknown_fields,
                                 schema_from_umongo_get_attribute)
 
@@ -85,8 +85,8 @@ class BaseField(ma_fields.Field):
     """
 
     default_error_messages = {
-        'unique': 'Field value must be unique.',
-        'unique_compound': 'Values of fields {fields} must be unique together.'
+        'unique': N_('Field value must be unique.'),
+        'unique_compound': N_('Values of fields {fields} must be unique together.')
     }
 
     def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
