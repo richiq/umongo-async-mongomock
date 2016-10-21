@@ -248,7 +248,14 @@ class TestDocument(BaseTest):
             name = fields.StrField()
             vehicle = fields.EmbeddedField(Vehicle)
 
+        driver = Driver()
+        assert driver.is_modified()
+        driver.is_created = True
+        assert not driver.is_modified()
+
         driver = Driver(name='Marty')
+        assert driver.is_modified()
+        driver.clear_modified()
         assert driver.is_modified()
         driver.is_created = True
         assert not driver.is_modified()
@@ -257,6 +264,8 @@ class TestDocument(BaseTest):
         driver.clear_modified()
         assert not driver.is_modified()
         vehicle = Vehicle(name='Hoverboard')
+        assert vehicle.is_modified()
+        vehicle.clear_modified()
         assert not vehicle.is_modified()
         driver.vehicle = vehicle
         assert driver.is_modified()

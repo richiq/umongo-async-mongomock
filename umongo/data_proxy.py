@@ -70,8 +70,8 @@ class BaseDataProxy:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:
             self.not_loaded_fields.clear()
-        self._add_missing_fields()
         self.clear_modified()
+        self._add_missing_fields()
 
     def dump(self):
         data, err = self.schema.dump(self._data)
@@ -100,12 +100,16 @@ class BaseDataProxy:
         if err:
             raise ValidationError(err)
         self._data = loaded_data
+        # Map the modified fields list on the the loaded data
+        self.clear_modified()
+        for key in loaded_data:
+            self._mark_as_modified(key)
         if partial:
             self._collect_partial_fields(data)
         else:
             self.not_loaded_fields.clear()
+        # Must be done last given it modify `loaded_data`
         self._add_missing_fields()
-        self.clear_modified()
 
     def get_by_mongo_name(self, name):
         value = self._data[name]

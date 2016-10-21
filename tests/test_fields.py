@@ -142,7 +142,7 @@ class TestFields(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
-        d.load({'dict': {'a': 1, 'b': {'c': True}}})
+        d.from_mongo({'in_mongo_dict': {'a': 1, 'b': {'c': True}}})
         with pytest.raises(KeyError):
             d.get('in_mongo_dict')
         assert d.dump() == {'dict': {'a': 1, 'b': {'c': True}}}
@@ -184,6 +184,10 @@ class TestFields(BaseTest):
             a = fields.IntField(attribute='in_mongo_a')
             b = fields.IntField()
 
+        embedded = MyEmbeddedDocument()
+        assert embedded.to_mongo(update=True) is None
+        assert not embedded.is_modified()
+
         @self.instance.register
         class MyDoc(Document):
             embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
@@ -196,7 +200,7 @@ class TestFields(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
-        d.load(data={'embedded': {'a': 1, 'b': 2}})
+        d.from_mongo(data={'in_mongo_embedded': {'in_mongo_a': 1, 'b': 2}})
         assert d.dump() == {'embedded': {'a': 1, 'b': 2}}
         embedded = d.get('embedded')
         assert type(embedded) == MyEmbeddedDocument
@@ -211,6 +215,7 @@ class TestFields(BaseTest):
         assert d == d2
 
         embedded.a = 3
+        assert embedded.is_modified()
         assert embedded.to_mongo(update=True) == {'$set': {'in_mongo_a': 3}}
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 3, 'b': 2}}}
         embedded.clear_modified()
@@ -222,6 +227,8 @@ class TestFields(BaseTest):
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'b': 2}}}
 
         d.set('embedded', MyEmbeddedDocument(a=4))
+        assert d.get('embedded').to_mongo(update=True) == {'$set': {'in_mongo_a': 4}}
+        d.get('embedded').clear_modified()
         assert d.get('embedded').to_mongo(update=True) is None
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_embedded': {'in_mongo_a': 4}}}
 
