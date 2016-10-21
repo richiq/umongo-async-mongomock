@@ -350,10 +350,19 @@ class TestFields(BaseTest):
         doc = MyDoc(parent=child, child=child)
         assert doc.child == doc.parent
 
-        doc = MyDoc(child={'a': 1, '_cls': 'GrandChild'},
-                    parent={'_cls': 'EmbeddedChild', 'a': 1})
+        doc = MyDoc(child={'a': 1, 'cls': 'GrandChild'},
+                    parent={'cls': 'EmbeddedChild', 'a': 1})
         assert doc.child.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'GrandChild'}
         assert doc.parent.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'EmbeddedChild'}
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(child={'a': 1, '_cls': 'GrandChild'})
+        assert exc.value.messages == {'child': {'_schema': ['Unknown field name _cls.']}}
+
+        # Try to build a non-child document
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(child={'cls': 'OtherEmbedded'})
+        assert exc.value.messages == {'child': ['Unknown document `OtherEmbedded`.']}
 
     def test_embedded_required_validate(self):
 
