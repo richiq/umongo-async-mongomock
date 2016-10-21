@@ -119,6 +119,19 @@ class ListField(BaseField, ma_fields.List):
         return ma_fields.List(self.container.as_marshmallow_field(
             mongo_world=mongo_world), **kwargs)
 
+    def _required_validate(self, value):
+        if value is missing or not hasattr(self.container, '_required_validate'):
+            return
+        required_validate = self.container._required_validate
+        errors = {}
+        for i, sub_value in enumerate(value):
+            try:
+                required_validate(sub_value)
+            except ValidationError as exc:
+                errors[i] = exc.messages
+        if errors:
+            raise ValidationError(errors)
+
 
 class StringField(BaseField, ma_fields.String):
     pass
@@ -410,8 +423,11 @@ class EmbeddedField(BaseField, ma_fields.Nested):
                 raise ValidationError(str(e))
             return to_use_cls(**value)
         else:
-            value = super()._deserialize(value, attr, data)
-            return self._deserialize_from_mongo(value)
+            # `Nested._deserialize` calls schema.load without partial=True
+            data, errors = self.schema.load(value, partial=True)
+            if errors:
+                raise ValidationError(errors, data=data)
+            return self._deserialize_from_mongo(data)
 
     def _serialize_to_mongo(self, obj):
         return obj.to_mongo()
@@ -440,6 +456,10 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             return
         for name, field in self.embedded_document_cls.schema.fields.items():
             sub_value = get_sub_value(name)
+            # `_validate_missing` doesn't check for required fields here, so we
+            # can safely skip missing values
+            if sub_value is missing:
+                continue
             try:
                 field._validate_missing(sub_value)
             except ValidationError as ve:
@@ -467,3 +487,10 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema(
             params=nested_params, mongo_world=mongo_world)
         return ma_fields.Nested(nested_ma_schema, **kwargs)
+
+    def _required_validate(self, value):
+        if value is missing:
+            # Validate against an empty struct to enforce required fields check
+            self._embedded_document_cls.DataProxy(data={}).required_validate()
+        else:
+            value.required_validate()

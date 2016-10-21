@@ -78,6 +78,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         self._modified = False
         self._data.clear_modified()
 
+    def required_validate(self):
+        self._data.required_validate()
+
     def from_mongo(self, data):
         self._data.from_mongo(data)
 

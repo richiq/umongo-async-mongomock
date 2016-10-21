@@ -268,6 +268,46 @@ class TestFields(BaseTest):
         with pytest.raises(KeyError):
             del embedded_doc['dummy']
 
+    def test_bad_embedded_document(self):
+
+        @self.instance.register
+        class MyEmbeddedDocument(EmbeddedDocument):
+            a = fields.IntField()
+
+        @self.instance.register
+        class MyDoc(Document):
+            e = fields.EmbeddedField(MyEmbeddedDocument)
+            l = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
+            b = fields.IntField(required=True)
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(l={})
+        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(l=True)
+        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(l="string is not a list")
+        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(l=[42])
+        assert exc.value.args[0] == {'l': {0: {'_schema': ['Invalid input type.']}}}
+
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(l=[{}, 42])
+        assert exc.value.args[0] == {'l': {1: {'_schema': ['Invalid input type.']}}}
+
+        with pytest.raises(ValidationError) as exc:
+            k = MyDoc(b=[{}])
+        assert exc.value.args[0] == {'b': ['Not a valid integer.']}
+
+        with pytest.raises(ValidationError) as exc:
+            k = MyDoc(e=[{}])
+        assert exc.value.args[0] == {'e': {'_schema': ['Invalid input type.']}}
+
     def test_embedded_inheritance(self):
         @self.instance.register
         class EmbeddedParent(EmbeddedDocument):
@@ -314,6 +354,23 @@ class TestFields(BaseTest):
                     parent={'_cls': 'EmbeddedChild', 'a': 1})
         assert doc.child.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'GrandChild'}
         assert doc.parent.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'EmbeddedChild'}
+
+    def test_embedded_required_validate(self):
+
+        @self.instance.register
+        class MyEmbedded(EmbeddedDocument):
+            required = fields.IntField(required=True)
+
+        @self.instance.register
+        class MyDoc(Document):
+            embedded = fields.EmbeddedField(MyEmbedded)
+
+        doc = MyDoc(embedded={'required': 42})
+        doc.embedded.required_validate()
+
+        doc = MyDoc(embedded={})
+        with pytest.raises(ValidationError) as exc:
+            doc.embedded.required_validate()
 
     def test_list(self):
 

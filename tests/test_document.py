@@ -174,10 +174,16 @@ class TestDocument(BaseTest):
 
     def test_required_fields(self):
         # Should be able to instanciate document without their required fields
-        self.Student()
-        self.Student(gpa=2.8)
-        # Required check is done in `io_validate`, cannot go further without a dal
-        # TODO check this...
+        student = self.Student()
+        with pytest.raises(exceptions.ValidationError):
+            student.required_validate()
+
+        student = self.Student(gpa=2.8)
+        with pytest.raises(exceptions.ValidationError):
+            student.required_validate()
+
+        student = self.Student(gpa=2.8, name='Marty')
+        student.required_validate()
 
     def test_auto_id_field(self):
         my_id = ObjectId('5672d47b1d41c88dcd37ef05')

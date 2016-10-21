@@ -2,6 +2,7 @@ from marshmallow import ValidationError, missing
 
 from .abstract import BaseDataObject
 from .exceptions import FieldNotLoadedError
+from .i18n import gettext as _
 
 
 __all__ = ('data_proxy_factory', 'missing')
@@ -199,6 +200,20 @@ class BaseDataProxy:
                     self._data[mongo_name] = field.missing()
                 else:
                     self._data[mongo_name] = field.missing
+
+    def required_validate(self):
+        errors = {}
+        for name, field in self.schema.fields.items():
+            value = self._data[field.attribute or name]
+            if field.required and value is missing:
+                errors[name] = [_("Missing data for required field.")]
+            elif hasattr(field, '_required_validate'):
+                try:
+                    field._required_validate(value)
+                except ValidationError as exc:
+                    errors[name] = exc.messages
+        if errors:
+            raise ValidationError(errors)
 
     # Standards iterators providing oo and mongo worlds views
 

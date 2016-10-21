@@ -359,3 +359,39 @@ class TestDataProxy(BaseTest):
         d.update({'normal': 'test'})
         assert d.partial is False
         assert not d.not_loaded_fields
+
+    def test_required_validate(self):
+
+        @self.instance.register
+        class MyEmbedded(EmbeddedDocument):
+            required = fields.IntField(required=True)
+
+        class MySchema(EmbeddedSchema):
+            # EmbeddedField need instance to retrieve implementation
+            listed = fields.ListField(fields.EmbeddedField(MyEmbedded, instance=self.instance))
+            embedded = fields.EmbeddedField(MyEmbedded, instance=self.instance)
+            required = fields.IntField(required=True)
+
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+
+        d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{'required': 42}]})
+        d.required_validate()
+        # Empty list should not trigger required it embedded field require check
+        d.load({'embedded': {'required': 42}, 'required': 42})
+        d.required_validate()
+
+        d.load({'embedded': {'required': 42}})
+        with pytest.raises(ValidationError) as exc:
+            d.required_validate()
+        assert exc.value.messages == {'required': ['Missing data for required field.']}
+
+        d.load({'required': 42})
+        with pytest.raises(ValidationError) as exc:
+            d.required_validate()
+        assert exc.value.messages == {'embedded': {'required': ['Missing data for required field.']}}
+
+        d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{}]})
+        with pytest.raises(ValidationError) as exc:
+            d.required_validate()
+        assert exc.value.messages == {'listed': {0: {'required': ['Missing data for required field.']}}}
