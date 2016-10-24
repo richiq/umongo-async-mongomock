@@ -137,7 +137,7 @@ class ObjectId(ma_fields.Field):
 
 class Reference(ObjectId):
     """
-    Mashmallow field for :class:`umongo.fields.ReferenceField`
+    Marshmallow field for :class:`umongo.fields.ReferenceField`
     """
 
     def __init__(self, *args, mongo_world=False, **kwargs):
@@ -157,7 +157,7 @@ class Reference(ObjectId):
 
 class GenericReference(ma_fields.Field):
     """
-    Mashmallow field for :class:`umongo.fields.GenericReferenceField`
+    Marshmallow field for :class:`umongo.fields.GenericReferenceField`
     """
 
     def __init__(self, *args, mongo_world=False, **kwargs):

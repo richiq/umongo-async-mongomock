@@ -45,7 +45,7 @@ __all__ = (
 )
 
 
-# Republish supported mashmallow fields
+# Republish supported marshmallow fields
 
 
 # class RawField(BaseField, ma_fields.Raw):

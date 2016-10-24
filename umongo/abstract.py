@@ -185,7 +185,7 @@ class BaseField(ma_fields.Field):
         """
         Return a pure-marshmallow version of this field.
 
-        :param params: Additional parameters passed to the mashmallow field
+        :param params: Additional parameters passed to the marshmallow field
             class constructor.
         :param mongo_world: If True the field will work against the mongo world
             instead of the OO world (default: False)
