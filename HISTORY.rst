@@ -2,8 +2,8 @@
 History
 =======
 
-dev
----
+0.11.0 (2016-11-02)
+-------------------
 
 * data_objects `Dict` and `List` inherit builtins `dict` and `list`
 * Document&EmbeddedDocument store fields passed during initialization
