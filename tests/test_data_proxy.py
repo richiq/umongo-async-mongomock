@@ -113,6 +113,10 @@ class TestDataProxy(BaseTest):
         class MySchema(EmbeddedSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
+            c = fields.IntField(
+                allow_none=True,
+                validate=validate.Range(min=1, max=5)
+            )
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -128,6 +132,12 @@ class TestDataProxy(BaseTest):
 
         with pytest.raises(KeyError):
             d.set('in_mongo_b', 2)
+
+        d.from_mongo({})
+        d.set('c', None)
+        assert d.to_mongo() == {'c': None}
+        with pytest.raises(ValidationError):
+            d.set('c', 69)
 
     def test_del(self):
 
