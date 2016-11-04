@@ -179,6 +179,7 @@ class BaseField(ma_fields.Field):
                                 'dump_only', 'missing', 'error_messages')}
         if mongo_world and self.attribute:
             params['attribute'] = self.attribute
+        params.update(self.metadata)
         return params
 
     def as_marshmallow_field(self, params=None, mongo_world=False):
