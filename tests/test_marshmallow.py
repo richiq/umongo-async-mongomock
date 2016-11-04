@@ -78,8 +78,16 @@ class TestMarshmallow(BaseTest):
     def test_keep_attributes(self):
         @self.instance.register
         class Vehicle(Document):
-            pass
-        # TODO
+            category = fields.StrField(required=True)
+            nb_wheels = fields.IntField(missing=4)
+
+        ma_schema_cls = Vehicle.schema.as_marshmallow_schema()
+        schema = ma_schema_cls()
+
+        ret = schema.load({})
+        assert ret.errors == {'category': ['Missing data for required field.']}
+        ret = schema.load({'category': 'Car'})
+        assert ret.data == {'category': 'Car', 'nb_wheels': 4}
 
     def test_keep_validators(self):
         @self.instance.register
