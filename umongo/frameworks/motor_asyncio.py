@@ -226,27 +226,25 @@ class MotorAsyncIODocument(DocumentImplementation):
 
     @classmethod
     @asyncio.coroutine
-    def find_one(cls, spec_or_id=None, *args, **kwargs):
+    def find_one(cls, filter=None, *args, **kwargs):
         """
         Find a single document in database.
         """
-        # In pymongo<3, `spec_or_id` is for filtering and `filter` is for sorting
-        spec_or_id = cook_find_filter(cls, spec_or_id)
-        ret = yield from cls.collection.find_one(*args, spec_or_id=spec_or_id, **kwargs)
+        filter = cook_find_filter(cls, filter)
+        ret = yield from cls.collection.find_one(*args, filter=filter, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
-    def find(cls, spec=None, *args, **kwargs):
+    def find(cls, filter=None, *args, **kwargs):
         """
         Find a list document in database.
 
         Returns a cursor that provide Documents.
         """
-        # In pymongo<3, `spec` is for filtering and `filter` is for sorting
-        spec = cook_find_filter(cls, spec)
-        return WrappedCursor(cls, cls.collection.find(*args, spec=spec, **kwargs))
+        filter = cook_find_filter(cls, filter)
+        return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
 
     @classmethod
     @asyncio.coroutine
