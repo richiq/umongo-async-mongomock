@@ -414,9 +414,10 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         if isinstance(value, embedded_document_cls):
             return value
         # Handle inheritance deserialization here using `cls` field as hint
-        if embedded_document_cls.opts.children and isinstance(value, dict) and 'cls' in value:
+        if embedded_document_cls.opts.offspring and isinstance(value, dict) and 'cls' in value:
             to_use_cls_name = value.pop('cls')
-            if to_use_cls_name not in embedded_document_cls.opts.children:
+            if not any(o for o in embedded_document_cls.opts.offspring
+                       if o.__name__ == to_use_cls_name):
                 raise ValidationError(_('Unknown document `{document}`.').format(
                     document=to_use_cls_name))
             try:

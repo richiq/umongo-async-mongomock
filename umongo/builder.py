@@ -1,4 +1,5 @@
 import re
+import inspect
 from copy import copy
 from marshmallow.fields import Field
 
@@ -106,8 +107,6 @@ def _build_document_opts(instance, template, name, nmspc, bases):
         if not issubclass(base, DocumentImplementation):
             continue
         popts = base.opts
-        # Notify the parent of it newborn !
-        popts.children.add(name)
         if not popts.allow_inheritance:
             raise DocumentDefinitionError("Document %r doesn't allow inheritance" % base)
         if kwargs['abstract'] and not popts.abstract:
@@ -218,6 +217,13 @@ class BaseBuilder:
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
+        # Notify the parent & grand parents of the newborn !
+        for base in bases:
+            for parent in inspect.getmro(base):
+                if (not issubclass(parent, DocumentImplementation) or
+                        parent is DocumentImplementation):
+                    continue
+                parent.opts.offspring.add(implementation)
         return implementation
 
     def build_embedded_document_from_template(self, template):
@@ -241,12 +247,6 @@ class BaseBuilder:
         # If EmbeddedDocument is a child, _cls field must be added to the schema
         if opts.is_child:
             add_child_field(name, schema_nmspc)
-        # Notify the parents of their newborn !
-        for base in bases:
-            if (not issubclass(base, EmbeddedDocumentImplementation) or
-                    base is EmbeddedDocumentImplementation):
-                continue
-            base.opts.children.add(name)
 
         # Create schema by retrieving inherited schema classes
         schema_bases = tuple([base.Schema for base in bases
@@ -261,4 +261,11 @@ class BaseBuilder:
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
+        # Notify the parent & grand parents of the newborn !
+        for base in bases:
+            for parent in inspect.getmro(base):
+                if (not issubclass(parent, EmbeddedDocumentImplementation) or
+                        parent is EmbeddedDocumentImplementation):
+                    continue
+                parent.opts.offspring.add(implementation)
         return implementation

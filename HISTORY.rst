@@ -2,6 +2,12 @@
 History
 =======
 
+dev
+---
+
+* Replace `Document.opts.children` by `offspring` and fix grand child
+  inheritance issue (see #66)
+
 0.11.0 (2016-11-02)
 -------------------
 
@@ -47,6 +53,7 @@ History
 
 0.7.8 (2016-4-28)
 -----------------
+
 * Fix setup.py style preventing release of version 0.7.7
 
 0.7.7 (2016-4-28)
