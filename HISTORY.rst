@@ -2,11 +2,12 @@
 History
 =======
 
-dev
----
+0.12.0 (2016-11-11)
+-------------------
 
 * Replace `Document.opts.children` by `offspring` and fix grand child
   inheritance issue (see #66)
+* Fix dependancy since release of motor 1.0 with breaking API
 
 0.11.0 (2016-11-02)
 -------------------
