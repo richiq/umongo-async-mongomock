@@ -32,7 +32,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'pymongo': ['pymongo>=3.2.1'],
-        'motor': ['motor>=0.6.2'],
+        'motor': ['motor >= 0.7, < 1.0'],
         'txmongo': ['txmongo>=16.0.1'],
         'mongomock': ['mongomock', 'pymongo']  # pymongo needed for bson module
     },
