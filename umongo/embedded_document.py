@@ -34,14 +34,14 @@ class EmbeddedDocumentOpts:
 
     def __repr__(self):
         return ('<{ClassName}(instance={self.instance}, template={self.template}, '
-                'is_child={self.is_child}, children={self.children})>'
+                'is_child={self.is_child}, offspring={self.offspring})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def __init__(self, instance, template, is_child=False, children=None):
+    def __init__(self, instance, template, is_child=False, offspring=None):
         self.instance = instance
         self.template = template
         self.is_child = is_child
-        self.children = set(children) if children else set()
+        self.offspring = set(offspring) if offspring else set()
 
 
 class EmbeddedDocumentImplementation(Implementation, BaseDataObject):

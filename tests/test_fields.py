@@ -339,8 +339,10 @@ class TestFields(BaseTest):
             parent = fields.EmbeddedField(EmbeddedParent)
             child = fields.EmbeddedField(EmbeddedChild)
 
-        assert 'EmbeddedChild' in EmbeddedParent.opts.children
-        assert 'OtherEmbedded' not in EmbeddedParent.opts.children
+        assert EmbeddedParent.opts.offspring == {EmbeddedChild, GrandChild}
+        assert EmbeddedChild.opts.offspring == {GrandChild}
+        assert GrandChild.opts.offspring == set()
+        assert OtherEmbedded.opts.offspring == set()
 
         parent = EmbeddedParent(a=1)
         child = EmbeddedChild(a=1, b=2, c=3)
@@ -378,6 +380,10 @@ class TestFields(BaseTest):
         doc2 = MyDoc.build_from_mongo(mongo_data)
         assert isinstance(doc2.parent, EmbeddedChild)
         assert doc._data == doc2._data
+
+        # Test grandchild can be passed as parent
+        doc = MyDoc(parent={'cls': 'GrandChild', 'd': 2})
+        assert doc.parent.to_mongo() == {'d': 2, '_cls': 'GrandChild'}
 
     def test_embedded_required_validate(self):
 
