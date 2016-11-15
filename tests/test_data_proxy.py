@@ -402,7 +402,11 @@ class TestDataProxy(BaseTest):
             d.required_validate()
         assert exc.value.messages == {'required': ['Missing data for required field.']}
 
+        # Missing embedded is valid even though some fields are required in the embedded document
         d.load({'required': 42})
+        d.required_validate()
+        # Required fields in the embedded document are only checked if the document is not missing
+        d.load({'embedded': {}, 'required': 42})
         with pytest.raises(ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {'embedded': {'required': ['Missing data for required field.']}}

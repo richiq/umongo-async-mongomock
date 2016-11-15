@@ -493,8 +493,5 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return ma_fields.Nested(nested_ma_schema, **kwargs)
 
     def _required_validate(self, value):
-        if value is missing:
-            # Validate against an empty struct to enforce required fields check
-            self._embedded_document_cls.DataProxy(data={}).required_validate()
-        else:
+        if value is not missing:
             value.required_validate()

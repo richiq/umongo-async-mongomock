@@ -260,8 +260,7 @@ class TestTxMongo(BaseDBTest):
 
         MySchema = MyDoc.Schema
         MyDoc(embedded={}, embedded_list=[{}])  # Required fields are check on commit
-        with pytest.raises(exceptions.ValidationError):
-            yield MyDoc().commit()
+        yield MyDoc().commit()  # Don't check required fields in missing embedded
         with pytest.raises(exceptions.ValidationError):
             yield MyDoc(embedded={'optional_field': 1}).commit()
         with pytest.raises(exceptions.ValidationError):
