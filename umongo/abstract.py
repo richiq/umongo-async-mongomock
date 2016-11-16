@@ -118,7 +118,7 @@ class BaseField(ma_fields.Field):
         return super().serialize(attr, obj, accessor=accessor)
 
     def _validate_missing(self, value):
-        # Overwirte marshmallow.Field._validate_missing given it also checks
+        # Overwrite marshmallow.Field._validate_missing given it also checks
         # for missing required fields (this is done at commit time in umongo
         # using `DataProxy.required_validate`).
         if value is None and getattr(self, 'allow_none', False) is False:

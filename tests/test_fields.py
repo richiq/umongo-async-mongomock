@@ -12,6 +12,63 @@ from umongo.data_objects import List, Dict
 from .common import BaseTest
 
 
+class TestRequired(BaseTest):
+    # `commit` calls `required_validate`
+
+    def test_required(self):
+
+        @self.instance.register
+        class Person(Document):
+            name = fields.StrField(required=True)
+            birthday = fields.DateTimeField()
+
+        person = Person(birthday=datetime(1968, 6, 9))
+
+        # required should be called during commit
+        with pytest.raises(ValidationError) as exc:
+            person.required_validate()
+        assert exc.value.messages == {'name': ['Missing data for required field.']}
+
+        person.name = 'Marty'
+        person.required_validate()
+
+    def test_required_nested(self):
+        @self.instance.register
+        class MyEmbedded(EmbeddedDocument):
+            required_field = fields.IntField(required=True)
+            optional_field = fields.IntField()
+
+        @self.instance.register
+        class MyDoc(Document):
+            embedded = fields.EmbeddedField(MyEmbedded)
+            embedded_required = fields.EmbeddedField(MyEmbedded, required=True)
+            embedded_list = fields.ListField(fields.EmbeddedField(MyEmbedded))
+
+        MyDoc(embedded={}, embedded_list=[{}])  # Required fields are check on commit
+        # Don't check required fields in not required missing embedded
+        MyDoc(embedded_required={'required_field': 42}).required_validate()
+        # Now trigger required fails
+        with pytest.raises(ValidationError) as exc:
+            MyDoc().required_validate()
+        assert exc.value.messages == {'embedded_required': ['Missing data for required field.']}
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(embedded_required={'optional_field': 1}).required_validate()
+        assert exc.value.messages == {'embedded_required': {'required_field': ['Missing data for required field.']}}
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(embedded={'optional_field': 1},
+                  embedded_required={'required_field': 42}).required_validate()
+        assert exc.value.messages == {'embedded': {'required_field': ['Missing data for required field.']}}
+        with pytest.raises(ValidationError) as exc:
+            MyDoc(embedded={'required_field': 1}, embedded_list=[{'optional_field': 1}], embedded_required={'required_field': 42}).required_validate()
+        assert exc.value.messages == {'embedded_list': {0: {'required_field': ['Missing data for required field.']}}}
+
+        # Check valid constructions
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[], embedded_required={'required_field': 42})
+        doc.required_validate()
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[{'required_field': 1}], embedded_required={'required_field': 42})
+        doc.required_validate()
+
+
 class TestFields(BaseTest):
 
     def test_basefields(self):
@@ -384,23 +441,6 @@ class TestFields(BaseTest):
         # Test grandchild can be passed as parent
         doc = MyDoc(parent={'cls': 'GrandChild', 'd': 2})
         assert doc.parent.to_mongo() == {'d': 2, '_cls': 'GrandChild'}
-
-    def test_embedded_required_validate(self):
-
-        @self.instance.register
-        class MyEmbedded(EmbeddedDocument):
-            required = fields.IntField(required=True)
-
-        @self.instance.register
-        class MyDoc(Document):
-            embedded = fields.EmbeddedField(MyEmbedded)
-
-        doc = MyDoc(embedded={'required': 42})
-        doc.embedded.required_validate()
-
-        doc = MyDoc(embedded={})
-        with pytest.raises(ValidationError) as exc:
-            doc.embedded.required_validate()
 
     def test_list(self):
 
