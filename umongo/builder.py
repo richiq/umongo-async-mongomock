@@ -99,7 +99,6 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
-    kwargs['base_schema_cls'] = getattr(meta, 'base_schema_cls', Schema)
     kwargs['is_child'] = _is_child(bases)
 
     # Handle option inheritance and integrity checks
