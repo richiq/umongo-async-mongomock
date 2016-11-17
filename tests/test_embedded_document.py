@@ -2,7 +2,7 @@ import pytest
 from marshmallow import ValidationError
 
 from umongo.data_proxy import data_proxy_factory
-from umongo import Document, EmbeddedDocument, fields
+from umongo import Document, EmbeddedDocument, fields, exceptions
 
 from .common import BaseTest
 
@@ -147,7 +147,7 @@ class TestEmbeddedDocument(BaseTest):
             k = MyDoc(e=[{}])
         assert exc.value.args[0] == {'e': {'_schema': ['Invalid input type.']}}
 
-    def test_embedded_inheritance(self):
+    def test_inheritance(self):
         @self.instance.register
         class EmbeddedParent(EmbeddedDocument):
             a = fields.IntField(attribute='in_mongo_a_parent')
@@ -216,3 +216,89 @@ class TestEmbeddedDocument(BaseTest):
         # Test grandchild can be passed as parent
         doc = MyDoc(parent={'cls': 'GrandChild', 'd': 2})
         assert doc.parent.to_mongo() == {'d': 2, '_cls': 'GrandChild'}
+
+    def test_abstract_inheritance(self):
+        @self.instance.register
+        class AbstractParent(EmbeddedDocument):
+            a = fields.IntField(attribute='in_mongo_a_parent')
+            b = fields.IntField()
+
+            class Meta:
+                abstract = True
+
+        @self.instance.register
+        class AbstractChild(AbstractParent):
+            a = fields.IntField(attribute='in_mongo_a_child')
+            c = fields.IntField()
+
+            class Meta:
+                abstract = True
+
+        @self.instance.register
+        class ConcreteChild(AbstractParent):
+            c = fields.IntField()
+
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class ConcreteGrandChild(AbstractChild):
+            d = fields.IntField()
+
+        @self.instance.register
+        class ConcreteConcreteGrandChild(ConcreteChild):
+            d = fields.IntField()
+
+        @self.instance.register
+        class OtherEmbedded(EmbeddedDocument):
+            pass
+
+        with pytest.raises(exceptions.AbstractDocumentError) as exc:
+            AbstractParent()
+        assert exc.value.args[0] == "Cannot instantiate an abstract EmbeddedDocument"
+
+        # test
+        cc = ConcreteChild(a=1, b=2, c=3)
+        cgc = ConcreteGrandChild(a=1, b=2, c=3, d=4)
+        ccgc = ConcreteConcreteGrandChild(a=1, b=2, c=3, d=4)
+
+        assert cc.to_mongo() == {'in_mongo_a_parent': 1, 'b': 2, 'c': 3, '_cls': 'ConcreteChild'}
+        assert cgc.to_mongo() == {'in_mongo_a_child': 1, 'b': 2, 'c': 3, 'd': 4, '_cls': 'ConcreteGrandChild'}
+        assert ccgc.to_mongo() == {'in_mongo_a_parent': 1, 'b': 2, 'c': 3, 'd': 4, '_cls': 'ConcreteConcreteGrandChild'}
+
+    def test_bad_inheritance(self):
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
+            class BadAbstract(EmbeddedDocument):
+                class Meta:
+                    allow_inheritance = False
+                    abstract = True
+        assert exc.value.args[0] == "Abstract embedded document cannot disable inheritance"
+
+        @self.instance.register
+        class NotParent(EmbeddedDocument):
+            class Meta:
+                allow_inheritance = False
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
+            class ImpossibleChild1(NotParent):
+                pass
+        assert exc.value.args[0] == ("EmbeddedDocument"
+            " <Implementation class 'tests.test_embedded_document.NotParent'>"
+            " doesn't allow inheritance")
+
+        @self.instance.register
+        class NotAbstractParent(EmbeddedDocument):
+            class Meta:
+                allow_inheritance = True
+
+        # Unlike Document, EmbeddedDocument should allow inheritance by default
+        assert NotAbstractParent.opts.allow_inheritance
+
+        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
+            @self.instance.register
+            class ImpossibleChild2(NotAbstractParent):
+                class Meta:
+                    abstract = True
+        assert exc.value.args[0] == "Abstract embedded document should have all it parents abstract"

@@ -132,7 +132,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     __slots__ = ('is_created', '_data')
     __real_attributes = None
-    opts = DocumentOpts(None, DocumentTemplate, abstract=True, allow_inheritance=True)
+    opts = DocumentOpts(None, DocumentTemplate, abstract=True)
 
     def __init__(self, **kwargs):
         super().__init__()

@@ -129,6 +129,29 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     return DocumentOpts(collection_name=collection_name, **kwargs)
 
 
+def _build_embedded_document_opts(instance, template, name, nmspc, bases):
+    kwargs = {}
+    meta = nmspc.get('Meta')
+    kwargs['instance'] = instance
+    kwargs['template'] = template
+    kwargs['abstract'] = getattr(meta, 'abstract', False)
+    kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', True)
+    kwargs['is_child'] = _is_child_embedded_document(bases)
+
+    # Handle option inheritance and integrity checks
+    for base in bases:
+        if not issubclass(base, EmbeddedDocumentImplementation):
+            continue
+        popts = base.opts
+        if not popts.allow_inheritance:
+            raise DocumentDefinitionError("EmbeddedDocument %r doesn't allow inheritance" % base)
+        if kwargs['abstract'] and not popts.abstract:
+            raise DocumentDefinitionError(
+                "Abstract embedded document should have all it parents abstract")
+
+    return EmbeddedDocumentOpts(**kwargs)
+
+
 class BaseBuilder:
     """
     A builder connect a :class:`umongo.document.Template` with a
@@ -234,8 +257,9 @@ class BaseBuilder:
         assert issubclass(template, EmbeddedDocumentTemplate)
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
-        opts = EmbeddedDocumentOpts(
-            self.instance, template, is_child=_is_child_embedded_document(bases))
+        opts = _build_embedded_document_opts(
+            self.instance, template, name, template.__dict__, bases)
+
         nmspc, schema_template_fields = _collect_fields(template.__dict__)
         nmspc['opts'] = opts
 
