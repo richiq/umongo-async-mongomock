@@ -2,6 +2,11 @@
 History
 =======
 
+dev
+---
+
+* Add `abstract` and `allow_inheritance` options to EmbeddedDocument
+
 0.12.0 (2016-11-11)
 -------------------
 
