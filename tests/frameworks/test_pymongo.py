@@ -192,9 +192,15 @@ class TestPymongo(BaseDBTest):
             raise exceptions.ValidationError('Ho boys !')
 
         @instance.register
+        class EmbeddedDummy(EmbeddedDocument):
+            required_field = fields.StrField(required=True)
+
+        @instance.register
         class Dummy(Document):
             required_name = fields.StrField(required=True)
             always_io_fail = fields.IntField(io_validate=io_validate)
+            embedded_list = fields.ListField(fields.EmbeddedField(EmbeddedDummy))
+            embedded = fields.EmbeddedField(EmbeddedDummy)
 
         with pytest.raises(exceptions.ValidationError) as exc:
             Dummy().commit()
@@ -202,6 +208,39 @@ class TestPymongo(BaseDBTest):
         with pytest.raises(exceptions.ValidationError) as exc:
             Dummy(required_name='required', always_io_fail=42).commit()
         assert exc.value.messages == {'always_io_fail': ['Ho boys !']}
+
+        with pytest.raises(exceptions.ValidationError) as exc:
+            Dummy(required_name='required', embedded=EmbeddedDummy()).commit()
+        assert exc.value.messages == {'embedded': {'required_field':
+                ['Missing data for required field.']}}
+
+        dummy = Dummy(required_name='required')
+        dummy.commit()
+        del dummy.required_name
+        with pytest.raises(exceptions.ValidationError) as exc:
+            dummy.commit()
+        assert exc.value.messages == {'required_name': ['Missing data for required field.']}
+
+        dummy = Dummy(required_name='required')
+        dummy.commit()
+        dummy.embedded = EmbeddedDummy()
+        with pytest.raises(exceptions.ValidationError) as exc:
+            dummy.commit()
+        assert exc.value.messages == {'embedded': {'required_field':
+                ['Missing data for required field.']}}
+
+        with pytest.raises(exceptions.ValidationError) as exc:
+            Dummy(required_name='required', embedded_list=[EmbeddedDummy()]).commit()
+        assert exc.value.messages == {'embedded_list': {0: {'required_field':
+                ['Missing data for required field.']}}}
+
+        dummy = Dummy(required_name='required')
+        dummy.commit()
+        dummy.embedded_list.append(EmbeddedDummy())
+        with pytest.raises(exceptions.ValidationError) as exc:
+            dummy.commit()
+        assert exc.value.messages == {'embedded_list': {0: {'required_field':
+                ['Missing data for required field.']}}}
 
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')
@@ -676,7 +715,6 @@ class TestPymongo(BaseDBTest):
                 assert isinstance(ret, DeleteResult)
                 callbacks.append('post_delete')
 
-
         p = Person(name='John', age=20)
         p.commit()
         assert callbacks == ['pre_insert', 'post_insert']
@@ -709,7 +747,6 @@ class TestPymongo(BaseDBTest):
 
             def pre_delete(self):
                 return {'version': self.version}
-
 
         p = Person(name='John', age=20)
         p.commit()
