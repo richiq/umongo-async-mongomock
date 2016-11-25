@@ -203,6 +203,13 @@ class TestPymongo(BaseDBTest):
             Dummy(required_name='required', always_io_fail=42).commit()
         assert exc.value.messages == {'always_io_fail': ['Ho boys !']}
 
+        dummy = Dummy(required_name='required')
+        dummy.commit()
+        del dummy.required_name
+        with pytest.raises(exceptions.ValidationError) as exc:
+            dummy.commit()
+        assert exc.value.messages == {'required_name': ['Missing data for required field.']}
+
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')
         teacher.commit()
@@ -676,7 +683,6 @@ class TestPymongo(BaseDBTest):
                 assert isinstance(ret, DeleteResult)
                 callbacks.append('post_delete')
 
-
         p = Person(name='John', age=20)
         p.commit()
         assert callbacks == ['pre_insert', 'post_insert']
@@ -709,7 +715,6 @@ class TestPymongo(BaseDBTest):
 
             def pre_delete(self):
                 return {'version': self.version}
-
 
         p = Person(name='John', age=20)
         p.commit()

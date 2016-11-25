@@ -236,6 +236,13 @@ class TestTxMongo(BaseDBTest):
             yield Dummy(required_name='required', always_io_fail=42).commit()
         assert exc.value.messages == {'always_io_fail': ['Ho boys !']}
 
+        dummy = Dummy(required_name='required')
+        yield dummy.commit()
+        del dummy.required_name
+        with pytest.raises(exceptions.ValidationError) as exc:
+            yield dummy.commit()
+        assert exc.value.messages == {'required_name': ['Missing data for required field.']}
+
     @pytest_inlineCallbacks
     def test_reference(self, classroom_model):
         teacher = classroom_model.Teacher(name='M. Strickland')

@@ -255,7 +255,6 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
-
     def test_validation_on_commit(self, loop, instance):
 
         @asyncio.coroutine
@@ -275,6 +274,13 @@ class TestMotorAsyncio(BaseDBTest):
             with pytest.raises(exceptions.ValidationError) as exc:
                 yield from Dummy(required_name='required', always_io_fail=42).commit()
             assert exc.value.messages == {'always_io_fail': ['Ho boys !']}
+
+            dummy = Dummy(required_name='required')
+            yield from dummy.commit()
+            del dummy.required_name
+            with pytest.raises(exceptions.ValidationError) as exc:
+                yield from dummy.commit()
+            assert exc.value.messages == {'required_name': ['Missing data for required field.']}
 
         loop.run_until_complete(do_test())
 
