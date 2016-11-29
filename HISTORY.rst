@@ -5,19 +5,20 @@ History
 dev
 ---
 
-* Add `abstract` and `allow_inheritance` options to EmbeddedDocument
+* Add ``abstract`` and ``allow_inheritance`` options to EmbeddedDocument
+* Remove buggy ``as_marshmallow_schema``'s parameter ``missing_accessor`` (see #73, #74)
 
 0.12.0 (2016-11-11)
 -------------------
 
-* Replace `Document.opts.children` by `offspring` and fix grand child
+* Replace ``Document.opts.children`` by ``offspring`` and fix grand child
   inheritance issue (see #66)
 * Fix dependancy since release of motor 1.0 with breaking API
 
 0.11.0 (2016-11-02)
 -------------------
 
-* data_objects `Dict` and `List` inherit builtins `dict` and `list`
+* data_objects ``Dict`` and ``List`` inherit builtins ``dict`` and ``list``
 * Document&EmbeddedDocument store fields passed during initialization
   as modified (see #50)
 * Required field inside embedded document are handled correctly (see #61)
@@ -53,9 +54,9 @@ dev
 * Documents are now first defined as templates then implemented
   inside an Instance
 * DALs has been replaced by frameworks implementations of Builder
-* Fix `__getitem__` for Pymongo.Cursor wrapper
-* Add `conditions` argument to Document.commit
-* Add `count` method to txmongo
+* Fix ``__getitem__`` for Pymongo.Cursor wrapper
+* Add ``conditions`` argument to Document.commit
+* Add ``count`` method to txmongo
 
 0.7.8 (2016-4-28)
 -----------------
