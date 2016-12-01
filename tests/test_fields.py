@@ -1,7 +1,7 @@
 from bson import ObjectId, DBRef
 import pytest
 from datetime import datetime
-from dateutil.tz.tz import tzutc
+from dateutil.tz.tz import tzutc, tzoffset
 from marshmallow import ValidationError
 from uuid import UUID
 
@@ -168,8 +168,10 @@ class TestFields(BaseTest):
 
         # Test _deserialize
         s = MySchema(strict=True)
+
         for date in (
             datetime(2016, 8, 6),
+            datetime(2016, 8, 6, tzinfo=tzutc()),
             "2016-08-06T00:00:00Z",
             "2016-08-06T00:00:00",
         ):
@@ -177,12 +179,23 @@ class TestFields(BaseTest):
             assert data['a'] == datetime(2016, 8, 6)
             assert data['b'] == datetime(2016, 8, 6)
             assert data['c'] == datetime(2016, 8, 6, tzinfo=tzutc())
+
+        for date in (
+            "2016-08-06T00:00:00+02:00",
+            datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
+        ):
+            data, _ = s.load({'a': date, 'b': date, 'c': date})
+            assert data['a'] == datetime(2016, 8, 5, 22, 0)
+            assert data['b'] == datetime(2016, 8, 5, 22, 0)
+            assert data['c'] == datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
+
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
         # Test _deserialize_from_mongo
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
+
         for date in (
             datetime(2016, 8, 6),
             datetime(2016, 8, 6, tzinfo=tzutc()),
@@ -191,6 +204,14 @@ class TestFields(BaseTest):
             assert d.get('a') == datetime(2016, 8, 6)
             assert d.get('b') == datetime(2016, 8, 6)
             assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzutc())
+
+        for date in (
+            datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
+        ):
+            d.from_mongo({'a': date, 'b': date, 'c': date})
+            assert d.get('a') == datetime(2016, 8, 5, 22, 0)
+            assert d.get('b') == datetime(2016, 8, 5, 22, 0)
+            assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
 
     def test_dict(self):
 
