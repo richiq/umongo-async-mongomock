@@ -9,8 +9,27 @@ from .common import BaseTest
 
 class TestEmbeddedDocument(BaseTest):
 
-    def test_embedded_document(self):
+    def test_embedded_inheritance(self):
+        @self.instance.register
+        class MyChildEmbeddedDocument(EmbeddedDocument):
+            num = fields.IntField()
 
+        @self.instance.register
+        class MyParentEmbeddedDocument(EmbeddedDocument):
+            embedded = fields.EmbeddedField(MyChildEmbeddedDocument)
+
+        @self.instance.register
+        class MyDoc(Document):
+            embedded = fields.EmbeddedField(MyParentEmbeddedDocument)
+
+        document = MyDoc(**{
+            "embedded": {"embedded": {"num": 1}}
+        })
+
+        assert document is not None
+
+
+    def test_embedded_document(self):
         @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             a = fields.IntField(attribute='in_mongo_a')
