@@ -61,7 +61,7 @@ class DictField(BaseField, ma_fields.Dict):
 
     def _deserialize(self, value, attr, data):
         value = super()._deserialize(value, attr, data)
-        return self._deserialize_from_mongo(value)
+        return Dict(value)
 
     def _serialize_to_mongo(self, obj):
         if not obj:
@@ -89,7 +89,6 @@ class ListField(BaseField, ma_fields.List):
 
     def _deserialize(self, value, attr, data):
         return List(self.container, super()._deserialize(value, attr, data))
-        # return self._deserialize_from_mongo(value)
 
     def _serialize_to_mongo(self, obj):
         if not obj:
@@ -289,6 +288,8 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
         value = super()._deserialize(value, attr, data)
+        # `value` is similar to data received from the database so we
+        # can use `_deserialize_from_mongo` to finish the deserialization
         return self._deserialize_from_mongo(value)
 
     def _serialize_to_mongo(self, obj):
@@ -437,6 +438,8 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return obj.to_mongo()
 
     def _deserialize_from_mongo(self, value):
+        # When this method is called from `_deserialize`, `value` can be
+        # already deserialized, in such a case do nothing.
         if isinstance(value, self.embedded_document_cls):
             return value
         return self.embedded_document_cls.build_from_mongo(value)

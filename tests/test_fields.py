@@ -236,8 +236,8 @@ class TestFields(BaseTest):
         dict_.clear_modified()
         assert d.to_mongo(update=True) is None
 
-        d2 = MyDataProxy({'dict': {'a': 1}})
-        assert d2.to_mongo() == {'in_mongo_dict': {'a': 1}}
+        d2 = MyDataProxy({'dict': {'a': 1, 'b': {'c': True}}})
+        assert d2.to_mongo() == {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}
 
         # Empty dict is considered as missing field
         d2.set('dict', {})
