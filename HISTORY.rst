@@ -5,6 +5,7 @@ History
 dev
 ---
 
+* Fix deserialization error with nested EmbeddedDocuments (see #84, #67)
 * Add ``abstract`` and ``allow_inheritance`` options to EmbeddedDocument
 * Remove buggy ``as_marshmallow_schema``'s parameter ``missing_accessor`` (see #73, #74)
 
