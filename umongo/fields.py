@@ -437,6 +437,8 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return obj.to_mongo()
 
     def _deserialize_from_mongo(self, value):
+        if isinstance(value, self.embedded_document_cls):
+            return value
         return self.embedded_document_cls.build_from_mongo(value)
 
     def _validate_missing(self, value):
