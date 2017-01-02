@@ -127,8 +127,6 @@ class ObjectId(ma_fields.Field):
         return str(value)
 
     def _deserialize(self, value, attr, data):
-        if value is None:
-            return None
         try:
             return bson.ObjectId(value)
         except bson.errors.InvalidId:
@@ -175,8 +173,6 @@ class GenericReference(ma_fields.Field):
             return {'id': str(value.pk), 'cls': value.document_cls.__name__}
 
     def _deserialize(self, value, attr, data):
-        if value is None:
-            return None
         if not isinstance(value, dict):
             raise ValidationError(_("Invalid value for generic reference field."))
         if value.keys() != {'cls', 'id'}:
