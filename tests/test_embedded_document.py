@@ -28,7 +28,6 @@ class TestEmbeddedDocument(BaseTest):
 
         assert document is not None
 
-
     def test_embedded_document(self):
         @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
@@ -41,7 +40,8 @@ class TestEmbeddedDocument(BaseTest):
 
         @self.instance.register
         class MyDoc(Document):
-            embedded = fields.EmbeddedField(MyEmbeddedDocument, attribute='in_mongo_embedded')
+            embedded = fields.EmbeddedField(MyEmbeddedDocument,
+                attribute='in_mongo_embedded', allow_none=True)
 
         MySchema = MyDoc.Schema
 
@@ -125,6 +125,12 @@ class TestEmbeddedDocument(BaseTest):
             embedded_doc['dummy'] = None
         with pytest.raises(KeyError):
             del embedded_doc['dummy']
+
+        # Test allow_none
+        d3 = MyDataProxy({'embedded': None})
+        assert d3.to_mongo() == {'in_mongo_embedded': None}
+        d3.from_mongo({'in_mongo_embedded': None})
+        assert d3.get('embedded') is None
 
     def test_bad_embedded_document(self):
 
