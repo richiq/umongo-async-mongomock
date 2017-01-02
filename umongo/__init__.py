@@ -36,7 +36,7 @@ from .i18n import set_gettext
 
 __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
-__version__ = '0.12.0'
+__version__ = '0.13.0'
 __all__ = (
     'Instance',
     'PyMongoInstance',
