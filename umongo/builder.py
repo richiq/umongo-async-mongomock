@@ -36,9 +36,8 @@ def _is_child(bases):
 def _is_child_embedded_document(bases):
     """Same thing than _is_child, but for EmbeddedDocument...
     """
-    return any(b for b in bases
-               if issubclass(b, EmbeddedDocumentImplementation) and
-               b is not EmbeddedDocumentImplementation)
+    return any(b for b in bases if issubclass(b, EmbeddedDocumentImplementation) and
+               not b.opts.abstract)
 
 
 def _on_need_add_id_field(bases, fields_dict):

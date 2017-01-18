@@ -49,15 +49,15 @@ class EmbeddedDocumentOpts:
     ==================== ====================== ===========
     attribute            configurable in Meta   description
     ==================== ====================== ===========
-    template             no                     Origine template of the Document
+    template             no                     Origin template of the embedded document
     instance             no                     Implementation's instance
-    abstract             yes                    Document has no collection
-                                                and can only be inherited
-    allow_inheritance    yes                    Allow the document to be subclassed
-    is_child             no                     Document inherit of a non-abstract document
+    abstract             yes                    Embedded document can only be inherited
+    allow_inheritance    yes                    Allow the embedded document to be subclassed
+    is_child             no                     Embedded document inherit of a non-abstract
+                                                embedded document
     strict               yes                    Don't accept unknown fields from mongo
                                                 (default: True)
-    offspring            no                     List of EmbeddedDocuments inheriting this one
+    offspring            no                     List of embedded documents inheriting this one
     ==================== ====================== ===========
     """
     def __repr__(self):
