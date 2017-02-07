@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Emmanuel Leblond <emmanuel.leblond@gmail.com>
+* Emmanuel Leblond `@touilleMan <https://github.com/touilleMan>`_
 
 Contributors
 ------------
