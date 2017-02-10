@@ -4,7 +4,8 @@ History
 
 dev
 ---
-
+* Fix bug in mashmallow tag handling (see #90)
+* Fix allow none in DataProxy.set (see #89)
 
 0.13.0 (2017-01-02)
 -------------------
