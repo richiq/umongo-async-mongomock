@@ -34,19 +34,26 @@ def _is_child_embedded_document(bases):
                b is not EmbeddedDocumentImplementation)
 
 
-def _collect_fields(nmspc):
+def _collect_schema_attrs(nmspc):
     """
-    Split dict between fields and non-fields elements and retrieve marshmallow
-    tags if any.
+    Split dict between schema fields and non-fields elements and retrieve
+    marshmallow tags if any.
     """
-    schema_nmspc = {}
+    schema_fields = {}
+    schema_non_fields = {}
     doc_nmspc = {}
     for key, item in nmspc.items():
-        if isinstance(item, Field) or hasattr(item, '__marshmallow_tags__'):
-            schema_nmspc[key] = item
+        if hasattr(item, '__marshmallow_tags__'):
+            # Decorated special functions (e.g. `post_load`)
+            schema_non_fields[key] = item
+        elif isinstance(item, Field):
+            # Given the fields provided by the template are going to be
+            # customized in the implementation, we copy them to avoid
+            # overwriting if two implementations are created
+            schema_fields[key] = copy(item)
         else:
             doc_nmspc[key] = item
-    return doc_nmspc, schema_nmspc
+    return doc_nmspc, schema_fields, schema_non_fields
 
 
 def _collect_indexes(meta, schema_nmspc, bases):
@@ -194,12 +201,15 @@ class BaseBuilder:
             for embedded_field in field.schema.fields.values():
                 self._patch_field(embedded_field)
 
-    def _build_schema(self, template, schema_bases, schema_nmspc):
+    def _build_schema(self, template, schema_bases, schema_fields, schema_non_fields):
         # Recursively set the `instance` attribute to all fields
-        for field in schema_nmspc.values():
+        for field in schema_fields.values():
             self._patch_field(field)
 
         # Finally build the schema class
+        schema_nmspc = {}
+        schema_nmspc.update(schema_fields)
+        schema_nmspc.update(schema_non_fields)
         return type('%sSchema' % template.__name__, schema_bases, schema_nmspc)
 
     def build_document_from_template(self, template):
@@ -211,23 +221,19 @@ class BaseBuilder:
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
         opts = _build_document_opts(self.instance, template, name, template.__dict__, bases)
-        nmspc, schema_template_fields = _collect_fields(template.__dict__)
+        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template.__dict__)
         nmspc['opts'] = opts
 
-        # Given the fields provided by the template are going to be
-        # customized in the implementation, we copy them to avoid
-        # overwriting if two implementations are created
-        schema_nmspc = {k: copy(v) for k, v in schema_template_fields.items()}
         # Create schema by retrieving inherited schema classes
         schema_bases = tuple([base.Schema for base in bases
                               if hasattr(base, 'Schema')])
         if not schema_bases:
             schema_bases = (Schema, )
-        on_need_add_id_field(schema_bases, schema_nmspc)
+        on_need_add_id_field(schema_bases, schema_fields)
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
-            add_child_field(name, schema_nmspc)
-        schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
+            add_child_field(name, schema_fields)
+        schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
         nmspc['schema'] = schema
@@ -259,24 +265,19 @@ class BaseBuilder:
         opts = _build_embedded_document_opts(
             self.instance, template, name, template.__dict__, bases)
 
-        nmspc, schema_template_fields = _collect_fields(template.__dict__)
+        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template.__dict__)
         nmspc['opts'] = opts
-
-        # Given the fields provided by the template are going to be
-        # customized in the implementation, we copy them to avoid
-        # overwriting if two implementations are created
-        schema_nmspc = {k: copy(v) for k, v in schema_template_fields.items()}
 
         # If EmbeddedDocument is a child, _cls field must be added to the schema
         if opts.is_child:
-            add_child_field(name, schema_nmspc)
+            add_child_field(name, schema_fields)
 
         # Create schema by retrieving inherited schema classes
         schema_bases = tuple([base.Schema for base in bases
                               if hasattr(base, 'Schema')])
         if not schema_bases:
             schema_bases = (Schema, )
-        schema_cls = self._build_schema(template, schema_bases, schema_nmspc)
+        schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
         nmspc['schema'] = schema

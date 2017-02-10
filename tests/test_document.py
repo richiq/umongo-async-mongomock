@@ -389,6 +389,18 @@ class TestConfig(BaseTest):
         assert DocChild1Child.opts.allow_inheritance is False
         assert DocChild2.opts.collection_name == 'col2'
 
+    def test_marshmallow_tags_build(self):
+
+        @self.instance.register
+        class Animal(Document):
+            name = fields.StringField()
+
+            @pre_load
+            def test(self, data):
+                return data
+
+        Animal(name='Scruffy')
+
     def test_marshmallow_tags(self):
 
         @self.instance.register

@@ -1,3 +1,5 @@
+from marshmallow.fields import Field
+
 from .abstract import BaseSchema
 
 
@@ -12,6 +14,9 @@ def on_need_add_id_field(bases, fields):
 
     def find_id_field(fields):
         for name, field in fields.items():
+            # Skip fake fields present in schema (e.g. `post_load` decorated function)
+            if not isinstance(field, Field):
+                continue
             if (name == '_id' and not field.attribute) or field.attribute == '_id':
                 return name, field
 
