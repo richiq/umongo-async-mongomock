@@ -4,7 +4,6 @@ from datetime import datetime
 from ..common import TEST_DB
 from ..fixtures import classroom_model, instance
 
-
 try:
     from mongomock import MongoClient
 except ImportError:
@@ -17,6 +16,7 @@ if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import mongomock
 
 
+# Used by fixtures.py
 @pytest.fixture
 def db():
     return MongoClient()[TEST_DB]

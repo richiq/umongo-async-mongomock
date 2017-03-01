@@ -27,6 +27,7 @@ def _ns_stripped(indexes):
     return {k: {sk: sv for sk, sv in v.items() if sk != 'ns'} for k, v in indexes.items()}
 
 
+# Used by fixtures.py
 @pytest.fixture
 def db():
     return AsyncIOMotorClient()[TEST_DB]
@@ -39,29 +40,6 @@ def loop():
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestMotorAsyncio(BaseDBTest):
-
-    def test_auto_instance(self, db):
-        instance = Instance(db)
-
-        class Doc(Document):
-            pass
-
-        doc_impl_cls = instance.register(Doc)
-        assert doc_impl_cls.collection == db['doc']
-        assert issubclass(doc_impl_cls, framework.MotorAsyncIODocument)
-
-    def test_lazy_loader_instance(self, db):
-        instance = MotorAsyncIOInstance()
-
-        class Doc(Document):
-            pass
-
-        doc_impl_cls = instance.register(Doc)
-        assert issubclass(doc_impl_cls, framework.MotorAsyncIODocument)
-        with pytest.raises(NoDBDefinedError):
-            doc_impl_cls.collection
-        instance.init(db)
-        assert doc_impl_cls.collection == db['doc']
 
     def test_create(self, loop, classroom_model):
         Student = classroom_model.Student

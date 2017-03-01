@@ -47,6 +47,7 @@ def name_sorted(indexes):
     return sorted(indexes, key=lambda x: x['name'])
 
 
+# Used by fixtures.py
 @pytest.fixture
 def db():
     return MongoConnection()[TEST_DB]
@@ -54,29 +55,6 @@ def db():
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestTxMongo(BaseDBTest):
-
-    def test_auto_instance(self, db):
-        instance = Instance(db)
-
-        class Doc(Document):
-            pass
-
-        doc_impl_cls = instance.register(Doc)
-        assert doc_impl_cls.collection == db['doc']
-        assert issubclass(doc_impl_cls, framework.TxMongoDocument)
-
-    def test_lazy_loader_instance(self, db):
-        instance = TxMongoInstance()
-
-        class Doc(Document):
-            pass
-
-        doc_impl_cls = instance.register(Doc)
-        assert issubclass(doc_impl_cls, framework.TxMongoDocument)
-        with pytest.raises(NoDBDefinedError):
-            doc_impl_cls.collection
-        instance.init(db)
-        assert doc_impl_cls.collection == db['doc']
 
     @pytest_inlineCallbacks
     def test_create(self, classroom_model):

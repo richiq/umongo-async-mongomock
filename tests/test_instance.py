@@ -1,19 +1,37 @@
 import pytest
 from bson import ObjectId
+import importlib
 
 from umongo import (Document, fields, AlreadyRegisteredDocumentError, EmbeddedDocument,
                     NotRegisteredDocumentError, NoDBDefinedError)
-from umongo.instance import Instance, LazyLoaderInstance
+from umongo.instance import Instance
 from umongo.document import DocumentTemplate, DocumentImplementation
 from umongo.embedded_document import EmbeddedDocumentTemplate, EmbeddedDocumentImplementation
+from umongo.frameworks import MongoMockInstance, MotorAsyncIOInstance, TxMongoInstance, PyMongoInstance
 
-from .common import MokedDB, MokedBuilder
+from .common import MockedDB, MockedBuilder, MockedInstance
 from .fixtures import instance
 
 
-@pytest.fixture
-def db():
-    return MokedDB('my_db')
+# Try to retrieve framework's db to test against each of them
+DB_AND_INSTANCE_PER_FRAMEWORK = [(MockedDB('my_db'), MockedInstance)]
+for name, inst in (('mongomock', MongoMockInstance),
+                   ('motor_asyncio', MotorAsyncIOInstance),
+                   ('txmongo', TxMongoInstance),
+                   ('pymongo', PyMongoInstance)):
+    mod = importlib.import_module('tests.frameworks.test_%s' % name)
+    if not mod.dep_error:
+        DB_AND_INSTANCE_PER_FRAMEWORK.append((mod.db(), inst))
+
+
+@pytest.fixture(params=DB_AND_INSTANCE_PER_FRAMEWORK)
+def db(request):
+    return request.param[0]
+
+
+@pytest.fixture(params=DB_AND_INSTANCE_PER_FRAMEWORK)
+def db_and_instance(request):
+    return request.param
 
 
 class TestInstance:
@@ -149,12 +167,9 @@ class TestInstance:
         with pytest.raises(NotRegisteredDocumentError):
             instance.retrieve_embedded_document('Doc')
 
-    def test_lazy_loader_instance(self, db):
-
-        class MokedInstance(LazyLoaderInstance):
-            BUILDER_CLS = MokedBuilder
-
-        instance = MokedInstance()
+    def test_lazy_loader_instance(self, db_and_instance):
+        db, lazy_instance = db_and_instance
+        instance = lazy_instance()
 
         class Doc(Document):
             pass
