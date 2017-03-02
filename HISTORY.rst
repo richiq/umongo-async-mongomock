@@ -2,10 +2,11 @@
 History
 =======
 
-dev
----
+0.13.0 (2017-03-03)
+-------------------
 * Fix bug in mashmallow tag handling (see #90)
 * Fix allow none in DataProxy.set (see #89)
+* Support motor 1.1 (see #87)
 
 0.13.0 (2017-01-02)
 -------------------
