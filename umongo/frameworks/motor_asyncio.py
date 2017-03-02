@@ -133,8 +133,8 @@ class MotorAsyncIODocument(DocumentImplementation):
                     self.required_validate()
                     yield from self.io_validate(validate_all=io_validate_all)
                     payload = self._data.to_mongo(update=True)
-                    ret = yield from self.collection.update(query, payload)
-                    if ret.get('ok') != 1 or ret.get('n') != 1:
+                    ret = yield from self.collection.update_one(query, payload)
+                    if ret.matched_count != 1:
                         raise UpdateError(ret)
                     yield from self.__coroutined_post_update(ret)
                 else:
@@ -146,9 +146,9 @@ class MotorAsyncIODocument(DocumentImplementation):
                 self.required_validate()
                 yield from self.io_validate(validate_all=io_validate_all)
                 payload = self._data.to_mongo(update=False)
-                ret = yield from self.collection.insert(payload)
+                ret = yield from self.collection.insert_one(payload)
                 # TODO: check ret ?
-                self._data.set_by_mongo_name('_id', ret)
+                self._data.set_by_mongo_name('_id', ret.inserted_id)
                 self.is_created = True
                 yield from self.__coroutined_post_insert(ret)
         except DuplicateKeyError as exc:
@@ -204,8 +204,8 @@ class MotorAsyncIODocument(DocumentImplementation):
         additional_filter = yield from self.__coroutined_pre_delete()
         if additional_filter:
             query.update(map_query(additional_filter, self.schema.fields))
-        ret = yield from self.collection.remove(query)
-        if ret.get('ok') != 1 or ret.get('n') != 1:
+        ret = yield from self.collection.delete_one(query)
+        if ret.deleted_count != 1:
             raise DeleteError(ret)
         self.is_created = False
         yield from self.__coroutined_post_delete(ret)

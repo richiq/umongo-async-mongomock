@@ -19,6 +19,7 @@ from umongo import (Document, EmbeddedDocument, fields, exceptions, Reference,
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import motor_asyncio as framework
+    from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
 
 def _ns_stripped(indexes):
@@ -48,7 +49,7 @@ class TestMotorAsyncio(BaseDBTest):
         def do_test():
             john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
             ret = yield from john.commit()
-            assert isinstance(ret, ObjectId)
+            assert isinstance(ret, InsertOneResult)
             assert john.to_mongo() == {
                 '_id': john.id,
                 'name': 'John Doe',
@@ -73,7 +74,7 @@ class TestMotorAsyncio(BaseDBTest):
             john.name = 'William Doe'
             assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
             ret = yield from john.commit()
-            assert ret == {'ok': 1, 'nModified': 1, 'updatedExisting': True, 'n': 1}
+            assert isinstance(ret, UpdateResult)
             assert john.to_mongo(update=True) is None
             john2 = yield from Student.find_one(john.id)
             assert john2._data == john._data
@@ -105,7 +106,7 @@ class TestMotorAsyncio(BaseDBTest):
             yield from john.commit()
             assert (yield from Student.find().count()) == 1
             ret = yield from john.remove()
-            assert ret == {'ok': 1, 'n': 1}
+            assert isinstance(ret, DeleteResult)
             assert not john.is_created
             assert (yield from Student.find().count()) == 0
             with pytest.raises(exceptions.NotCreatedError):
@@ -149,7 +150,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         @asyncio.coroutine
         def do_test():
-            Student.collection.drop()
+            yield from Student.collection.drop()
 
             for i in range(10):
                 yield from Student(name='student-%s' % i).commit()
@@ -641,11 +642,11 @@ class TestMotorAsyncio(BaseDBTest):
                 class Meta:
                     indexes = ['manual_index']
 
-            UniqueIndexChildDoc.collection.drop_indexes()
+            yield from UniqueIndexChildDoc.collection.drop_indexes()
 
             # Now ask for indexes building
-            UniqueIndexChildDoc.ensure_indexes()
-            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+            yield from UniqueIndexChildDoc.ensure_indexes()
+            indexes = [e for e in (yield from UniqueIndexChildDoc.collection.list_indexes())]
             expected_indexes = [
                 {
                     'key': {'_id': 1},
@@ -684,8 +685,8 @@ class TestMotorAsyncio(BaseDBTest):
             assert name_sorted(indexes) == name_sorted(expected_indexes)
 
             # Redoing indexes building should do nothing
-            UniqueIndexChildDoc.ensure_indexes()
-            indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+            yield from UniqueIndexChildDoc.ensure_indexes()
+            indexes = [e for e in (yield from UniqueIndexChildDoc.collection.list_indexes())]
             assert name_sorted(indexes) == name_sorted(expected_indexes)
 
         loop.run_until_complete(do_test())
@@ -758,7 +759,7 @@ class TestMotorAsyncio(BaseDBTest):
                 author = fields.EmbeddedField(Author, attribute='a')
                 chapters = fields.ListField(fields.EmbeddedField(Chapter), attribute='c')
 
-            Book.collection.drop()
+            yield from Book.collection.drop()
             yield from Book(
                 title='The Hobbit',
                 author={'name': 'JRR Tolkien'},
@@ -824,15 +825,15 @@ class TestMotorAsyncio(BaseDBTest):
                     callbacks.append('pre_delete')
 
                 def post_insert(self, ret):
-                    assert isinstance(ret, ObjectId)
+                    assert isinstance(ret, InsertOneResult)
                     callbacks.append('post_insert')
 
                 def post_update(self, ret):
-                    assert ret == {'ok': 1, 'nModified': 1, 'updatedExisting': True, 'n': 1}
+                    assert isinstance(ret, UpdateResult)
                     callbacks.append('post_update')
 
                 def post_delete(self, ret):
-                    assert ret == {'n': 1, 'ok': 1}
+                    assert isinstance(ret, DeleteResult)
                     callbacks.append('post_delete')
 
 
