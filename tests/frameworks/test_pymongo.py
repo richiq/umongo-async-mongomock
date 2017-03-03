@@ -196,6 +196,22 @@ class TestPymongo(BaseDBTest):
         assert isinstance(course.teacher, Reference)
         teacher_fetched = course.teacher.fetch()
         assert teacher_fetched == teacher
+        # Change in referenced document is not seen until referenced
+        # document is committed and referencer is reloaded
+        teacher.name = 'Dr. Brown'
+        assert course.teacher.fetch().name == 'M. Strickland'
+        teacher.commit()
+        assert course.teacher.fetch().name == 'M. Strickland'
+        course.reload()
+        assert course.teacher.fetch().name == 'Dr. Brown'
+        # But we can force reload as soon as referenced document is committed
+        # without having to reload the whole referencer
+        teacher.name = 'M. Strickland'
+        assert course.teacher.fetch().name == 'Dr. Brown'
+        assert course.teacher.fetch(force_reload=True).name == 'Dr. Brown'
+        teacher.commit()
+        assert course.teacher.fetch().name == 'Dr. Brown'
+        assert course.teacher.fetch(force_reload=True).name == 'M. Strickland'
         # Test bad ref as well
         course.teacher = Reference(classroom_model.Teacher, ObjectId())
         with pytest.raises(exceptions.ValidationError) as exc:
