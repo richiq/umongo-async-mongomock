@@ -108,13 +108,15 @@ class Reference:
         self.pk = pk
         self._document = None
 
-    def fetch(self, no_data=False):
+    def fetch(self, no_data=False, force_reload=False):
         """
         Retrieve from the database the referenced document
 
         :param no_data: if True, the caller is only interested in whether or
             not the document is present in database. This means the
             implementation may not retrieve document's data to save bandwidth.
+        :param force_reload: if True, ignore any cached data and reload referenced
+            document from database.
         """
         raise NotImplementedError
     # TODO replace no_data by `exists` function

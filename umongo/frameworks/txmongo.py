@@ -293,8 +293,8 @@ class TxMongoReference(Reference):
         self._document = None
 
     @inlineCallbacks
-    def fetch(self, no_data=False):
-        if not self._document:
+    def fetch(self, no_data=False, force_reload=False):
+        if not self._document or force_reload:
             if self.pk is None:
                 raise ReferenceError('Cannot retrieve a None Reference')
             self._document = yield self.document_cls.find_one(self.pk)

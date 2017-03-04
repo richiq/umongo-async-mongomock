@@ -230,6 +230,29 @@ class TestTxMongo(BaseDBTest):
         assert isinstance(course.teacher, Reference)
         teacher_fetched = yield course.teacher.fetch()
         assert teacher_fetched == teacher
+        # Change in referenced document is not seen until referenced
+        # document is committed and referencer is reloaded
+        teacher.name = 'Dr. Brown'
+        teacher_fetched = yield course.teacher.fetch()
+        assert teacher_fetched.name == 'M. Strickland'
+        yield teacher.commit()
+        teacher_fetched = yield course.teacher.fetch()
+        assert teacher_fetched.name == 'M. Strickland'
+        yield course.reload()
+        teacher_fetched = yield course.teacher.fetch()
+        assert teacher_fetched.name == 'Dr. Brown'
+        # But we can force reload as soon as referenced document is committed
+        # without having to reload the whole referencer
+        teacher.name = 'M. Strickland'
+        teacher_fetched = yield course.teacher.fetch()
+        assert teacher_fetched.name == 'Dr. Brown'
+        teacher_fetched = yield course.teacher.fetch(force_reload=True)
+        assert teacher_fetched.name == 'Dr. Brown'
+        yield teacher.commit()
+        teacher_fetched = yield course.teacher.fetch()
+        assert teacher_fetched.name == 'Dr. Brown'
+        teacher_fetched = yield course.teacher.fetch(force_reload=True)
+        assert teacher_fetched.name == 'M. Strickland'
         # Test bad ref as well
         course.teacher = Reference(classroom_model.Teacher, ObjectId())
         with pytest.raises(exceptions.ValidationError) as exc:
