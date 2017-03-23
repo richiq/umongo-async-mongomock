@@ -164,8 +164,9 @@ class BaseDataProxy:
     def __eq__(self, other):
         if isinstance(other, dict):
             return self._data == other
-        else:
+        elif hasattr(other, '_data'):
             return self._data == other._data
+        return NotImplemented
 
     def get_modified_fields_by_mongo_name(self):
         return self._modified_data

@@ -1,5 +1,5 @@
 import pytest
-from marshmallow import ValidationError
+from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory
 from umongo import Document, EmbeddedDocument, fields, exceptions
@@ -321,3 +321,25 @@ class TestEmbeddedDocument(BaseTest):
                 class Meta:
                     abstract = True
         assert exc.value.args[0] == "Abstract embedded document should have all it parents abstract"
+
+    def test_equality(self):
+        @self.instance.register
+        class MyChildEmbeddedDocument(EmbeddedDocument):
+            num = fields.IntField()
+
+        @self.instance.register
+        class MyParentEmbeddedDocument(EmbeddedDocument):
+            embedded = fields.EmbeddedField(MyChildEmbeddedDocument)
+
+        emb_1 = MyParentEmbeddedDocument(embedded={'num': 1})
+        emb_2 = MyParentEmbeddedDocument(embedded={'num': 1})
+        emb_3 = MyParentEmbeddedDocument(embedded={})
+        emb_4 = MyParentEmbeddedDocument()
+
+        assert emb_1 == emb_2
+        assert emb_1 != emb_3
+        assert emb_1 != emb_4
+        assert emb_1 != None  # noqa: E711 (None comparison)
+        assert emb_1 != missing
+        assert None != emb_1
+        assert missing != emb_1
