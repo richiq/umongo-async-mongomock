@@ -103,8 +103,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def __eq__(self, other):
         if isinstance(other, dict):
             return self._data == other
-        else:
+        elif hasattr(other, '_data'):
             return self._data == other._data
+        return NotImplemented
 
     def is_modified(self):
         return self._data.is_modified()

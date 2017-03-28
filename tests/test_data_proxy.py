@@ -206,6 +206,11 @@ class TestDataProxy(BaseTest):
         d2.load({'a': 1, 'b': 2})
         assert d1 == d2
 
+        assert d1 != None  # noqa: E711 (None comparison)
+        assert d1 != missing
+        assert None != d1
+        assert missing != d1
+
     def test_share_ressources(self):
 
         class MySchema(EmbeddedSchema):
