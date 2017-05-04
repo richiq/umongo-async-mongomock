@@ -1,5 +1,4 @@
 from datetime import datetime
-from dateutil.tz import tzutc
 
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
@@ -215,18 +214,13 @@ IntField = IntegerField
 
 class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
 
+    def _deserialize(self, value, attr, data):
+        if isinstance(value, datetime):
+            return self._set_tz_awareness(value)
+        return super()._deserialize(value, attr, data)
+
     def _deserialize_from_mongo(self, value):
-        date = value
-        if self.load_as_tz_aware:
-            # If datetime is TZ naive, set UTC timezone
-            if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
-                date = date.replace(tzinfo=tzutc())
-        else:
-            # If datetime is TZ aware, convert it to UTC and remove TZ info
-            if date.tzinfo is not None and date.tzinfo.utcoffset(date) is not None:
-                date = date.astimezone(tzutc())
-            date = date.replace(tzinfo=None)
-        return date
+        return self._set_tz_awareness(value)
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
