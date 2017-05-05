@@ -1,4 +1,3 @@
-from datetime import datetime
 from dateutil.tz import tzutc
 
 from marshmallow import ValidationError, Schema as MaSchema, missing
@@ -100,10 +99,10 @@ class StrictDateTime(ma_fields.DateTime):
         self.load_as_tz_aware = load_as_tz_aware
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
-            date = value
-        else:
-            date = super()._deserialize(value, attr, data)
+        date = super()._deserialize(value, attr, data)
+        return self._set_tz_awareness(date)
+
+    def _set_tz_awareness(self, date):
         if self.load_as_tz_aware:
             # If datetime is TZ naive, set UTC timezone
             if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
