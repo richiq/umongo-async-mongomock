@@ -4,6 +4,7 @@ History
 
 dev
 ---
+* Fix fields serialization/deserialization when allow_none is True (see #69)
 * Fix ReferenceFild assignment from another ReferenceField (see #110)
 * Fix deletion of field proxied by a property (see #109)
 * Fix StrictDateTime bonus field: _deserialize does not accept datetime.datetime
