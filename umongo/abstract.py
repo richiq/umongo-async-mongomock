@@ -116,9 +116,10 @@ class BaseField(ma_fields.Field):
                  marshmallow_default=_field_unset,
                  **kwargs):
         if 'missing' in kwargs:
-            raise RuntimeError("uMongo doesn't use `missing` field, use `default` "
-                "instead and `marshmallow_missing` to tell `as_marshmallow_field` "
-                "to use a custom value when generating pure Marshmallow field.")
+            raise RuntimeError("uMongo doesn't use `missing` argument, use `default` "
+                "instead and `marshmallow_missing`/`marshmallow_default` "
+                "to tell `as_marshmallow_field` to use a custom value when "
+                "generating pure Marshmallow field.")
         if 'default' in kwargs:
             kwargs['missing'] = kwargs['default']
         super().__init__(*args, **kwargs)
