@@ -4,6 +4,8 @@ History
 
 dev
 ---
+* Fix StrictDateTime bonus field: _deserialize does not accept datetime.datetime
+  instances (see #106)
 * Add force_reload param to Reference.fetch (see #96)
 
 0.13.0 (2017-03-03)
