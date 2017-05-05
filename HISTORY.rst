@@ -6,7 +6,7 @@ dev
 ---
 * Add force_reload param to Reference.fetch (see #96)
 
-0.13.0 (2017-03-03)
+0.14.0 (2017-03-03)
 -------------------
 * Fix bug in mashmallow tag handling (see #90)
 * Fix allow none in DataProxy.set (see #89)
