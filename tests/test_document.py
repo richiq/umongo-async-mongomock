@@ -117,6 +117,29 @@ class TestDocument(BaseTest):
         with pytest.raises(KeyError):
             del john['missing']
 
+    def test_property(self):
+        @self.instance.register
+        class HeavyStudent(BaseStudent):
+            _weight = fields.FloatField()
+
+            @property
+            def weight(self):
+                return self._weight
+
+            @weight.setter
+            def weight(self, value):
+                self._weight = value
+
+            @weight.deleter
+            def weight(self):
+                del self._weight
+
+        john = HeavyStudent()
+        john.weight = 42
+        assert john.weight == 42
+        del john.weight
+        assert john.weight is None
+
     def test_pk(self):
         john = self.Student.build_from_mongo(data={
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
