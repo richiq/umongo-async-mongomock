@@ -4,6 +4,8 @@ History
 
 dev
 ---
+* Fix ReferenceFild assignment from another ReferenceField (see #110)
+* Fix deletion of field proxied by a property (see #109)
 * Fix StrictDateTime bonus field: _deserialize does not accept datetime.datetime
   instances (see #106)
 * Add force_reload param to Reference.fetch (see #96)
