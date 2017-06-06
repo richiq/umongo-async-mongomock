@@ -463,6 +463,12 @@ class TestFields(BaseTest):
         with pytest.raises(ValidationError):
             d.set('ref', bad_ref)
 
+        # Test from_mongo behavior with already deserialized data
+        d2 = MyDataProxy()
+        d2.from_mongo({
+            'in_mongo_ref': Reference(MyReferencedDoc, ObjectId("5672d47b1d41c88dcd37ef05"))})
+        assert not isinstance(d2._data['in_mongo_ref'].pk, Reference)
+
     def test_reference_lazy(self):
 
         @self.instance.register
@@ -538,3 +544,9 @@ class TestFields(BaseTest):
         ]:
             with pytest.raises(ValidationError):
                 d.set('gref', v)
+
+        # Test from_mongo behavior with already deserialized data
+        d2 = MyDataProxy()
+        d2.from_mongo({
+            'in_mongo_gref': Reference(ToRef1, ObjectId("5672d47b1d41c88dcd37ef05"))})
+        assert not isinstance(d2._data['in_mongo_gref'].pk, Reference)
