@@ -127,6 +127,8 @@ class BaseField(ma_fields.Field):
         return super().deserialize(value, attr=attr, data=data)
 
     def serialize_to_mongo(self, obj):
+        if obj is None and getattr(self, 'allow_none', False) is True:
+            return None
         if obj is missing:
             return missing
         return self._serialize_to_mongo(obj)
@@ -135,6 +137,8 @@ class BaseField(ma_fields.Field):
     #     return self._serialize_to_mongo(attr, obj=obj, update=update)
 
     def deserialize_from_mongo(self, value):
+        if value is None and getattr(self, 'allow_none', False) is True:
+            return None
         return self._deserialize_from_mongo(value)
 
     def _serialize_to_mongo(self, obj):

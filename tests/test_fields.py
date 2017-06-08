@@ -216,7 +216,7 @@ class TestFields(BaseTest):
     def test_dict(self):
 
         class MySchema(Schema):
-            dict = fields.DictField(attribute='in_mongo_dict')
+            dict = fields.DictField(attribute='in_mongo_dict', allow_none=True)
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -255,10 +255,15 @@ class TestFields(BaseTest):
         assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'field': 'value'}}}
         assert d3.to_mongo() == {'in_mongo_dict': {'field': 'value'}}
 
+        d4 = MyDataProxy({'dict': None})
+        assert d4.to_mongo() == {'in_mongo_dict': None}
+        d4.from_mongo({'in_mongo_dict': None})
+        assert d4.get('dict') is None
+
     def test_list(self):
 
         class MySchema(Schema):
-            list = fields.ListField(fields.IntField(), attribute='in_mongo_list')
+            list = fields.ListField(fields.IntField(), attribute='in_mongo_list', allow_none=True)
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -318,6 +323,11 @@ class TestFields(BaseTest):
         # Test repr readability
         repr_d = repr(d.get('list'))
         assert repr_d == "<object umongo.data_objects.List([2, 3, 4, 5])>"
+
+        d3 = MyDataProxy({'list': None})
+        assert d3.to_mongo() == {'in_mongo_list': None}
+        d3.from_mongo({'in_mongo_list': None})
+        assert d3.get('list') is None
 
     def test_complexe_list(self):
 
@@ -436,7 +446,7 @@ class TestFields(BaseTest):
 
         @self.instance.register
         class MyDoc(Document):
-            ref = fields.ReferenceField(MyReferencedDoc, attribute='in_mongo_ref')
+            ref = fields.ReferenceField(MyReferencedDoc, attribute='in_mongo_ref', allow_none=True)
 
         MySchema = MyDoc.Schema
 
@@ -463,11 +473,16 @@ class TestFields(BaseTest):
         with pytest.raises(ValidationError):
             d.set('ref', bad_ref)
 
+        d2 = MyDataProxy({'ref': None})
+        assert d2.to_mongo() == {'in_mongo_ref': None}
+        d2.from_mongo({'in_mongo_ref': None})
+        assert d2.get('ref') is None
+
         # Test from_mongo behavior with already deserialized data
-        d2 = MyDataProxy()
-        d2.from_mongo({
+        d3 = MyDataProxy()
+        d3.from_mongo({
             'in_mongo_ref': Reference(MyReferencedDoc, ObjectId("5672d47b1d41c88dcd37ef05"))})
-        assert not isinstance(d2._data['in_mongo_ref'].pk, Reference)
+        assert not isinstance(d3._data['in_mongo_ref'].pk, Reference)
 
     def test_reference_lazy(self):
 
@@ -509,7 +524,7 @@ class TestFields(BaseTest):
 
         @self.instance.register
         class MyDoc(Document):
-            gref = fields.GenericReferenceField(attribute='in_mongo_gref')
+            gref = fields.GenericReferenceField(attribute='in_mongo_gref', allow_none=True)
 
         MySchema = MyDoc.Schema
 
@@ -545,8 +560,13 @@ class TestFields(BaseTest):
             with pytest.raises(ValidationError):
                 d.set('gref', v)
 
+        d2 = MyDataProxy({'gref': None})
+        assert d2.to_mongo() == {'in_mongo_gref': None}
+        d2.from_mongo({'in_mongo_gref': None})
+        assert d2.get('gref') is None
+
         # Test from_mongo behavior with already deserialized data
-        d2 = MyDataProxy()
-        d2.from_mongo({
+        d3 = MyDataProxy()
+        d3.from_mongo({
             'in_mongo_gref': Reference(ToRef1, ObjectId("5672d47b1d41c88dcd37ef05"))})
-        assert not isinstance(d2._data['in_mongo_gref'].pk, Reference)
+        assert not isinstance(d3._data['in_mongo_gref'].pk, Reference)
