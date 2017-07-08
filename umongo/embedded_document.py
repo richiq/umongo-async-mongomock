@@ -93,7 +93,6 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract EmbeddedDocument")
-        self._modified = False
         self._data = self.DataProxy(kwargs)
 
     def __repr__(self):
@@ -110,11 +109,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def is_modified(self):
         return self._data.is_modified()
 
-    def set_modified(self):
-        self._modified = True
-
     def clear_modified(self):
-        self._modified = False
         self._data.clear_modified()
 
     def required_validate(self):
@@ -146,7 +141,6 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         """
         Update the embedded document with the given data.
         """
-        self.set_modified()
         return self._data.update(data)
 
     def dump(self):
@@ -165,11 +159,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         return value if value is not missing else None
 
     def __delitem__(self, name):
-        self.set_modified()
         self._data.delete(name)
 
     def __setitem__(self, name, value):
-        self.set_modified()
         self._data.set(name, value)
 
     def __setattr__(self, name, value):
@@ -188,5 +180,4 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         return value if value is not missing else None
 
     def __delattr__(self, name):
-        self.set_modified()
         self._data.delete(name, to_raise=AttributeError)
