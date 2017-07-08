@@ -180,4 +180,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         return value if value is not missing else None
 
     def __delattr__(self, name):
-        self._data.delete(name, to_raise=AttributeError)
+        if not self.__real_attributes:
+            type(self).__real_attributes = dir(self)
+        if name in self.__real_attributes:
+            object.__delattr__(self, name)
+        else:
+            self._data.delete(name, to_raise=AttributeError)

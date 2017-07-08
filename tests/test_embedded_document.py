@@ -328,6 +328,29 @@ class TestEmbeddedDocument(BaseTest):
                     abstract = True
         assert exc.value.args[0] == "Abstract embedded document should have all it parents abstract"
 
+    def test_property(self):
+        @self.instance.register
+        class MyEmbeddedDoc(EmbeddedDocument):
+            _prop = fields.FloatField()
+
+            @property
+            def prop(self):
+                return self._prop
+
+            @prop.setter
+            def prop(self, value):
+                self._prop = value
+
+            @prop.deleter
+            def prop(self):
+                del self._prop
+
+        emb = MyEmbeddedDoc()
+        emb.prop = 42
+        assert emb.prop == 42
+        del emb.prop
+        assert emb.prop is None
+
     def test_equality(self):
         @self.instance.register
         class MyChildEmbeddedDocument(EmbeddedDocument):
