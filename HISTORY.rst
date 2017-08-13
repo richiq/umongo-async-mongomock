@@ -4,6 +4,8 @@ History
 
 dev
 ---
+* Add `strict` option to (Embedded)DocumentOpts to allow loading of document
+  with unknown fields from mongo (see #115)
 * Fix fields serialization/deserialization when allow_none is True (see #69)
 * Fix ReferenceFild assignment from another ReferenceField (see #110)
 * Fix deletion of field proxied by a property (see #109)
