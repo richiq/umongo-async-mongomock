@@ -242,7 +242,41 @@ class BaseDataProxy:
         return self._data.values()
 
 
-def data_proxy_factory(basename, schema):
+class BaseNonStrictDataProxy(BaseDataProxy):
+    """
+    This data proxy will accept unknown data comming from mongo and will
+    return them along with other data when ask.
+    """
+
+    __slots__ = ('_additional_data', )
+
+    def __init__(self, data=None):
+        self._additional_data = {}
+        super().__init__(data=data)
+
+    def _to_mongo(self):
+        mongo_data = super()._to_mongo()
+        mongo_data.update(self._additional_data)
+        return mongo_data
+
+    def from_mongo(self, data, partial=False):
+        self._data = {}
+        for k, v in data.items():
+            try:
+                field = self._fields_from_mongo_key[k]
+            except KeyError:
+                self._additional_data[k] = v
+            else:
+                self._data[k] = field.deserialize_from_mongo(v)
+        if partial:
+            self._collect_partial_fields(data.keys(), as_mongo_fields=True)
+        else:
+            self.not_loaded_fields.clear()
+        self.clear_modified()
+        self._add_missing_fields()
+
+
+def data_proxy_factory(basename, schema, strict=True):
     """
     Generate a DataProxy from the given schema.
 
@@ -259,5 +293,5 @@ def data_proxy_factory(basename, schema):
         '_fields_from_mongo_key': {v.attribute or k: v for k, v in schema.fields.items()}
     }
 
-    data_proxy_cls = type(cls_name, (BaseDataProxy, ), nmspc)
+    data_proxy_cls = type(cls_name, (BaseDataProxy if strict else BaseNonStrictDataProxy, ), nmspc)
     return data_proxy_cls

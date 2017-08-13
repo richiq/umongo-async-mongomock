@@ -53,6 +53,8 @@ class EmbeddedDocumentOpts:
                                                 and can only be inherited
     allow_inheritance    yes                    Allow the document to be subclassed
     is_child             no                     Document inherit of a non-abstract document
+    strict               yes                    Don't accept unknown fields from mongo
+                                                (default: True)
     offspring            no                     List of EmbeddedDocuments inheriting this one
     ==================== ====================== ===========
     """
@@ -64,16 +66,18 @@ class EmbeddedDocumentOpts:
                 'abstract={self.abstract}, '
                 'allow_inheritance={self.allow_inheritance}, '
                 'is_child={self.is_child}, '
+                'strict={self.strict}, '
                 'offspring={self.offspring})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def __init__(self, instance, template, abstract=False, allow_inheritance=True,
-                 is_child=False, offspring=None):
+                 is_child=False, strict=True, offspring=None):
         self.instance = instance
         self.template = template
         self.abstract = abstract
         self.allow_inheritance = allow_inheritance
         self.is_child = is_child
+        self.strict = strict
         self.offspring = set(offspring) if offspring else set()
         if self.abstract and not self.allow_inheritance:
             raise DocumentDefinitionError("Abstract embedded document cannot disable inheritance")

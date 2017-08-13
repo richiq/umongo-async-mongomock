@@ -372,3 +372,27 @@ class TestEmbeddedDocument(BaseTest):
         assert emb_1 != missing
         assert None != emb_1
         assert missing != emb_1
+
+    def test_strict_embedded_document(self):
+        @self.instance.register
+        class StrictEmbeddedDoc(EmbeddedDocument):
+            a = fields.IntField()
+
+        @self.instance.register
+        class NonStrictEmbeddedDoc(EmbeddedDocument):
+            a = fields.IntField()
+
+            class Meta:
+                strict = False
+
+        data_with_bonus = {'a': 42, 'b': 'foo'}
+        with pytest.raises(KeyError):
+            StrictEmbeddedDoc.build_from_mongo(data_with_bonus)
+
+        non_strict_doc = NonStrictEmbeddedDoc.build_from_mongo(data_with_bonus)
+        assert non_strict_doc.to_mongo() == data_with_bonus
+        non_strict_doc.dump() == {'a': 42}
+
+        with pytest.raises(exceptions.ValidationError) as exc:
+            NonStrictEmbeddedDoc(a=42, b='foo')
+        assert exc.value.messages == {'_schema': ['Unknown field name b.']}

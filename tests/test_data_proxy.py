@@ -1,7 +1,7 @@
 from marshmallow import ValidationError, missing
 import pytest
 
-from umongo.data_proxy import data_proxy_factory
+from umongo.data_proxy import data_proxy_factory, BaseDataProxy, BaseNonStrictDataProxy
 from umongo import EmbeddedSchema, fields, EmbeddedDocument, validate, exceptions
 
 from .common import BaseTest
@@ -423,3 +423,29 @@ class TestDataProxy(BaseTest):
         with pytest.raises(ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {'listed': {0: {'required': ['Missing data for required field.']}}}
+
+
+class TestNonStrictDataProxy(BaseTest):
+
+    def test_build(self):
+
+        class MySchema(EmbeddedSchema):
+            pass
+
+        strict_proxy = data_proxy_factory('My', MySchema(), strict=True)
+        assert issubclass(strict_proxy, BaseDataProxy)
+        non_strict_proxy = data_proxy_factory('My', MySchema(), strict=False)
+        assert issubclass(non_strict_proxy, BaseNonStrictDataProxy)
+
+    def test_basic(self):
+        class MySchema(EmbeddedSchema):
+            field_a = fields.IntField(attribute='mongo_field_a')
+
+        NonStrictDataProxy = data_proxy_factory('My', MySchema(), strict=False)
+        with pytest.raises(exceptions.ValidationError) as exc:
+            NonStrictDataProxy({'field_a': 42, 'xxx': 'foo'})
+        assert exc.value.messages == {'_schema': ['Unknown field name xxx.']}
+        d = NonStrictDataProxy()
+        d.from_mongo({'mongo_field_a': 42, 'xxx': 'foo'})
+        assert d._data == {'mongo_field_a': 42}
+        assert d._additional_data == {'xxx': 'foo'}

@@ -70,6 +70,8 @@ class DocumentOpts:
     collection_name      yes                    Name of the collection to store
                                                 the document into
     is_child             no                     Document inherit of a non-abstract document
+    strict               yes                    Don't accept unknown fields from mongo
+                                                (default: True)
     indexes              yes                    List of custom indexes
     offspring            no                     List of Documents inheriting this one
     ==================== ====================== ===========
@@ -84,12 +86,14 @@ class DocumentOpts:
                 'allow_inheritance={self.allow_inheritance}, '
                 'collection_name={self.collection_name}, '
                 'is_child={self.is_child}, '
+                'strict={self.strict}, '
                 'indexes={self.indexes}, '
                 'offspring={self.offspring})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def __init__(self, instance, template, collection_name=None, abstract=False,
-                 allow_inheritance=None, indexes=None, is_child=False, offspring=None):
+                 allow_inheritance=None, indexes=None, is_child=True, strict=True,
+                 offspring=None):
         self.instance = instance
         self.template = template
         self.collection_name = collection_name if not abstract else None
@@ -97,6 +101,7 @@ class DocumentOpts:
         self.allow_inheritance = abstract if allow_inheritance is None else allow_inheritance
         self.indexes = indexes or []
         self.is_child = is_child
+        self.strict = strict
         self.offspring = set(offspring) if offspring else set()
         if self.abstract and not self.allow_inheritance:
             raise DocumentDefinitionError("Abstract document cannot disable inheritance")

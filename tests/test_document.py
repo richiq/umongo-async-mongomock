@@ -526,3 +526,27 @@ class TestConfig(BaseTest):
                 pass
         assert exc.value.args[0].startswith(
             "Cannot redefine collection_name in a child, use abstract instead")
+
+    def test_strict_document(self):
+        @self.instance.register
+        class StrictDoc(Document):
+            a = fields.IntField()
+
+        @self.instance.register
+        class NonStrictDoc(Document):
+            a = fields.IntField()
+
+            class Meta:
+                strict = False
+
+        data_with_bonus = {'a': 42, 'b': 'foo'}
+        with pytest.raises(KeyError):
+            StrictDoc.build_from_mongo(data_with_bonus)
+
+        non_strict_doc = NonStrictDoc.build_from_mongo(data_with_bonus)
+        assert non_strict_doc.to_mongo() == data_with_bonus
+        non_strict_doc.dump() == {'a': 42}
+
+        with pytest.raises(exceptions.ValidationError) as exc:
+            NonStrictDoc(a=42, b='foo')
+        assert exc.value.messages == {'_schema': ['Unknown field name b.']}

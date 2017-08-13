@@ -107,6 +107,7 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
     kwargs['is_child'] = _is_child(bases)
+    kwargs['strict'] = getattr(meta, 'strict', True)
 
     # Handle option inheritance and integrity checks
     for base in bases:
@@ -143,6 +144,7 @@ def _build_embedded_document_opts(instance, template, name, nmspc, bases):
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', True)
     kwargs['is_child'] = _is_child_embedded_document(bases)
+    kwargs['strict'] = getattr(meta, 'strict', True)
 
     # Handle option inheritance and integrity checks
     for base in bases:
@@ -237,7 +239,7 @@ class BaseBuilder:
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
         nmspc['schema'] = schema
-        nmspc['DataProxy'] = data_proxy_factory(name, schema)
+        nmspc['DataProxy'] = data_proxy_factory(name, schema, strict=opts.strict)
 
         # _build_document_opts cannot determine the indexes given we need to
         # visit the document's fields which weren't defined at this time
@@ -281,7 +283,7 @@ class BaseBuilder:
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
         nmspc['schema'] = schema
-        nmspc['DataProxy'] = data_proxy_factory(name, schema)
+        nmspc['DataProxy'] = data_proxy_factory(name, schema, strict=opts.strict)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
