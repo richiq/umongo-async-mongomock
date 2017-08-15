@@ -2,8 +2,8 @@
 History
 =======
 
-dev
----
+0.15.0 (2017-08-15)
+-------------------
 * Add `strict` option to (Embedded)DocumentOpts to allow loading of document
   with unknown fields from mongo (see #115)
 * Fix fields serialization/deserialization when allow_none is True (see #69)
