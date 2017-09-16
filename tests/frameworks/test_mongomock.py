@@ -35,3 +35,5 @@ def test_mongomock(classroom_model):
     }
     john2 = Student.find_one(john.id)
     assert john2._data == john._data
+    johns = Student.find()
+    assert list(johns) == [john]

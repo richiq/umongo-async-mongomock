@@ -13,7 +13,9 @@ from ..query_mapper import map_query
 from .tools import cook_find_filter
 
 
-class WrappedCursor(Cursor):
+# pymongo.Cursor defines __del__ method, hence mongomock's WrappedCursor should
+# not inherit from this class otherwise garbage collection will crash...
+class BaseWrappedCursor:
 
     __slots__ = ('raw_cursor', 'document_cls')
 
@@ -47,9 +49,14 @@ class WrappedCursor(Cursor):
             yield self.document_cls.build_from_mongo(elem, use_cls=True)
 
 
+class WrappedCursor(BaseWrappedCursor, Cursor):
+    __slots__ = ()
+
+
 class PyMongoDocument(DocumentImplementation):
 
     __slots__ = ()
+    cursor_cls = WrappedCursor  # Easier to customize this for mongomock this way
 
     opts = DocumentImplementation.opts
 
@@ -197,7 +204,7 @@ class PyMongoDocument(DocumentImplementation):
         """
         filter = cook_find_filter(cls, filter)
         raw_cursor = cls.collection.find(*args, filter=filter, **kwargs)
-        return WrappedCursor(cls, raw_cursor)
+        return cls.cursor_cls(cls, raw_cursor)
 
     @classmethod
     def ensure_indexes(cls):
