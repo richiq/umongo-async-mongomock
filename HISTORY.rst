@@ -2,6 +2,10 @@
 History
 =======
 
+dev
+---
+* Fix (non fatal) crash in garbage collector when using WrappedCursor with mongomock
+
 0.15.0 (2017-08-15)
 -------------------
 * Add `strict` option to (Embedded)DocumentOpts to allow loading of document
