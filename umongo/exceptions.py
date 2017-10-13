@@ -59,3 +59,7 @@ class FieldNotLoadedError(UMongoError):
 
 class NoCompatibleBuilderError(UMongoError):
     pass
+
+
+class UnknownFieldInDBError(UMongoError):
+    pass

@@ -540,7 +540,7 @@ class TestConfig(BaseTest):
                 strict = False
 
         data_with_bonus = {'a': 42, 'b': 'foo'}
-        with pytest.raises(KeyError):
+        with pytest.raises(exceptions.UnknownFieldInDBError):
             StrictDoc.build_from_mongo(data_with_bonus)
 
         non_strict_doc = NonStrictDoc.build_from_mongo(data_with_bonus)

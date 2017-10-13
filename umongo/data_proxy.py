@@ -1,7 +1,7 @@
 from marshmallow import ValidationError, missing
 
 from .abstract import BaseDataObject
-from .exceptions import FieldNotLoadedError
+from .exceptions import FieldNotLoadedError, UnknownFieldInDBError
 from .i18n import gettext as _
 
 
@@ -64,7 +64,12 @@ class BaseDataProxy:
     def from_mongo(self, data, partial=False):
         self._data = {}
         for k, v in data.items():
-            field = self._fields_from_mongo_key[k]
+            try:
+                field = self._fields_from_mongo_key[k]
+            except KeyError:
+                raise UnknownFieldInDBError(
+                    _('{cls}: unknown "{key}" field found in DB'
+                    .format(key=k, cls=self.__class__.__name__)))
             self._data[k] = field.deserialize_from_mongo(v)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
