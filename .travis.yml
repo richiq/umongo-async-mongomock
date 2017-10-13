@@ -18,6 +18,7 @@ env:
 - DRIVER=txmongo
 before_install:
 - mongo --version
+- pip install -U six
 install:
 - pip install -U tox
 - pip install -U coveralls
