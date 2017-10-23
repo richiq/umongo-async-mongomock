@@ -94,6 +94,25 @@ Ready to contribute? Here's how to set up `umongo` for local development.
 
 7. Submit a pull request through the GitHub website.
 
+I18n
+----
+
+There are additional steps to make changes involving translated strings.
+
+1. Extract translatable strings from the code into messages.pot::
+
+    $ make extract_messages
+
+2. Update flask example translation files::
+
+    $ make update_flask_example_messages
+
+3. Update/fix translations
+
+4. Compile new binary translation files::
+
+    $ make compile_flask_example_messages
+
 Pull Request Guidelines
 -----------------------
 
