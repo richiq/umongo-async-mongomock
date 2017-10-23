@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: emmanuel.leblond@gmail.com\n"
-"POT-Creation-Date: 2016-10-21 16:11+0200\n"
+"POT-Creation-Date: 2017-10-23 10:11+0200\n"
 "PO-Revision-Date: 2016-04-19 12:09+0200\n"
 "Last-Translator: Emmanuel Leblond <emmanuel.leblond@gmail.com>\n"
 "Language: fr\n"
@@ -16,58 +16,58 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.3.4\n"
+"Generated-By: Babel 2.5.1\n"
 
-#: umongo/abstract.py:88
+#: umongo/abstract.py:87
 msgid "Field value must be unique."
 msgstr "La valeur de ce champ doit être unique."
 
-#: umongo/abstract.py:89
+#: umongo/abstract.py:88
 msgid "Values of fields {fields} must be unique together."
 msgstr "L'ensemble des valeurs des champs {fields} doit être unique."
 
-#: umongo/data_objects.py:105
+#: umongo/data_objects.py:104
 msgid "Reference not found for document {document}."
 msgstr "Référence non trouvée pour document {document}."
 
 # Marshmallow fields #
-#: umongo/data_proxy.py:209
+#: umongo/data_proxy.py:217
 msgid "Missing data for required field."
 msgstr "Valeur manquante pour un champ obligatoire."
 
-#: umongo/fields.py:273
+#: umongo/fields.py:266
 msgid "DBRef must be on collection `{collection}`."
 msgstr "DBRef doit être sur la collection `{collection}`."
 
-#: umongo/fields.py:278 umongo/fields.py:289
+#: umongo/fields.py:271 umongo/fields.py:282
 msgid "`{document}` reference expected."
 msgstr "Référence sur `{document}` attendue."
 
-#: umongo/fields.py:286 umongo/fields.py:333
+#: umongo/fields.py:279 umongo/fields.py:332
 msgid "Cannot reference a document that has not been created yet."
 msgstr "Impossible de référencer un document qui n'a pas été encore créé."
 
-#: umongo/fields.py:337 umongo/marshmallow_bonus.py:183
+#: umongo/fields.py:336 umongo/marshmallow_bonus.py:178
 msgid "Generic reference must have `id` and `cls` fields."
 msgstr "Une référence générique doit avoir des champs `id` et `cls`."
 
-#: umongo/fields.py:341 umongo/marshmallow_bonus.py:187
+#: umongo/fields.py:340 umongo/marshmallow_bonus.py:182
 msgid "Invalid `id` field."
 msgstr "Champ `id` invalide."
 
-#: umongo/fields.py:347 umongo/marshmallow_bonus.py:181
+#: umongo/fields.py:346 umongo/marshmallow_bonus.py:176
 msgid "Invalid value for generic reference field."
 msgstr "Valeur de référence générique invalide."
 
-#: umongo/fields.py:356 umongo/fields.py:420
+#: umongo/fields.py:359 umongo/fields.py:424
 msgid "Unknown document `{document}`."
 msgstr "Document unconnu `{document}`."
 
-#: umongo/marshmallow_bonus.py:50
+#: umongo/marshmallow_bonus.py:49
 msgid "Unknown field name {field}."
 msgstr "Champ {field} unconnu."
 
-#: umongo/marshmallow_bonus.py:135
+#: umongo/marshmallow_bonus.py:132
 msgid "Invalid ObjectId."
 msgstr "ObjectId invalide."
 
