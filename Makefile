@@ -82,3 +82,12 @@ dist: clean
 
 install: clean
 	python setup.py install
+
+AUTHOR='Emmanuel Leblond <emmanuel.leblond@gmail.com>'
+
+extract_messages:
+	python setup.py extract_messages
+	cat marshmallow_messages.pot >> messages.pot
+	# There is currently no way to pass this as an option to pybabel
+	# https://github.com/python-babel/babel/issues/82
+	sed -i s/"FIRST AUTHOR <EMAIL@ADDRESS>"/$(AUTHOR)/ messages.pot
