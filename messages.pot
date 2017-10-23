@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: umongo 0.15.0\n"
 "Report-Msgid-Bugs-To: emmanuel.leblond@gmail.com\n"
-"POT-Creation-Date: 2017-10-23 10:11+0200\n"
+"POT-Creation-Date: 2017-10-24 09:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Emmanuel Leblond <emmanuel.leblond@gmail.com>\n"
+"Last-Translator: Jérôme Lafréchoux <jerome@jolimont.fr>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -29,7 +29,11 @@ msgstr ""
 msgid "Reference not found for document {document}."
 msgstr ""
 
-#: umongo/data_proxy.py:217
+#: umongo/data_proxy.py:72
+msgid "{cls}: unknown \"{key}\" field found in DB."
+msgstr ""
+
+#: umongo/data_proxy.py:222
 msgid "Missing data for required field."
 msgstr ""
 

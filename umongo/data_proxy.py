@@ -68,7 +68,7 @@ class BaseDataProxy:
                 field = self._fields_from_mongo_key[k]
             except KeyError:
                 raise UnknownFieldInDBError(
-                    _('{cls}: unknown "{key}" field found in DB'
+                    _('{cls}: unknown "{key}" field found in DB.'
                     .format(key=k, cls=self.__class__.__name__)))
             self._data[k] = field.deserialize_from_mongo(v)
         if partial:
