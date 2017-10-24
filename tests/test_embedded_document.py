@@ -386,7 +386,7 @@ class TestEmbeddedDocument(BaseTest):
                 strict = False
 
         data_with_bonus = {'a': 42, 'b': 'foo'}
-        with pytest.raises(KeyError):
+        with pytest.raises(exceptions.UnknownFieldInDBError):
             StrictEmbeddedDoc.build_from_mongo(data_with_bonus)
 
         non_strict_doc = NonStrictEmbeddedDoc.build_from_mongo(data_with_bonus)

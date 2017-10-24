@@ -186,7 +186,7 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
-        with pytest.raises(KeyError):
+        with pytest.raises(exceptions.UnknownFieldInDBError):
             d.from_mongo({'in_front': 42})
         d.from_mongo({'in_mongo': 42})
         assert d.get('in_front') == 42
@@ -423,6 +423,17 @@ class TestDataProxy(BaseTest):
         with pytest.raises(ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {'listed': {0: {'required': ['Missing data for required field.']}}}
+
+    def test_unkown_field_in_db(self):
+        class MySchema(EmbeddedSchema):
+            field = fields.IntField(attribute='mongo_field')
+
+        DataProxy = data_proxy_factory('My', MySchema())
+        d = DataProxy()
+        d.from_mongo({'mongo_field': 42})
+        assert d._data == {'mongo_field': 42}
+        with pytest.raises(exceptions.UnknownFieldInDBError):
+            d.from_mongo({'mongo_field': 42, 'xxx': 'foo'})
 
 
 class TestNonStrictDataProxy(BaseTest):

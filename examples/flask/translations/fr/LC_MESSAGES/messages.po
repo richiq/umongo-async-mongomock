@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: emmanuel.leblond@gmail.com\n"
-"POT-Creation-Date: 2017-10-23 10:11+0200\n"
+"POT-Creation-Date: 2017-10-24 09:39+0200\n"
 "PO-Revision-Date: 2016-04-19 12:09+0200\n"
-"Last-Translator: Emmanuel Leblond <emmanuel.leblond@gmail.com>\n"
+"Last-Translator: Jérôme Lafréchoux <jerome@jolimont.fr>\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1)\n"
@@ -30,8 +30,12 @@ msgstr "L'ensemble des valeurs des champs {fields} doit être unique."
 msgid "Reference not found for document {document}."
 msgstr "Référence non trouvée pour document {document}."
 
+#: umongo/data_proxy.py:72
+msgid "{cls}: unknown \"{key}\" field found in DB."
+msgstr "{cls}: Champ \"{key}\" inconnu trouvé dans la base de données."
+
 # Marshmallow fields #
-#: umongo/data_proxy.py:217
+#: umongo/data_proxy.py:222
 msgid "Missing data for required field."
 msgstr "Valeur manquante pour un champ obligatoire."
 

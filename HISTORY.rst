@@ -4,6 +4,8 @@ History
 
 dev
 ---
+* Raise UnknownFieldInDBError when an unknown field is found in database
+  and not using BaseNonStrictDataProxy (see #121)
 * Fix (non fatal) crash in garbage collector when using WrappedCursor with mongomock
 
 0.15.0 (2017-08-15)
