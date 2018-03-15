@@ -11,7 +11,6 @@ addons:
 language: python
 python:
 - '3.4'
-- '3.5'
 - '3.6'
 env:
 - DRIVER=pymongo
@@ -35,3 +34,4 @@ deploy:
   on:
     tags: true
     repo: Scille/umongo
+    python: 3.6
