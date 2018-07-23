@@ -40,7 +40,6 @@ setup(
     zip_safe=False,
     keywords='umongo mongodb pymongo txmongo motor mongomock asyncio twisted',
     classifiers=[
-        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
