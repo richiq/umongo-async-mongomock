@@ -133,7 +133,7 @@ def update_user(nick_or_id):
     UserUpdateSchema = User.Schema.as_marshmallow_schema(params={
         'password': {'dump_only': True},
         'nick': {'dump_only': True}
-    })()
+    })
     # with `strict`, marshmallow raise ValidationError if something is wrong
     schema = UserUpdateSchema(strict=True)
     try:
