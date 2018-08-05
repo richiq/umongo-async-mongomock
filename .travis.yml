@@ -1,13 +1,12 @@
-sudo: false
-services:
-- mongodb
+dist: trusty
+sudo: true
 addons:
   apt:
     sources:
-    - mongodb-3.0-precise
+    - mongodb-3.2-trusty
     packages:
-    - mongodb-org-server
-    - mongodb-org-shell
+    - mongodb-org-server=3.2.20
+    - mongodb-org-shell=3.2.20
 language: python
 python:
 - '3.4'
@@ -17,14 +16,20 @@ env:
 - DRIVER=motor
 - DRIVER=txmongo
 before_install:
-- mongo --version
 - pip install -U six
+before_script:
+- mongo --version
+- sudo service mongod start
+- sleep 15
+- mongo umongo_test --eval 'db.stats()'
 install:
 - pip install -U tox
 - pip install -U coveralls
 script: tox -e $(echo py$TRAVIS_PYTHON_VERSION-$DRIVER | tr -d .) -- -v
 after_success:
 - coveralls
+after_failure:
+- tail -n 100 /var/log/mongodb/mongod.log
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
