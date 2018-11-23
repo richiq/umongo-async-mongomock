@@ -25,10 +25,13 @@ def name_sorted(indexes):
     return sorted(indexes, key=lambda x: x['name'])
 
 
-# Used by fixtures.py
+def make_db():
+    return MongoClient()[TEST_DB]
+
+
 @pytest.fixture
 def db():
-    return MongoClient()[TEST_DB]
+    return make_db()
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)

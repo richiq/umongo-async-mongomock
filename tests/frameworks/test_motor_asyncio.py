@@ -26,10 +26,13 @@ def _ns_stripped(indexes):
     return {k: {sk: sv for sk, sv in v.items() if sk != 'ns'} for k, v in indexes.items()}
 
 
-# Used by fixtures.py
+def make_db():
+    return AsyncIOMotorClient()[TEST_DB]
+
+
 @pytest.fixture
 def db():
-    return AsyncIOMotorClient()[TEST_DB]
+    return make_db()
 
 
 @pytest.fixture
