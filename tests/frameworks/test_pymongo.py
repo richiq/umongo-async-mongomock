@@ -20,15 +20,25 @@ if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import pymongo as framework_pymongo
 
 
+def _stripped(indexes):
+    # Version may differ between database versions and configurations so it shall not be checked
+    for idx in indexes:
+        idx.pop('v')
+    return indexes
+
+
 # Helper to sort indexes by name in order to have deterministic comparison
 def name_sorted(indexes):
     return sorted(indexes, key=lambda x: x['name'])
 
 
-# Used by fixtures.py
+def make_db():
+    return MongoClient()[TEST_DB]
+
+
 @pytest.fixture
 def db():
-    return MongoClient()[TEST_DB]
+    return make_db()
 
 
 @pytest.mark.skipif(dep_error is not None, reason=dep_error)
@@ -321,26 +331,25 @@ class TestPymongo(BaseDBTest):
 
         # Now ask for indexes building
         SimpleIndexDoc.ensure_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        indexes = list(SimpleIndexDoc.collection.list_indexes())
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
                 'ns': '%s.simple_index_doc' % TEST_DB,
-                'v': 1
             },
             {
-                'v': 1,
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert _stripped(indexes) == expected_indexes
 
         # Redoing indexes building should do nothing
         SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = list(SimpleIndexDoc.collection.list_indexes())
+        assert _stripped(indexes) == expected_indexes
 
     def test_indexes_inheritance(self, instance):
 
@@ -356,26 +365,25 @@ class TestPymongo(BaseDBTest):
 
         # Now ask for indexes building
         SimpleIndexDoc.ensure_indexes()
-        indexes = [e for e in SimpleIndexDoc.collection.list_indexes()]
+        indexes = list(SimpleIndexDoc.collection.list_indexes())
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
                 'ns': '%s.simple_index_doc' % TEST_DB,
-                'v': 1
             },
             {
-                'v': 1,
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
                 'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert indexes == expected_indexes
+        assert _stripped(indexes) == expected_indexes
 
         # Redoing indexes building should do nothing
         SimpleIndexDoc.ensure_indexes()
-        assert indexes == expected_indexes
+        indexes = list(SimpleIndexDoc.collection.list_indexes())
+        assert _stripped(indexes) == expected_indexes
 
     def test_unique_index(self, instance):
 
@@ -390,23 +398,20 @@ class TestPymongo(BaseDBTest):
 
         # Now ask for indexes building
         UniqueIndexDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
+        indexes = list(UniqueIndexDoc.collection.list_indexes())
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
                 'ns': '%s.unique_index_doc' % TEST_DB,
-                'v': 1
             },
             {
-                'v': 1,
                 'key': {'required_unique': 1},
                 'name': 'required_unique_1',
                 'unique': True,
                 'ns': '%s.unique_index_doc' % TEST_DB
             },
             {
-                'v': 1,
                 'key': {'sparse_unique': 1},
                 'name': 'sparse_unique_1',
                 'unique': True,
@@ -414,12 +419,12 @@ class TestPymongo(BaseDBTest):
                 'ns': '%s.unique_index_doc' % TEST_DB
             },
         ]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexDoc.collection.list_indexes()]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        indexes = list(UniqueIndexDoc.collection.list_indexes())
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
         UniqueIndexDoc(not_unique='a', required_unique=1).commit()
         UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
@@ -447,28 +452,26 @@ class TestPymongo(BaseDBTest):
 
         # Now ask for indexes building
         UniqueIndexCompoundDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexCompoundDoc.collection.list_indexes()]
+        indexes = list(UniqueIndexCompoundDoc.collection.list_indexes())
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
                 'ns': '%s.unique_index_compound_doc' % TEST_DB,
-                'v': 1
             },
             {
-                'v': 1,
                 'key': {'compound1': 1, 'compound2': 1},
                 'name': 'compound1_1_compound2_1',
                 'unique': True,
                 'ns': '%s.unique_index_compound_doc' % TEST_DB
             }
         ]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexCompoundDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexCompoundDoc.collection.list_indexes()]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        indexes = list(UniqueIndexCompoundDoc.collection.list_indexes())
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
         # Index is on the tuple (compound1, compound2)
         UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
@@ -512,48 +515,43 @@ class TestPymongo(BaseDBTest):
 
         # Now ask for indexes building
         UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
+        indexes = list(UniqueIndexChildDoc.collection.list_indexes())
         expected_indexes = [
             {
                 'key': {'_id': 1},
                 'name': '_id_',
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
-                'v': 1
             },
             {
-                'v': 1,
                 'key': {'unique': 1},
                 'name': 'unique_1',
                 'unique': True,
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
-                'v': 1,
                 'key': {'manual_index': 1, '_cls': 1},
                 'name': 'manual_index_1__cls_1',
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
-                'v': 1,
                 'key': {'_cls': 1},
                 'name': '_cls_1',
                 'unique': True,
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
-                'v': 1,
                 'key': {'child_unique': 1, '_cls': 1},
                 'name': 'child_unique_1__cls_1',
                 'unique': True,
                 'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             }
         ]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         UniqueIndexChildDoc.ensure_indexes()
-        indexes = [e for e in UniqueIndexChildDoc.collection.list_indexes()]
-        assert name_sorted(indexes) == name_sorted(expected_indexes)
+        indexes = list(UniqueIndexChildDoc.collection.list_indexes())
+        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
 
     def test_inheritance_search(self, instance):
 
