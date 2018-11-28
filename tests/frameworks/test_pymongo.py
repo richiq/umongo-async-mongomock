@@ -84,17 +84,17 @@ class TestPymongo(BaseDBTest):
         with pytest.raises(exceptions.NotCreatedError):
             john.delete()
         john.commit()
-        assert Student.collection.find().count() == 1
+        assert Student.count_documents() == 1
         ret = john.delete()
         assert isinstance(ret, DeleteResult)
         assert not john.is_created
-        assert Student.collection.find().count() == 0
+        assert Student.count_documents() == 0
         with pytest.raises(exceptions.NotCreatedError):
             john.delete()
         # Can re-commit the document in database
         john.commit()
         assert john.is_created
-        assert Student.collection.find().count() == 1
+        assert Student.count_documents() == 1
         # Test conditional delete
         with pytest.raises(exceptions.DeleteError):
             john.delete(conditions={'name': 'Bad Name'})
@@ -123,11 +123,10 @@ class TestPymongo(BaseDBTest):
         Student.collection.drop()
         for i in range(10):
             Student(name='student-%s' % i).commit()
-        cursor = Student.find(limit=5, skip=6)
-        assert cursor.count() == 10
-        assert cursor.count(with_limit_and_skip=True) == 4
+        assert Student.count_documents() == 10
+        assert Student.count_documents(limit=5, skip=6) == 4
         names = []
-        for elem in cursor:
+        for elem in Student.find(limit=5, skip=6):
             assert isinstance(elem, Student)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
@@ -577,10 +576,10 @@ class TestPymongo(BaseDBTest):
         InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
         InheritanceSearchChild2(pf=2, c2f=2).commit()
 
-        assert InheritanceSearchParent.find().count() == 4
-        assert InheritanceSearchChild1.find().count() == 2
-        assert InheritanceSearchChild1Child.find().count() == 1
-        assert InheritanceSearchChild2.find().count() == 1
+        assert InheritanceSearchParent.count_documents() == 4
+        assert InheritanceSearchChild1.count_documents() == 2
+        assert InheritanceSearchChild1Child.count_documents() == 1
+        assert InheritanceSearchChild2.count_documents() == 1
 
         res = InheritanceSearchParent.find_one({'sc1f': 1})
         assert isinstance(res, InheritanceSearchChild1Child)
@@ -631,10 +630,12 @@ class TestPymongo(BaseDBTest):
             {'name': 'Jon I'}
         ]).commit()
 
-        assert Book.find({'title': 'The Hobbit'}).count() == 1
-        assert Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}).count() == 2
-        assert Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}).count() == 1
-        assert Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}).count() == 1
+        assert Book.count_documents({'title': 'The Hobbit'}) == 1
+        assert Book.count_documents({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}) == 2
+        assert Book.count_documents(
+            {'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}) == 1
+        assert Book.count_documents(
+            {'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}) == 1
 
     def test_pre_post_hooks(self, instance):
 
