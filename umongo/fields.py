@@ -108,14 +108,14 @@ class ListField(BaseField, ma_fields.List):
         if hasattr(self.container, 'map_to_field'):
             self.container.map_to_field(mongo_path, path, func)
 
-    def as_marshmallow_field(self, params=None, mongo_world=False):
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
         # Overwrite default `as_marshmallow_field` to handle deserialization
         # difference (`_id` vs `id`)
-        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
-            kwargs.update(params)
+            field_kwargs.update(params)
         return ma_fields.List(self.container.as_marshmallow_field(
-            mongo_world=mongo_world), **kwargs)
+            mongo_world=mongo_world, **kwargs), **field_kwargs)
 
     def _required_validate(self, value):
         if value is missing or not hasattr(self.container, '_required_validate'):
@@ -296,13 +296,13 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             return value
         return self.reference_cls(self.document_cls, value)
 
-    def as_marshmallow_field(self, params=None, mongo_world=False):
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
         # Overwrite default `as_marshmallow_field` to handle deserialization
         # difference (`_id` vs `id`)
-        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
-            kwargs.update(params)
-        return ma_bonus_fields.Reference(mongo_world=mongo_world, **kwargs)
+            field_kwargs.update(params)
+        return ma_bonus_fields.Reference(mongo_world=mongo_world, **field_kwargs)
 
 
 class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
@@ -360,13 +360,13 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
                 document=value['_cls']))
         return self.reference_cls(document_cls, value['_id'])
 
-    def as_marshmallow_field(self, params=None, mongo_world=False):
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
         # Overwrite default `as_marshmallow_field` to handle deserialization
         # difference (`_id` vs `id`)
-        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
-            kwargs.update(params)
-        return ma_bonus_fields.GenericReference(mongo_world=mongo_world, **kwargs)
+            field_kwargs.update(params)
+        return ma_bonus_fields.GenericReference(mongo_world=mongo_world, **field_kwargs)
 
 
 class EmbeddedField(BaseField, ma_fields.Nested):
@@ -487,17 +487,19 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(cur_mongo_path, cur_path, func)
 
-    def as_marshmallow_field(self, params=None, mongo_world=False):
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
         # Overwrite default `as_marshmallow_field` to handle nesting
-        kwargs = self._extract_marshmallow_field_params(mongo_world)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
-            nested_params = params.pop('params')
-            kwargs.update(params)
+            nested_params = params.pop('params', None)
+            field_kwargs.update(params)
         else:
             nested_params = None
+        schema_kwargs = {k: v for k, v in kwargs.items()
+                         if k in ('base_schema_cls', 'check_unknown_fields')}
         nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema(
-            params=nested_params, mongo_world=mongo_world)
-        return ma_fields.Nested(nested_ma_schema, **kwargs)
+            params=nested_params, mongo_world=mongo_world, **schema_kwargs)
+        return ma_fields.Nested(nested_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
         if value is not missing:
