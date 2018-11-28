@@ -3,22 +3,19 @@ from datetime import datetime
 from bson import ObjectId
 from functools import wraps
 
-from ..common import BaseDBTest, get_pymongo_version, TEST_DB, con
+from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
+
+from ..common import BaseDBTest, TEST_DB, con
 
 
-# Check if the required dependancies are met to run this driver's tests
+# Check if the required dependencies are met to run this driver's tests
 dep_error = None
 try:
     import pytest_twisted as _
     from txmongo import MongoConnection
-    major, minor, _ = get_pymongo_version()
-    if major != 3 or minor < 2:
-        dep_error = "txmongo driver requires pymongo>=3.2.0"
-    else:
-        from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
-    dep_error = 'Missing txmongo module or pytest_twisted'
+    dep_error = 'Missing txmongo or pytest_twisted'
 
     # Given the test function are generator, we must wrap them into a dummy
     # function that pytest can skip

@@ -16,7 +16,8 @@ with open('HISTORY.rst', 'rb') as history_file:
 
 requirements = [
     "marshmallow>=2.6.0",
-    "python-dateutil>=2.5.0"
+    "python-dateutil>=2.5.0",
+    "pymongo>=3.2.0",
 ]
 
 setup(
@@ -31,10 +32,9 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     extras_require={
-        'pymongo': ['pymongo>=3.2.1'],
         'motor': ['motor>=1.1,<2.0'],
         'txmongo': ['txmongo>=16.0.1'],
-        'mongomock': ['mongomock', 'pymongo']  # pymongo needed for bson module
+        'mongomock': ['mongomock'],
     },
     license="MIT",
     zip_safe=False,
