@@ -17,7 +17,7 @@ with open('HISTORY.rst', 'rb') as history_file:
 requirements = [
     "marshmallow>=2.6.0",
     "python-dateutil>=2.5.0",
-    "pymongo>=3.2.0",
+    "pymongo>=3.7.0",
 ]
 
 setup(
