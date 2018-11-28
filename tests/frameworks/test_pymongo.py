@@ -2,22 +2,16 @@ import pytest
 from datetime import datetime
 from bson import ObjectId
 from pymongo import MongoClient
+from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
-from ..common import BaseDBTest, get_pymongo_version, TEST_DB
+from ..common import BaseDBTest, TEST_DB
 
 from umongo import Document, EmbeddedDocument, fields, exceptions, Reference
+from umongo.frameworks import pymongo as framework_pymongo
 
 
-# Check if the required dependancies are met to run this driver's tests
-major, minor, _ = get_pymongo_version()
-if int(major) != 3 or int(minor) < 2:
-    dep_error = "pymongo driver requires pymongo>=3.2.0"
-else:
-    dep_error = None
-    from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
-
-if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.frameworks import pymongo as framework_pymongo
+# All dependencies here are mandatory
+dep_error = None
 
 
 def _stripped(indexes):
@@ -41,7 +35,6 @@ def db():
     return make_db()
 
 
-@pytest.mark.skipif(dep_error is not None, reason=dep_error)
 class TestPymongo(BaseDBTest):
 
     def test_create(self, classroom_model):
