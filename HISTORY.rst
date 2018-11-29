@@ -2,11 +2,12 @@
 History
 =======
 
-dev
----
-* Raise UnknownFieldInDBError when an unknown field is found in database
-  and not using BaseNonStrictDataProxy (see #121)
-* Fix (non fatal) crash in garbage collector when using WrappedCursor with mongomock
+1.0.0 (2018-11-29)
+------------------
+* Raise ``UnknownFieldInDBError`` when an unknown field is found in database
+  and not using ``BaseNonStrictDataProxy`` (see #121)
+* Fix (non fatal) crash in garbage collector when using ``WrappedCursor`` with
+  mongomock
 * Depend on pymongo 3.7+ (see #149)
 * Pass ``as_marshmallow_schema params`` to nested schemas. Since this change, every
   field's ``as_marshmallow_schema`` method should expect unknown ``**kwargs`` (see #101).
