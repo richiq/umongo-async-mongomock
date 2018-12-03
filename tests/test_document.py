@@ -85,7 +85,7 @@ class TestDocument(BaseTest):
             'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.dump() == {
             'name': 'John Doe',
-            'birthday': '1995-12-12T00:00:00+00:00',
+            'birthday': '1995-12-12T00:00:00',
             'gpa': 3.0
         }
 
@@ -493,7 +493,7 @@ class TestConfig(BaseTest):
             name = fields.StringField()
 
             @pre_load
-            def test(self, data):
+            def test(self, data, **kwargs):
                 return data
 
         Animal(name='Scruffy')
@@ -514,17 +514,17 @@ class TestConfig(BaseTest):
         @self.instance.register
         class Duck(Animal):
             @post_dump
-            def dump_custom_cls_name(self, data):
+            def dump_custom_cls_name(self, data, **kwargs):
                 data['race'] = data.pop('cls')
                 return data
 
             @pre_load
-            def load_custom_cls_name(self, data):
+            def load_custom_cls_name(self, data, **kwargs):
                 data.pop('race', None)
                 return data
 
             @validates_schema(pass_original=True)
-            def custom_validate(self, data, original_data):
+            def custom_validate(self, data, original_data, **kwargs):
                 if original_data['name'] != 'Donald':
                     raise exceptions.ValidationError('Not suitable name for duck !', 'name')
 
@@ -624,4 +624,4 @@ class TestConfig(BaseTest):
 
         with pytest.raises(exceptions.ValidationError) as exc:
             NonStrictDoc(a=42, b='foo')
-        assert exc.value.messages == {'_schema': ['Unknown field name b.']}
+        assert exc.value.messages == {'b': ['Unknown field.']}

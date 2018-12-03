@@ -360,10 +360,10 @@ class TestDataProxy(BaseTest):
         d = MyDataProxy(data={})
         with pytest.raises(ValidationError) as exc:
             MyDataProxy(data={'with_max': 100})
-        assert exc.value.args[0] == {'with_max': ['Must be at most 99.']}
+        assert exc.value.args[0] == {'with_max': ['Must be less than or equal to 99.']}
         with pytest.raises(ValidationError) as exc:
             d.set('with_max', 100)
-        assert exc.value.args[0] == ['Must be at most 99.']
+        assert exc.value.args[0] == ['Must be less than or equal to 99.']
 
     def test_partial(self):
 
@@ -471,7 +471,7 @@ class TestDataProxy(BaseTest):
 
         d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{'required': 42}]})
         d.required_validate()
-        # Empty list should not trigger required it embedded field require check
+        # Empty list should not trigger required if embedded field has required fields
         d.load({'embedded': {'required': 42}, 'required': 42})
         d.required_validate()
 
@@ -547,7 +547,7 @@ class TestNonStrictDataProxy(BaseTest):
         NonStrictDataProxy = data_proxy_factory('My', MySchema(), strict=False)
         with pytest.raises(exceptions.ValidationError) as exc:
             NonStrictDataProxy({'field_a': 42, 'xxx': 'foo'})
-        assert exc.value.messages == {'_schema': ['Unknown field name xxx.']}
+        assert exc.value.messages == {'xxx': ['Unknown field.']}
         d = NonStrictDataProxy()
         d.from_mongo({'mongo_field_a': 42, 'xxx': 'foo'})
         assert d._data == {'mongo_field_a': 42}

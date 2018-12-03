@@ -1,12 +1,17 @@
 from marshmallow import (Schema as MaSchema, fields as ma_fields,
-                         validate as ma_validate, missing, validates_schema)
+                         validate as ma_validate, missing, EXCLUDE)
 
 from .i18n import gettext as _, N_
-from .marshmallow_bonus import (schema_validator_check_unknown_fields,
-                                schema_from_umongo_get_attribute)
+from .marshmallow_bonus import schema_from_umongo_get_attribute
 
 
 __all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
+
+
+class I18nErrorDict(dict):
+    def __getitem__(self, name):
+        raw_msg = dict.__getitem__(self, name)
+        return _(raw_msg)
 
 
 class BaseSchema(MaSchema):
@@ -14,8 +19,9 @@ class BaseSchema(MaSchema):
     All schema used in umongo should inherit from this base schema
     """
 
-    __check_unknown_fields = validates_schema(pass_original=True)(
-        schema_validator_check_unknown_fields)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.error_messages = I18nErrorDict(self.error_messages)
 
     _marshmallow_schemas_cache = {}
 
@@ -46,6 +52,7 @@ class BaseSchema(MaSchema):
         :param meta: Optional dict with attributes for the schema's Meta class.
         """
         params = params or {}
+        meta = meta or {}
         # Use hashable parameters as cache dict key and dict parameters for manual comparison
         cache_key = (self.__class__, base_schema_cls, check_unknown_fields, mongo_world)
         cache_modifiers = (params, meta)
@@ -62,25 +69,23 @@ class BaseSchema(MaSchema):
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
-        if check_unknown_fields:
-            nmspc['_%s__check_unknown_fields' % name] = validates_schema(
-                pass_original=True)(schema_validator_check_unknown_fields)
+        if not check_unknown_fields:
+            meta.setdefault('unknown', EXCLUDE)
         # By default OO world returns `missing` fields as `None`,
         # disable this behavior here to let marshmallow deal with it
         if not mongo_world:
             nmspc['get_attribute'] = schema_from_umongo_get_attribute
         if meta:
             nmspc['Meta'] = type('Meta', (base_schema_cls.Meta,), meta)
-        ma_schema = type(name, (base_schema_cls, ), nmspc)
+        m_schema = type(name, (base_schema_cls, ), nmspc)
+        # Add i18n support to the schema
+        # We can't use I18nErrorDict here because __getitem__ is not called
+        # when error_messages is updated with _default_error_messages.
+        m_schema._default_error_messages = {
+            k: _(v) for k, v in m_schema._default_error_messages.items()}
         self._marshmallow_schemas_cache.setdefault(cache_key, []).append(
-            (cache_modifiers, ma_schema))
-        return ma_schema
-
-
-class I18nErrorDict(dict):
-    def __getitem__(self, name):
-        raw_msg = dict.__getitem__(self, name)
-        return _(raw_msg)
+            (cache_modifiers, m_schema))
+        return m_schema
 
 
 class BaseField(ma_fields.Field):
@@ -121,24 +126,20 @@ class BaseField(ma_fields.Field):
         # Store attributes prefixed with marshmallow_ to use them when
         # creating pure marshmallow Schema
         for attribute in (
-            'load_from', 'dump_to', 'attribute',
-            'validate', 'required', 'allow_none',
+            'data_key', 'attribute', 'validate', 'required', 'allow_none',
             'load_only', 'dump_only', 'error_messages'
         ):
             attribute = 'marshmallow_' + attribute
             if attribute in kwargs:
                 setattr(self, attribute, kwargs.pop(attribute))
 
-        # Infer from "default" parameter a default value for
-        # marshmallow_default and marshmallow_missing
-        def serialize_default():
-            val = self.default() if callable(self.default) else self.default
-            return self.serialize('foo', {'foo': val})
-
-        self.marshmallow_missing = kwargs.pop('marshmallow_missing', serialize_default)
-        self.marshmallow_default = kwargs.pop('marshmallow_default', serialize_default)
+        ma_missing = kwargs.pop('marshmallow_missing', None)
+        ma_default = kwargs.pop('marshmallow_default', None)
 
         super().__init__(*args, **kwargs)
+
+        self.marshmallow_missing = ma_missing if ma_missing is not None else self.default
+        self.marshmallow_default = ma_default if ma_default is not None else self.default
 
         # Deserialize default/missing values
         # This ensures they are validated and get the proper types and constraints
@@ -187,8 +188,8 @@ class BaseField(ma_fields.Field):
         if value is None and getattr(self, 'allow_none', False) is False:
             self.fail('null')
 
-    def deserialize(self, value, attr=None, data=None):
-        return super().deserialize(value, attr=attr, data=data)
+    def deserialize(self, value, attr=None, data=None, **kwargs):
+        return super().deserialize(value, attr=attr, data=data, **kwargs)
 
     def serialize_to_mongo(self, obj):
         if obj is None and getattr(self, 'allow_none', False) is True:
@@ -208,33 +209,8 @@ class BaseField(ma_fields.Field):
     def _serialize_to_mongo(self, obj):
         return obj
 
-    # def _serialize_to_mongo_update(self, ):
-    #     if isinstance(obj, BaseDataObject):
-    #         return obj.to_mongo(attr=attr, update=update)
-    #     elif update:
-    #         return {attr: obj}
-    #     else:
-    #         return obj
-
     def _deserialize_from_mongo(self, value):
         return value
-
-    # # Hat tip to django-rest-framework.
-    # def fail(self, key, **kwargs):
-    #     """A helper method that simply raises a `ValidationError`.
-    #     """
-    #     from .exceptions import ValidationError
-    #     try:
-    #         error = self.error_messages[key]
-    #         msg = error if not callable(error) else error(self.context)
-    #     except KeyError:
-    #         class_name = self.__class__.__name__
-    #         from marshmallow.fields import MISSING_ERROR_MESSAGE
-    #         msg = MISSING_ERROR_MESSAGE.format(class_name=class_name, key=key)
-    #         raise AssertionError(msg)
-    #     if isinstance(msg, str):
-    #         msg = msg.format(**kwargs)
-    #     raise ValidationError(msg)
 
     def translate_query(self, key, query):
         return {self.attribute or key: query}
@@ -244,7 +220,7 @@ class BaseField(ma_fields.Field):
             attribute: getattr(self, attribute)
             for attribute in (
                 'validate', 'required', 'allow_none',
-                'dump_only', 'load_only', 'error_messages'
+                'load_only', 'dump_only', 'error_messages'
             )
         }
         if mongo_world and self.attribute:
@@ -252,7 +228,7 @@ class BaseField(ma_fields.Field):
 
         # Override uMongo attributes with marshmallow_ prefixed attributes
         for attribute in (
-            'default', 'missing', 'load_from', 'dump_to', 'attribute',
+            'default', 'missing', 'data_key', 'attribute',
             'validate', 'required', 'allow_none',
             'load_only', 'dump_only', 'error_messages'
         ):

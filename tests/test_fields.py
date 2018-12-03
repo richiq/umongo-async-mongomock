@@ -4,7 +4,6 @@ from uuid import UUID
 
 import pytest
 
-from dateutil.tz.tz import tzutc, tzoffset
 from bson import ObjectId, DBRef, Decimal128
 from marshmallow import ValidationError, missing
 
@@ -83,15 +82,13 @@ class TestFields(BaseTest):
             integer = fields.IntegerField()
             decimal = fields.DecimalField()
             boolean = fields.BooleanField()
-            formattedstring = fields.FormattedStringField('Hello {to_format}')
             float = fields.FloatField()
-            # localdatetime = fields.LocalDateTimeField()
             url = fields.UrlField()
             email = fields.EmailField()
             constant = fields.ConstantField("const")
 
-        s = MySchema(strict=True)
-        data, err = s.load({
+        s = MySchema()
+        data = s.load({
             'string': 'value',
             'uuid': '8c58b5fc-b902-40c8-9d55-e9beb0906f80',
             'number': 1.0,
@@ -103,7 +100,6 @@ class TestFields(BaseTest):
             'email': "jdoe@example.com",
             'constant': 'forget me'
         })
-        assert not err
         assert data == {
             'string': 'value',
             'uuid': UUID('8c58b5fc-b902-40c8-9d55-e9beb0906f80'),
@@ -116,21 +112,19 @@ class TestFields(BaseTest):
             'email': "jdoe@example.com",
             'constant': 'const'
         }
-        dumped, err = s.dump({
+        dumped = s.dump({
             'string': 'value',
             'uuid': UUID('8c58b5fc-b902-40c8-9d55-e9beb0906f80'),
             'number': 1.0,
             'integer': 2,
             'decimal': 3.0,
             'boolean': True,
-            'formattedstring': 'forget me',
             'to_format': 'World',
             'float': 4.0,
             'url': "http://www.example.com/subject",
             'email': "jdoe@example.com",
             'constant': 'forget me'
         })
-        assert not err
         assert dumped == {
             'string': 'value',
             'uuid': '8c58b5fc-b902-40c8-9d55-e9beb0906f80',
@@ -138,7 +132,6 @@ class TestFields(BaseTest):
             'integer': 2,
             'decimal': 3.0,
             'boolean': True,
-            'formattedstring': 'Hello World',
             'float': 4.0,
             'url': "http://www.example.com/subject",
             'email': "jdoe@example.com",
@@ -151,99 +144,27 @@ class TestFields(BaseTest):
 
         class MySchema(EmbeddedSchema):
             a = fields.DateTimeField()
-            b = fields.LocalDateTimeField()
 
-        s = MySchema(strict=True)
-        data, _ = s.load({'a': dt.datetime(2016, 8, 6)})
+        s = MySchema()
+        data = s.load({'a': dt.datetime(2016, 8, 6)})
         assert data['a'] == dt.datetime(2016, 8, 6)
-        data, _ = s.load({'a': "2016-08-06T00:00:00Z"})
-        assert data['a'] == dt.datetime(2016, 8, 6, tzinfo=tzutc())
-        data, _ = s.load({'a': "2016-08-06T00:00:00"})
+        data = s.load({'a': "2016-08-06T00:00:00Z"})
+        assert data['a'] == dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)
+        data = s.load({'a': "2016-08-06T00:00:00"})
         assert data['a'] == dt.datetime(2016, 8, 6)
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
-        # Test DateTimeField and LocalDateTimeField round to milliseconds
+        # Test DateTimeField rounds to milliseconds
         s = MySchema()
-        data, _ = s.load({
+        data = s.load({
             'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456),
-            'b': dt.datetime(2016, 8, 6, 12, 30, 30, 123456),
         })
         assert data['a'].microsecond == 123000
-        assert data['b'].microsecond == 123000
         s = MySchema()
-        data, _ = s.load({
+        data = s.load({
             'a': dt.datetime(2016, 8, 6, 12, 59, 59, 999876),
-            'b': dt.datetime(2016, 8, 6, 12, 59, 59, 999876),
         })
-        assert data['a'].hour == 13
-        assert data['b'].hour == 13
-        assert data['a'].minute == 0
-        assert data['b'].minute == 0
-        assert data['a'].second == 0
-        assert data['b'].second == 0
-        assert data['a'].microsecond == 0
-        assert data['b'].microsecond == 0
-
-    def test_strictdatetime(self):
-
-        class MySchema(EmbeddedSchema):
-            a = fields.StrictDateTimeField()
-            b = fields.StrictDateTimeField(load_as_tz_aware=False)
-            c = fields.StrictDateTimeField(load_as_tz_aware=True)
-
-        # Test _deserialize
-        s = MySchema(strict=True)
-
-        for date in (
-            dt.datetime(2016, 8, 6),
-            dt.datetime(2016, 8, 6, tzinfo=tzutc()),
-            "2016-08-06T00:00:00Z",
-            "2016-08-06T00:00:00",
-        ):
-            data, _ = s.load({'a': date, 'b': date, 'c': date})
-            assert data['a'] == dt.datetime(2016, 8, 6)
-            assert data['b'] == dt.datetime(2016, 8, 6)
-            assert data['c'] == dt.datetime(2016, 8, 6, tzinfo=tzutc())
-
-        for date in (
-            "2016-08-06T00:00:00+02:00",
-            dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
-        ):
-            data, _ = s.load({'a': date, 'b': date, 'c': date})
-            assert data['a'] == dt.datetime(2016, 8, 5, 22, 0)
-            assert data['b'] == dt.datetime(2016, 8, 5, 22, 0)
-            assert data['c'] == dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
-
-        with pytest.raises(ValidationError):
-            s.load({'a': "dummy"})
-
-        # Test _deserialize_from_mongo
-        MyDataProxy = data_proxy_factory('My', MySchema())
-        d = MyDataProxy()
-
-        for date in (
-            dt.datetime(2016, 8, 6),
-            dt.datetime(2016, 8, 6, tzinfo=tzutc()),
-        ):
-            d.from_mongo({'a': date, 'b': date, 'c': date})
-            assert d.get('a') == dt.datetime(2016, 8, 6)
-            assert d.get('b') == dt.datetime(2016, 8, 6)
-            assert d.get('c') == dt.datetime(2016, 8, 6, tzinfo=tzutc())
-
-        for date in (
-            dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
-        ):
-            d.from_mongo({'a': date, 'b': date, 'c': date})
-            assert d.get('a') == dt.datetime(2016, 8, 5, 22, 0)
-            assert d.get('b') == dt.datetime(2016, 8, 5, 22, 0)
-            assert d.get('c') == dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
-
-        # Test StrictDateTimeField rounds to milliseconds
-        s = MySchema()
-        data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456)})
-        assert data['a'].microsecond == 123000
-        data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 59, 59, 999876)})
         assert data['a'].hour == 13
         assert data['a'].minute == 0
         assert data['a'].second == 0
@@ -254,10 +175,10 @@ class TestFields(BaseTest):
         class MySchema(EmbeddedSchema):
             a = fields.DateField()
 
-        s = MySchema(strict=True)
-        data, _ = s.load({'a': dt.date(2016, 8, 6)})
+        s = MySchema()
+        data = s.load({'a': dt.date(2016, 8, 6)})
         assert data['a'] == dt.date(2016, 8, 6)
-        data, _ = s.load({'a': "2016-08-06"})
+        data = s.load({'a': "2016-08-06"})
         assert data['a'] == dt.date(2016, 8, 6)
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})

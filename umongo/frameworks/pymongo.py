@@ -267,12 +267,12 @@ def _reference_io_validate(field, value):
 
 def _list_io_validate(field, value):
     errors = {}
-    validators = field.container.io_validate
+    validators = field.inner.io_validate
     if not validators:
         return
     for i, e in enumerate(value):
         try:
-            _run_validators(validators, field.container, e)
+            _run_validators(validators, field.inner, e)
         except ValidationError as ev:
             errors[i] = ev.messages
     if errors:
