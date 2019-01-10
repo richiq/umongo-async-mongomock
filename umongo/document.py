@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from bson import DBRef
 
 from marshmallow import pre_load, post_load, pre_dump, post_dump, validates_schema  # republishing
@@ -157,6 +159,15 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         elif isinstance(other, Reference):
             return isinstance(self, other.document_cls) and self.pk == other.pk
         return NotImplemented
+
+    def clone(self):
+        new = self.__class__()
+        data = deepcopy(self._data._data)
+        # Replace ID with new ID ("missing" unless a default value is provided)
+        data['_id'] = new._data._data['_id']
+        new._data._data = data
+        new._data._modified_data = set(data.keys())
+        return new
 
     @property
     def collection(self):
