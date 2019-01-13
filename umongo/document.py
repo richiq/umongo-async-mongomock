@@ -140,7 +140,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
         "Return True if the document has been commited to database"  # is_created's docstring
-        self._data = self.DataProxy(kwargs if kwargs else None)
+        self._data = self.DataProxy(kwargs)
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
