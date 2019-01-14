@@ -161,6 +161,10 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         return NotImplemented
 
     def clone(self):
+        """Return a copy of this Document as a new Document instance
+
+        All fields are deep-copied except the _id field.
+        """
         new = self.__class__()
         data = deepcopy(self._data._data)
         # Replace ID with new ID ("missing" unless a default value is provided)
