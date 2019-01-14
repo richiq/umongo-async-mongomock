@@ -1,3 +1,5 @@
+from copy import copy, deepcopy
+
 import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
@@ -354,6 +356,26 @@ class TestDocument(BaseTest):
 
         with pytest.raises(NotImplementedError):
             Doc()
+
+    def test_deepcopy(self):
+
+        @self.instance.register
+        class Child(EmbeddedDocument):
+            name = fields.StrField()
+
+        @self.instance.register
+        class Parent(Document):
+            name = fields.StrField()
+            child = fields.EmbeddedField(Child)
+
+        john = Parent(name='John Doe', child={'name': 'John Doe Jr.'})
+        jane = copy(john)
+        assert jane.name == john.name
+        assert jane.child is john.child
+        jane = deepcopy(john)
+        assert jane.name == john.name
+        assert jane.child == john.child
+        assert jane.child is not john.child
 
 
 class TestConfig(BaseTest):
