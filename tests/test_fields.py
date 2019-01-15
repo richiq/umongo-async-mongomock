@@ -1,4 +1,6 @@
-from bson import ObjectId, DBRef
+from decimal import Decimal
+
+from bson import ObjectId, DBRef, Decimal128
 import pytest
 from datetime import datetime
 from dateutil.tz.tz import tzutc, tzoffset
@@ -570,3 +572,48 @@ class TestFields(BaseTest):
         d3.from_mongo({
             'in_mongo_gref': Reference(ToRef1, ObjectId("5672d47b1d41c88dcd37ef05"))})
         assert not isinstance(d3._data['in_mongo_gref'].pk, Reference)
+
+    def test_decimal(self):
+
+        class MySchema(Schema):
+            price = fields.DecimalField(attribute='in_mongo_price')
+
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        d.load({'price': Decimal128('12.5678')})
+        assert d.dump() == {'price': Decimal('12.5678')}
+        assert d.to_mongo() == {'in_mongo_price': Decimal128('12.5678')}
+
+        d.load({'price': Decimal('12.5678')})
+        assert d.dump() == {'price': Decimal('12.5678')}
+        assert d.to_mongo() == {'in_mongo_price': Decimal128("12.5678")}
+        assert d.get('price') == Decimal('12.5678')
+
+        d.load({'price': '12.5678'})
+        assert d.dump() == {'price': Decimal('12.5678')}
+        assert d.to_mongo() == {'in_mongo_price': Decimal128("12.5678")}
+        assert d.get('price') == Decimal('12.5678')
+
+        d.load({'price': float('12.5678')})
+        assert d.dump() == {'price': Decimal('12.5678')}
+        assert d.to_mongo() == {'in_mongo_price': Decimal128("12.5678")}
+        assert d.get('price') == Decimal('12.5678')
+
+        d.set('price', Decimal128('11.1234'))
+        assert d.to_mongo(update=True) == {
+            '$set': {'in_mongo_price': Decimal128('11.1234')}}
+
+        d.set('price', Decimal("10.1234"))
+        assert d.to_mongo(update=True) == {
+            '$set': {'in_mongo_price': Decimal128('10.1234')}}
+
+        d.set('price', "9.1234")
+        assert d.to_mongo(update=True) == {
+            '$set': {'in_mongo_price': Decimal128('9.1234')}}
+
+        d.set('price', 8.1234)
+        assert d.to_mongo(update=True) == {
+            '$set': {'in_mongo_price': Decimal128('8.1234')}}
+
+        with pytest.raises(ValidationError):
+            d.set('price', 'str')
