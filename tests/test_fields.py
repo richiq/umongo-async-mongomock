@@ -615,5 +615,10 @@ class TestFields(BaseTest):
         assert d.to_mongo(update=True) == {
             '$set': {'in_mongo_price': Decimal128('8.1234')}}
 
+        d.from_mongo({'in_mongo_price': Decimal128('7.1234')})
+        assert d._data == {
+            'in_mongo_price': Decimal('7.1234')
+        }
+
         with pytest.raises(ValidationError):
             d.set('price', 'str')

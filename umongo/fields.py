@@ -153,8 +153,6 @@ class IntegerField(BaseField, ma_fields.Integer):
 
 class DecimalField(BaseField, ma_fields.Decimal):
     def _serialize_to_mongo(self, obj):
-        if not obj:
-            return missing
         return Decimal128(obj)
 
     def _deserialize_from_mongo(self, value):
