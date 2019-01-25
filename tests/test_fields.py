@@ -583,6 +583,7 @@ class TestFields(BaseTest):
         d.load({'price': Decimal128('12.5678')})
         assert d.dump() == {'price': Decimal('12.5678')}
         assert d.to_mongo() == {'in_mongo_price': Decimal128('12.5678')}
+        assert d.get('price') == Decimal('12.5678')
 
         d.load({'price': Decimal('12.5678')})
         assert d.dump() == {'price': Decimal('12.5678')}
