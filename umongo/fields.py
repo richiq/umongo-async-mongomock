@@ -152,12 +152,14 @@ class IntegerField(BaseField, ma_fields.Integer):
 
 
 class DecimalField(BaseField, ma_fields.Decimal):
+    """
+    MongoDB version support (3.4+).
+    """
     def _serialize_to_mongo(self, obj):
         return Decimal128(obj)
 
     def _deserialize_from_mongo(self, value):
-        if value:
-            return value.to_decimal()
+        return value.to_decimal()
 
 
 class BooleanField(BaseField, ma_fields.Boolean):
