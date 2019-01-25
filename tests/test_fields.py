@@ -257,6 +257,9 @@ class TestFields(BaseTest):
         assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'field': 'value'}}}
         assert d3.to_mongo() == {'in_mongo_dict': {'field': 'value'}}
 
+        d3.from_mongo({'in_mongo_dict': {}})
+        assert d3._data.get('in_mongo_dict') == {}
+
         d4 = MyDataProxy({'dict': None})
         assert d4.to_mongo() == {'in_mongo_dict': None}
         d4.from_mongo({'in_mongo_dict': None})
@@ -314,6 +317,11 @@ class TestFields(BaseTest):
         assert d.dump() == {'list': [2, 3, 4, 5]}
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_list': [2, 3, 4, 5]}}
 
+        d.from_mongo({'in_mongo_list': [2, 3, 4, 5]})
+        assert repr(
+            d._data.get('in_mongo_list')
+        ) == '<object umongo.data_objects.List([2, 3, 4, 5])>'
+
         d2 = MyDataProxy()
         d2.from_mongo({})
         assert isinstance(d2.get('list'), List)
@@ -330,6 +338,11 @@ class TestFields(BaseTest):
         assert d3.to_mongo() == {'in_mongo_list': None}
         d3.from_mongo({'in_mongo_list': None})
         assert d3.get('list') is None
+
+        d3.from_mongo({'in_mongo_list': []})
+        assert repr(
+            d3._data.get('in_mongo_list')
+        ) == '<object umongo.data_objects.List([])>'
 
     def test_complexe_list(self):
 
