@@ -153,7 +153,10 @@ class IntegerField(BaseField, ma_fields.Integer):
 
 class DecimalField(BaseField, ma_fields.Decimal):
     """
-    MongoDB version support (3.4+).
+    .. warning::
+
+        This field is only supported on MongoDB 3.4+.
+        Using it on older versions will result in uncaught errors.
     """
     def _serialize_to_mongo(self, obj):
         return Decimal128(obj)
