@@ -2,7 +2,7 @@
 History
 =======
 
-1.2.0 (unreleased)
+1.2.0 (2019-02-08)
 ------------------
 
 * Add ``Schema`` cache to ``as_marshmallow_schema`` (see #165).
