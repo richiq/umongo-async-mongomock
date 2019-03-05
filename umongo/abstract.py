@@ -108,13 +108,8 @@ class BaseField(ma_fields.Field):
         'unique': N_('Field value must be unique.'),
         'unique_compound': N_('Values of fields {fields} must be unique together.')
     }
-    # Helper given marshmallow_missing/default could be passed with any value (including `missing`)
-    _field_unset = object()
 
-    def __init__(self, *args, io_validate=None, unique=False, instance=None,
-                 marshmallow_missing=_field_unset,
-                 marshmallow_default=_field_unset,
-                 **kwargs):
+    def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
         if 'missing' in kwargs:
             raise RuntimeError("uMongo doesn't use `missing` argument, use `default` "
                 "instead and `marshmallow_missing`/`marshmallow_default` "
@@ -137,14 +132,8 @@ class BaseField(ma_fields.Field):
             val = self.default() if callable(self.default) else self.default
             return self.serialize('foo', {'foo': val})
 
-        if marshmallow_missing is self._field_unset:
-            self.marshmallow_missing = serialize_default
-        else:
-            self.marshmallow_missing = marshmallow_missing
-        if marshmallow_default is self._field_unset:
-            self.marshmallow_default = serialize_default
-        else:
-            self.marshmallow_default = marshmallow_default
+        self.marshmallow_missing = kwargs.get('marshmallow_missing', serialize_default)
+        self.marshmallow_default = kwargs.get('marshmallow_default', serialize_default)
 
     def __repr__(self):
         return ('<fields.{ClassName}(default={self.default!r}, '
