@@ -266,19 +266,36 @@ class TestDataProxy(BaseTest):
 
     def test_default(self):
         default_value = ObjectId('507f1f77bcf86cd799439011')
+        default_callable = lambda: ObjectId('507f1f77bcf86cd799439012')
 
         class MySchema(EmbeddedSchema):
             no_default = fields.ObjectIdField()
             with_default = fields.ObjectIdField(default=default_value)
+            with_callable_default = fields.ObjectIdField(default=default_callable)
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy(data={})
         assert d._data['no_default'] is missing
         assert d._data['with_default'] == default_value
+        assert d._data['with_callable_default'] == default_callable()
         assert d.get('no_default') is missing
         assert d.get('with_default') == default_value
-        assert d.to_mongo() == {'with_default': default_value}
-        assert d.dump() == {'with_default': str(default_value)}
+        assert d.get('with_callable_default') == default_callable()
+        assert d.to_mongo() == {
+            'with_default': default_value,
+            'with_callable_default': default_callable(),
+        }
+        assert d.dump() == {
+            'with_default': str(default_value),
+            'with_callable_default': str(default_callable()),
+        }
+
+        d.delete('with_default')
+        assert d._data['with_default'] == default_value
+        assert d.get('with_default') == default_value
+        d.delete('with_callable_default')
+        assert d._data['with_callable_default'] == default_callable()
+        assert d.get('with_callable_default') == default_callable()
 
     def test_validate(self):
 
