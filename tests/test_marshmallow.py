@@ -133,6 +133,59 @@ class TestMarshmallow(BaseTest):
         assert ma_custom_base_schema.Meta.exclude == ('content',)
         assert ma_custom_base_schema.Meta.dump_only == ('id',)
 
+    def test_as_marshmallow_field_pass_params(self):
+        @self.instance.register
+        class MyDoc(Document):
+            lf = fields.IntField(marshmallow_load_from='lflf')
+            dt = fields.IntField(marshmallow_dump_to='dtdt')
+            at = fields.IntField(marshmallow_attribute='atat')
+            re = fields.IntField(marshmallow_required=True)
+            an = fields.IntField(marshmallow_allow_none=True)
+            lo = fields.IntField(marshmallow_load_only=True)
+            do = fields.IntField(marshmallow_dump_only=True)
+            va = fields.IntField(marshmallow_validate=validate.Range(min=0))
+            em = fields.IntField(marshmallow_error_messages={'invalid': 'Wrong'})
+
+        MyMaDoc = MyDoc.schema.as_marshmallow_schema()
+
+        assert MyMaDoc().fields['lf'].load_from == 'lflf'
+        assert MyMaDoc().fields['dt'].dump_to == 'dtdt'
+        assert MyMaDoc().fields['at'].attribute == 'atat'
+        assert MyMaDoc().fields['re'].required is True
+        assert MyMaDoc().fields['an'].allow_none is True
+        assert MyMaDoc().fields['lo'].load_only is True
+        assert MyMaDoc().fields['do'].dump_only is True
+        _, err = MyMaDoc().load({'va': -1})
+        assert 'va' in err
+        assert MyMaDoc().fields['em'].error_messages['invalid'] == 'Wrong'
+
+    def test_as_marshmallow_field_infer_missing_default(self):
+        @self.instance.register
+        class MyDoc(Document):
+            de = fields.IntField(default=42)
+            mm = fields.IntField(marshmallow_missing=12)
+            md = fields.IntField(marshmallow_default=12)
+            mmd = fields.IntField(default=42, marshmallow_missing=12)
+            mdd = fields.IntField(default=42, marshmallow_default=12)
+
+        MyMaDoc = MyDoc.schema.as_marshmallow_schema()
+
+        data, _ = MyMaDoc().load({})
+        assert data == {
+            'de': 42,
+            'mm': 12,
+            'mmd': 12,
+            'mdd': 42,
+        }
+
+        data, _ = MyMaDoc().dump({})
+        assert data == {
+            'de': 42,
+            'md': 12,
+            'mmd': 42,
+            'mdd': 12,
+        }
+
     def test_as_marshmallow_schema_cache(self):
         ma_schema_cls = self.User.schema.as_marshmallow_schema()
 
