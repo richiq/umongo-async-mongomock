@@ -117,7 +117,29 @@ class BaseField(ma_fields.Field):
                 "generating pure Marshmallow field.")
         if 'default' in kwargs:
             kwargs['missing'] = kwargs['default']
+
+        # Store attributes prefixed with marshmallow_ to use them when
+        # creating pure marshmallow Schema
+        for attribute in (
+            'load_from', 'dump_to', 'attribute',
+            'validate', 'required', 'allow_none',
+            'load_only', 'dump_only', 'error_messages'
+        ):
+            attribute = 'marshmallow_' + attribute
+            if attribute in kwargs:
+                setattr(self, attribute, kwargs.pop(attribute))
+
+        # Infer from "default" parameter a default value for
+        # marshmallow_default and marshmallow_missing
+        def serialize_default():
+            val = self.default() if callable(self.default) else self.default
+            return self.serialize('foo', {'foo': val})
+
+        self.marshmallow_missing = kwargs.pop('marshmallow_missing', serialize_default)
+        self.marshmallow_default = kwargs.pop('marshmallow_default', serialize_default)
+
         super().__init__(*args, **kwargs)
+
         # Overwrite error_messages to handle i18n translation
         self.error_messages = I18nErrorDict(self.error_messages)
         # `io_validate` will be run after `io_validate_resursive`
@@ -127,13 +149,6 @@ class BaseField(ma_fields.Field):
         self.io_validate_recursive = None
         self.unique = unique
         self.instance = instance
-
-        def serialize_default():
-            val = self.default() if callable(self.default) else self.default
-            return self.serialize('foo', {'foo': val})
-
-        self.marshmallow_missing = kwargs.get('marshmallow_missing', serialize_default)
-        self.marshmallow_default = kwargs.get('marshmallow_default', serialize_default)
 
     def __repr__(self):
         return ('<fields.{ClassName}(default={self.default!r}, '
@@ -213,18 +228,26 @@ class BaseField(ma_fields.Field):
         return {self.attribute or key: query}
 
     def _extract_marshmallow_field_params(self, mongo_world):
-        params = {field: getattr(self, field)
-                  for field in ('load_from', 'validate', 'required',
-                                'allow_none', 'load_only',
-                                'dump_only', 'error_messages')}
+        params = {
+            attribute: getattr(self, attribute)
+            for attribute in (
+                'validate', 'required', 'allow_none',
+                'dump_only', 'load_only', 'error_messages'
+            )
+        }
         if mongo_world and self.attribute:
             params['attribute'] = self.attribute
-        # Marshmallow doesn't serialize default value when doing `dump`,
-        # hence we use the serialized value..
-        params['default'] = self.marshmallow_default
-        # ...on the other hand, marshmallow does use unserialize on the
-        # missing value when doing `load`, hence also use the serialized value
-        params['missing'] = self.marshmallow_missing
+
+        # Override uMongo attributes with marshmallow_ prefixed attributes
+        for attribute in (
+            'default', 'missing', 'load_from', 'dump_to', 'attribute',
+            'validate', 'required', 'allow_none',
+            'load_only', 'dump_only', 'error_messages'
+        ):
+            ma_attribute = 'marshmallow_' + attribute
+            if hasattr(self, ma_attribute):
+                params[attribute] = getattr(self, ma_attribute)
+
         params.update(self.metadata)
         return params
 
