@@ -7,7 +7,14 @@ dev
 * ``missing`` attribute is no longer used in umongo fields, only ``default`` is
   used. ``marshmallow_missing`` and ``marshmallow_default`` attribute can be
   used to overwrite the value to use in the pure marshmallow field returned
-  by `as_marshmallow_field` method.
+  by ``as_marshmallow_field`` method.
+* ``as_marshmallow_field`` does not pass ``load_from``, ``dump_to`` and
+  ``attribute`` to the pure marshmallow field anymore. It only passes
+  ``validate``, ``required``, ``allow_none``, ``dump_only``, ``load_only`` and
+  ``error_messages``, as well as ``default`` and ``missing`` values inferred
+  from umongo's ``default``. Parameters prefixed with ``marshmallow_`` in the
+  umongo field are passed to the pure marshmallow field and override their
+  non-prefixed counterpart.
 
 1.2.0 (2019-02-08)
 ------------------
