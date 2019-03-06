@@ -110,6 +110,13 @@ class BaseField(ma_fields.Field):
     }
 
     def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
+        if 'missing' in kwargs:
+            raise RuntimeError("uMongo doesn't use `missing` argument, use `default` "
+                "instead and `marshmallow_missing`/`marshmallow_default` "
+                "to tell `as_marshmallow_field` to use a custom value when "
+                "generating pure Marshmallow field.")
+        if 'default' in kwargs:
+            kwargs['missing'] = kwargs['default']
         super().__init__(*args, **kwargs)
         # Overwrite error_messages to handle i18n translation
         self.error_messages = I18nErrorDict(self.error_messages)
@@ -121,12 +128,21 @@ class BaseField(ma_fields.Field):
         self.unique = unique
         self.instance = instance
 
+        def serialize_default():
+            val = self.default() if callable(self.default) else self.default
+            return self.serialize('foo', {'foo': val})
+
+        self.marshmallow_missing = kwargs.get('marshmallow_missing', serialize_default)
+        self.marshmallow_default = kwargs.get('marshmallow_default', serialize_default)
+
     def __repr__(self):
         return ('<fields.{ClassName}(default={self.default!r}, '
                 'attribute={self.attribute!r}, '
                 'validate={self.validate}, required={self.required}, '
                 'load_only={self.load_only}, dump_only={self.dump_only}, '
-                'missing={self.missing}, allow_none={self.allow_none}, '
+                'marshmallow_missing={self.marshmallow_missing}, '
+                'marshmallow_default={self.marshmallow_default}, '
+                'allow_none={self.allow_none}, '
                 'error_messages={self.error_messages}, '
                 'io_validate={self.io_validate}, '
                 'io_validate_recursive={self.io_validate_recursive}, '
@@ -198,11 +214,17 @@ class BaseField(ma_fields.Field):
 
     def _extract_marshmallow_field_params(self, mongo_world):
         params = {field: getattr(self, field)
-                  for field in ('default', 'load_from', 'validate',
-                                'required', 'allow_none', 'load_only',
-                                'dump_only', 'missing', 'error_messages')}
+                  for field in ('load_from', 'validate', 'required',
+                                'allow_none', 'load_only',
+                                'dump_only', 'error_messages')}
         if mongo_world and self.attribute:
             params['attribute'] = self.attribute
+        # Marshmallow doesn't serialize default value when doing `dump`,
+        # hence we use the serialized value..
+        params['default'] = self.marshmallow_default
+        # ...on the other hand, marshmallow does use unserialize on the
+        # missing value when doing `load`, hence also use the serialized value
+        params['missing'] = self.marshmallow_missing
         params.update(self.metadata)
         return params
 

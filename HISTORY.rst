@@ -2,6 +2,13 @@
 History
 =======
 
+dev
+---
+* ``missing`` attribute is no longer used in umongo fields, only ``default`` is
+  used. ``marshmallow_missing`` and ``marshmallow_default`` attribute can be
+  used to overwrite the value to use in the pure marshmallow field returned
+  by `as_marshmallow_field` method.
+
 1.2.0 (2019-02-08)
 ------------------
 

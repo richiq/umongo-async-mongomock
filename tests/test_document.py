@@ -406,7 +406,7 @@ class TestDocument(BaseTest):
 
         @self.instance.register
         class Parent(Document):
-            id = fields.ObjectIdField(attribute='_id', missing=ObjectId)
+            id = fields.ObjectIdField(attribute='_id', default=ObjectId)
             name = fields.StrField()
 
         john = Parent(name='John Doe')
