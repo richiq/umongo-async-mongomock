@@ -53,6 +53,18 @@ __all__ = (
 
 class DictField(BaseField, ma_fields.Dict):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for attr in ('default', 'missing'):
+            default = getattr(self, attr)
+            if default is not missing:
+                if callable(default):
+                    def call_default():
+                        return Dict(default())
+                    setattr(self, attr, call_default)
+                else:
+                    setattr(self, attr, Dict(default))
+
     def _deserialize(self, value, attr, data):
         value = super()._deserialize(value, attr, data)
         return Dict(value)
@@ -65,8 +77,7 @@ class DictField(BaseField, ma_fields.Dict):
     def _deserialize_from_mongo(self, value):
         if value:
             return Dict(value)
-        else:
-            return Dict()
+        return Dict()
 
     def translate_query(self, key, query):
         keys = key.split('.')
@@ -75,6 +86,18 @@ class DictField(BaseField, ma_fields.Dict):
 
 
 class ListField(BaseField, ma_fields.List):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for attr in ('default', 'missing'):
+            default = getattr(self, attr)
+            if default is not missing:
+                if callable(default):
+                    def call_default():
+                        return List(self.container, default())
+                    setattr(self, attr, call_default)
+                else:
+                    setattr(self, attr, List(self.container, default))
 
     def _deserialize(self, value, attr, data):
         return List(self.container, super()._deserialize(value, attr, data))
@@ -88,8 +111,7 @@ class ListField(BaseField, ma_fields.List):
         if value:
             return List(self.container, [self.container.deserialize_from_mongo(each)
                                          for each in value])
-        else:
-            return List(self.container)
+        return List(self.container)
 
     def map_to_field(self, mongo_path, path, func):
         """Apply a function to every field in the schema
