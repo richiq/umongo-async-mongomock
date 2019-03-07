@@ -161,6 +161,11 @@ class TestFields(BaseTest):
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
+        # Test DateTimeField rounds to milliseconds
+        s = MySchema()
+        data, _ = s.load({'a': datetime(2016, 8, 6, 12, 30, 30, 123456)})
+        assert data['a'].microsecond == 123000
+
     def test_strictdatetime(self):
 
         class MySchema(EmbeddedSchema):
@@ -214,6 +219,11 @@ class TestFields(BaseTest):
             assert d.get('a') == datetime(2016, 8, 5, 22, 0)
             assert d.get('b') == datetime(2016, 8, 5, 22, 0)
             assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
+
+        # Test StrictDateTimeField rounds to milliseconds
+        s = MySchema()
+        data, _ = s.load({'a': datetime(2016, 8, 6, 12, 30, 30, 123456)})
+        assert data['a'].microsecond == 123000
 
     def test_dict(self):
 
