@@ -241,8 +241,10 @@ class TestFields(BaseTest):
         d2 = MyDataProxy({'dict': {'a': 1, 'b': {'c': True}}})
         assert d2.to_mongo() == {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}
 
-        # Empty dict is considered as missing field
         d2.set('dict', {})
+        assert d2.to_mongo() == {'in_mongo_dict': {}}
+        assert d2.to_mongo(update=True) == {'$set': {'in_mongo_dict': {}}}
+        d2.delete('dict')
         assert d2.to_mongo() == {}
         assert d2.to_mongo(update=True) == {'$unset': {'in_mongo_dict': ''}}
 
@@ -294,6 +296,10 @@ class TestFields(BaseTest):
         d.clear_modified()
         d.get('list').clear()
         assert d.dump() == {'list': []}
+        assert d.to_mongo() == {'in_mongo_list': []}
+        assert d.to_mongo(update=True) == {'$set': {'in_mongo_list': []}}
+        d.delete('list')
+        assert d.to_mongo() == {}
         assert d.to_mongo(update=True) == {'$unset': {'in_mongo_list': ''}}
 
         d.set('list', [1, 2, 3])

@@ -58,7 +58,7 @@ class DictField(BaseField, ma_fields.Dict):
         return Dict(value)
 
     def _serialize_to_mongo(self, obj):
-        if not obj:
+        if obj is None:
             return missing
         return dict(obj)
 
@@ -80,7 +80,7 @@ class ListField(BaseField, ma_fields.List):
         return List(self.container, super()._deserialize(value, attr, data))
 
     def _serialize_to_mongo(self, obj):
-        if not obj:
+        if obj is None:
             return missing
         return [self.container.serialize_to_mongo(each) for each in obj]
 
