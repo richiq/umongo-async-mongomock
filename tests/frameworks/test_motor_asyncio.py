@@ -228,6 +228,8 @@ class TestMotorAsyncio(BaseDBTest):
             yield from teacher.commit()
             course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
             yield from course.commit()
+            assert student.courses is None
+            student.courses = []
             assert student.courses == []
             student.courses.append(course)
             yield from student.commit()

@@ -154,6 +154,8 @@ class TestPymongo(BaseDBTest):
         teacher.commit()
         course = classroom_model.Course(name='Hoverboard 101', teacher=teacher)
         course.commit()
+        assert student.courses is None
+        student.courses = []
         assert student.courses == []
         student.courses.append(course)
         student.commit()
