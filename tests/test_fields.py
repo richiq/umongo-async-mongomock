@@ -4,12 +4,12 @@ from bson import ObjectId, DBRef, Decimal128
 import pytest
 from datetime import datetime
 from dateutil.tz.tz import tzutc, tzoffset
-from marshmallow import ValidationError
+from marshmallow import ValidationError, missing
 from uuid import UUID
 
 from umongo.data_proxy import data_proxy_factory
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
-from umongo.data_objects import List, Dict
+from umongo.data_objects import List
 
 from .common import BaseTest
 
@@ -248,17 +248,17 @@ class TestFields(BaseTest):
 
         d3 = MyDataProxy()
         d3.from_mongo({})
-        assert isinstance(d3.get('dict'), Dict)
+        assert d3.get('dict') is missing
         assert d3.to_mongo() == {}
         assert d3.to_mongo(update=True) is None
+
+        d3.from_mongo({'in_mongo_dict': {}})
+        assert d3._data.get('in_mongo_dict') == {}
         d3.get('dict')['field'] = 'value'
         assert d3.to_mongo(update=True) is None
         d3.get('dict').set_modified()
         assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'field': 'value'}}}
         assert d3.to_mongo() == {'in_mongo_dict': {'field': 'value'}}
-
-        d3.from_mongo({'in_mongo_dict': {}})
-        assert d3._data.get('in_mongo_dict') == {}
 
         d4 = MyDataProxy({'dict': None})
         assert d4.to_mongo() == {'in_mongo_dict': None}
@@ -324,8 +324,10 @@ class TestFields(BaseTest):
 
         d2 = MyDataProxy()
         d2.from_mongo({})
-        assert isinstance(d2.get('list'), List)
+        assert d2.get('list') is missing
         assert d2.to_mongo() == {}
+        
+        d2.from_mongo({'in_mongo_list': []})
         d2.get('list').append(1)
         assert d2.to_mongo() == {'in_mongo_list': [1]}
         assert d2.to_mongo(update=True) == {'$set': {'in_mongo_list': [1]}}
