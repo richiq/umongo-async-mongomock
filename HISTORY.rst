@@ -15,6 +15,7 @@ dev
   from umongo's ``default``. Parameters prefixed with ``marshmallow_`` in the
   umongo field are passed to the pure marshmallow field and override their
   non-prefixed counterpart.
+* ``DictField`` and ``ListField`` don't default to empty ``Dict``/``List`` (see #105).
 
 1.2.0 (2019-02-08)
 ------------------
