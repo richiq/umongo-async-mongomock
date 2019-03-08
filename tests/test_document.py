@@ -4,6 +4,7 @@ import pytest
 from datetime import datetime
 from bson import ObjectId, DBRef
 
+from marshmallow import validate
 from umongo import (Document, EmbeddedDocument, Schema, fields, exceptions,
                     post_dump, pre_load, validates_schema)
 
@@ -416,6 +417,16 @@ class TestDocument(BaseTest):
         assert isinstance(jane.id, ObjectId)
         assert jane.id != john.id
         assert jane.name == 'John Doe'
+
+    def test_validate_default(self):
+        """Check default values are validated"""
+
+        with pytest.raises(exceptions.ValidationError):
+            class User(Document):
+                name = fields.StringField(
+                    default='Eric',
+                    validate=validate.OneOf(('Stan', 'Kyle', 'Kenny'))
+                )
 
 
 class TestConfig(BaseTest):
