@@ -1,6 +1,8 @@
-import pytest
 import asyncio
 from datetime import datetime
+
+import pytest
+
 from bson import ObjectId
 
 # Check if the required dependancies are met to run this driver's tests

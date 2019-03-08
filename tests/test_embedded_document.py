@@ -1,6 +1,7 @@
 from copy import copy, deepcopy
 
 import pytest
+
 from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory

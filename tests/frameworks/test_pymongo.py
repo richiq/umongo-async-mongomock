@@ -1,5 +1,7 @@
-import pytest
 from datetime import datetime
+
+import pytest
+
 from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.results import InsertOneResult, UpdateResult, DeleteResult

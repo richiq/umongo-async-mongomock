@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 from bson import DBRef
-
 from marshmallow import pre_load, post_load, pre_dump, post_dump, validates_schema  # republishing
 
 from .abstract import BaseDataObject

@@ -1,8 +1,8 @@
 from datetime import datetime
 
+from bson import DBRef, ObjectId, Decimal128
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
-from bson import DBRef, ObjectId, Decimal128
 
 # from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError

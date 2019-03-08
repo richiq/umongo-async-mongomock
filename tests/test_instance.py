@@ -1,6 +1,8 @@
-import pytest
-from bson import ObjectId
 import importlib
+
+import pytest
+
+from bson import ObjectId
 
 from umongo import (Document, fields, AlreadyRegisteredDocumentError, EmbeddedDocument,
                     NotRegisteredDocumentError, NoDBDefinedError)

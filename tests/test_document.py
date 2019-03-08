@@ -1,10 +1,11 @@
 from copy import copy, deepcopy
+from datetime import datetime
 
 import pytest
-from datetime import datetime
-from bson import ObjectId, DBRef
 
+from bson import ObjectId, DBRef
 from marshmallow import validate
+
 from umongo import (Document, EmbeddedDocument, Schema, fields, exceptions,
                     post_dump, pre_load, validates_schema)
 

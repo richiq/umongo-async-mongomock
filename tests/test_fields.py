@@ -1,11 +1,12 @@
 from decimal import Decimal
-
-from bson import ObjectId, DBRef, Decimal128
-import pytest
 from datetime import datetime
-from dateutil.tz.tz import tzutc, tzoffset
-from marshmallow import ValidationError, missing
 from uuid import UUID
+
+import pytest
+
+from dateutil.tz.tz import tzutc, tzoffset
+from bson import ObjectId, DBRef, Decimal128
+from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory
 from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
