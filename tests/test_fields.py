@@ -150,6 +150,7 @@ class TestFields(BaseTest):
 
         class MySchema(EmbeddedSchema):
             a = fields.DateTimeField()
+            b = fields.LocalDateTimeField()
 
         s = MySchema(strict=True)
         data, _ = s.load({'a': datetime(2016, 8, 6)})
@@ -161,10 +162,14 @@ class TestFields(BaseTest):
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
-        # Test DateTimeField rounds to milliseconds
+        # Test DateTimeField and LocalDateTimeField round to milliseconds
         s = MySchema()
-        data, _ = s.load({'a': datetime(2016, 8, 6, 12, 30, 30, 123456)})
+        data, _ = s.load({
+            'a': datetime(2016, 8, 6, 12, 30, 30, 123456),
+            'b': datetime(2016, 8, 6, 12, 30, 30, 123456),
+        })
         assert data['a'].microsecond == 123000
+        assert data['b'].microsecond == 123000
 
     def test_strictdatetime(self):
 

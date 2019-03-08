@@ -181,8 +181,12 @@ class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 
     def _deserialize(self, value, attr, data):
         if isinstance(value, datetime):
-            return value
-        return super()._deserialize(value, attr, data)
+            ret = value
+        else:
+            ret = super()._deserialize(value, attr, data)
+        # MongoDB stores datetimes with a millisecond precision.
+        # Don't keep more precision in the object than in the database.
+        return ret.replace(microsecond=round(ret.microsecond, -3))
 
 
 # class TimeField(BaseField, ma_fields.Time):
