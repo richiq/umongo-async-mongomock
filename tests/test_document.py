@@ -163,7 +163,7 @@ class TestDocument(BaseTest):
             real_pk = fields.IntField(attribute='_id')
 
         crazy = CrazyNaming.build_from_mongo(data={
-            '_id': 1, 'in_mongo__id': 2, 'in_mongo__id': 3, 'pk': 4
+            '_id': 1, 'in_mongo_id': 2, 'in_mongo__id': 3, 'pk': 4
         })
         assert crazy.pk == crazy.real_pk == 1
         assert crazy['pk'] == 4
@@ -503,6 +503,7 @@ class TestConfig(BaseTest):
         @self.instance.register
         class Animal(Document):
             name = fields.StrField(attribute='_id')  # Overwrite automatic pk
+
             class Meta:
                 allow_inheritance = True
 

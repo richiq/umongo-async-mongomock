@@ -1,6 +1,7 @@
 from umongo import Document
 from umongo.frameworks.motor_asyncio import MotorAsyncIOReference
 
+
 # Await syntax related tests are stored in a separate file in order to
 # catch a SyntaxError when Python doesn't support it
 async def test_await_syntax(instance):

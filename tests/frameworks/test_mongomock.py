@@ -13,7 +13,7 @@ else:
 
 
 if not dep_error:  # Make sure the module is valid by importing it
-    from umongo.frameworks import mongomock
+    from umongo.frameworks import mongomock  # noqa
 
 
 def make_db():

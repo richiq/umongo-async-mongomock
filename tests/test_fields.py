@@ -375,7 +375,7 @@ class TestFields(BaseTest):
         d2.from_mongo({})
         assert d2.get('list') is missing
         assert d2.to_mongo() == {}
-        
+
         d2.from_mongo({'in_mongo_list': []})
         d2.get('list').append(1)
         assert d2.to_mongo() == {'in_mongo_list': [1]}

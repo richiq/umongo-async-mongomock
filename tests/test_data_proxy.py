@@ -210,7 +210,7 @@ class TestDataProxy(BaseTest):
 
         assert d1 != None  # noqa: E711 (None comparison)
         assert d1 != missing
-        assert None != d1
+        assert None != d1  # noqa: E711 (None comparison)
         assert missing != d1
 
     def test_share_ressources(self):

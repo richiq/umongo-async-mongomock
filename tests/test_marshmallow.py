@@ -411,11 +411,10 @@ class TestMarshmallow(BaseTest):
                 ('id', ma_bonus_fields.ObjectId),
                 ('ref', ma_bonus_fields.ObjectId),
                 ('gen_ref', ma_bonus_fields.GenericReference)
-                ):
+        ):
             ma_field = Doc.schema.fields[name].as_marshmallow_field()
             assert isinstance(ma_field, field_cls)
             assert not isinstance(ma_field, BaseField)
-
 
         oo_data = {
             'id': ObjectId("57c1a71113adf27ab96b2c4f"),
