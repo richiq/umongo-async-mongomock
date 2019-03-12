@@ -193,8 +193,19 @@ class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 #     pass
 
 
-# class DateField(BaseField, ma_fields.Date):
-#     pass
+class DateField(BaseField, ma_fields.Date):
+    """Convert date to datetime to store as BSON Date"""
+
+    def _deserialize(self, value, attr, data):
+        if isinstance(value, dt.date):
+            return value
+        return super()._deserialize(value, attr, data)
+
+    def _serialize_to_mongo(self, obj):
+        return dt.datetime(obj.year, obj.month, obj.day)
+
+    def _deserialize_from_mongo(self, value):
+        return value.date()
 
 
 # class TimeDeltaField(BaseField, ma_fields.TimeDelta):

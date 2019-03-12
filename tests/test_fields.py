@@ -231,6 +231,27 @@ class TestFields(BaseTest):
         data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456)})
         assert data['a'].microsecond == 123000
 
+    def test_date(self):
+
+        class MySchema(EmbeddedSchema):
+            a = fields.DateField()
+
+        s = MySchema(strict=True)
+        data, _ = s.load({'a': dt.date(2016, 8, 6)})
+        assert data['a'] == dt.date(2016, 8, 6)
+        data, _ = s.load({'a': "2016-08-06"})
+        assert data['a'] == dt.date(2016, 8, 6)
+        with pytest.raises(ValidationError):
+            s.load({'a': "dummy"})
+
+        # Test _serialize_to_mongo / _deserialize_from_mongo
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+
+        d.from_mongo({'a': dt.datetime(2019, 8, 6)})
+        assert d.get('a') == dt.date(2019, 8, 6)
+        assert d.to_mongo() == {'a': dt.datetime(2019, 8, 6)}
+
     def test_dict(self):
 
         class MySchema(Schema):
