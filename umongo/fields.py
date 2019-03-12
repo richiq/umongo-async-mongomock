@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 
 from bson import DBRef, ObjectId, Decimal128
 from marshmallow import ValidationError, missing
@@ -168,7 +168,7 @@ class FloatField(BaseField, ma_fields.Float):
 class DateTimeField(BaseField, ma_fields.DateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = value
         else:
             ret = super()._deserialize(value, attr, data)
@@ -180,7 +180,7 @@ class DateTimeField(BaseField, ma_fields.DateTime):
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = value
         else:
             ret = super()._deserialize(value, attr, data)
@@ -225,7 +225,7 @@ IntField = IntegerField
 class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = self._set_tz_awareness(value)
         else:
             ret = super()._deserialize(value, attr, data)

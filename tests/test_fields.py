@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import datetime
+import datetime as dt
 from uuid import UUID
 
 import pytest
@@ -25,7 +25,7 @@ class TestRequired(BaseTest):
             name = fields.StrField(required=True)
             birthday = fields.DateTimeField()
 
-        person = Person(birthday=datetime(1968, 6, 9))
+        person = Person(birthday=dt.datetime(1968, 6, 9))
 
         # required should be called during commit
         with pytest.raises(ValidationError) as exc:
@@ -154,20 +154,20 @@ class TestFields(BaseTest):
             b = fields.LocalDateTimeField()
 
         s = MySchema(strict=True)
-        data, _ = s.load({'a': datetime(2016, 8, 6)})
-        assert data['a'] == datetime(2016, 8, 6)
+        data, _ = s.load({'a': dt.datetime(2016, 8, 6)})
+        assert data['a'] == dt.datetime(2016, 8, 6)
         data, _ = s.load({'a': "2016-08-06T00:00:00Z"})
-        assert data['a'] == datetime(2016, 8, 6, tzinfo=tzutc())
+        assert data['a'] == dt.datetime(2016, 8, 6, tzinfo=tzutc())
         data, _ = s.load({'a': "2016-08-06T00:00:00"})
-        assert data['a'] == datetime(2016, 8, 6)
+        assert data['a'] == dt.datetime(2016, 8, 6)
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
 
         # Test DateTimeField and LocalDateTimeField round to milliseconds
         s = MySchema()
         data, _ = s.load({
-            'a': datetime(2016, 8, 6, 12, 30, 30, 123456),
-            'b': datetime(2016, 8, 6, 12, 30, 30, 123456),
+            'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456),
+            'b': dt.datetime(2016, 8, 6, 12, 30, 30, 123456),
         })
         assert data['a'].microsecond == 123000
         assert data['b'].microsecond == 123000
@@ -183,24 +183,24 @@ class TestFields(BaseTest):
         s = MySchema(strict=True)
 
         for date in (
-            datetime(2016, 8, 6),
-            datetime(2016, 8, 6, tzinfo=tzutc()),
+            dt.datetime(2016, 8, 6),
+            dt.datetime(2016, 8, 6, tzinfo=tzutc()),
             "2016-08-06T00:00:00Z",
             "2016-08-06T00:00:00",
         ):
             data, _ = s.load({'a': date, 'b': date, 'c': date})
-            assert data['a'] == datetime(2016, 8, 6)
-            assert data['b'] == datetime(2016, 8, 6)
-            assert data['c'] == datetime(2016, 8, 6, tzinfo=tzutc())
+            assert data['a'] == dt.datetime(2016, 8, 6)
+            assert data['b'] == dt.datetime(2016, 8, 6)
+            assert data['c'] == dt.datetime(2016, 8, 6, tzinfo=tzutc())
 
         for date in (
             "2016-08-06T00:00:00+02:00",
-            datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
+            dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
         ):
             data, _ = s.load({'a': date, 'b': date, 'c': date})
-            assert data['a'] == datetime(2016, 8, 5, 22, 0)
-            assert data['b'] == datetime(2016, 8, 5, 22, 0)
-            assert data['c'] == datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
+            assert data['a'] == dt.datetime(2016, 8, 5, 22, 0)
+            assert data['b'] == dt.datetime(2016, 8, 5, 22, 0)
+            assert data['c'] == dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
 
         with pytest.raises(ValidationError):
             s.load({'a': "dummy"})
@@ -210,25 +210,25 @@ class TestFields(BaseTest):
         d = MyDataProxy()
 
         for date in (
-            datetime(2016, 8, 6),
-            datetime(2016, 8, 6, tzinfo=tzutc()),
+            dt.datetime(2016, 8, 6),
+            dt.datetime(2016, 8, 6, tzinfo=tzutc()),
         ):
             d.from_mongo({'a': date, 'b': date, 'c': date})
-            assert d.get('a') == datetime(2016, 8, 6)
-            assert d.get('b') == datetime(2016, 8, 6)
-            assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzutc())
+            assert d.get('a') == dt.datetime(2016, 8, 6)
+            assert d.get('b') == dt.datetime(2016, 8, 6)
+            assert d.get('c') == dt.datetime(2016, 8, 6, tzinfo=tzutc())
 
         for date in (
-            datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
+            dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200)),
         ):
             d.from_mongo({'a': date, 'b': date, 'c': date})
-            assert d.get('a') == datetime(2016, 8, 5, 22, 0)
-            assert d.get('b') == datetime(2016, 8, 5, 22, 0)
-            assert d.get('c') == datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
+            assert d.get('a') == dt.datetime(2016, 8, 5, 22, 0)
+            assert d.get('b') == dt.datetime(2016, 8, 5, 22, 0)
+            assert d.get('c') == dt.datetime(2016, 8, 6, tzinfo=tzoffset(None, 7200))
 
         # Test StrictDateTimeField rounds to milliseconds
         s = MySchema()
-        data, _ = s.load({'a': datetime(2016, 8, 6, 12, 30, 30, 123456)})
+        data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456)})
         assert data['a'].microsecond == 123000
 
     def test_dict(self):
