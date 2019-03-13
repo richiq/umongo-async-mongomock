@@ -24,6 +24,7 @@ dev
 * Round datetimes to millisecond precision in ``DateTimeField``,
   ``LocalDateTimeField`` and ``StrictDateTimeField`` to keep consistency
   between object and database representation (see #172 and #175).
+* Add ``DateField`` (see #178).
 
 1.2.0 (2019-02-08)
 ------------------
