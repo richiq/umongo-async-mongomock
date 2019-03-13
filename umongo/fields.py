@@ -27,7 +27,7 @@ __all__ = (
     'FloatField',
     'DateTimeField',
     # 'TimeField',
-    # 'DateField',
+    'DateField',
     # 'TimeDeltaField',
     'UrlField',
     'URLField',
@@ -194,7 +194,7 @@ class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 
 
 class DateField(BaseField, ma_fields.Date):
-    """Convert date to datetime to store as BSON Date"""
+    """This field converts a date to a datetime to store it as a BSON Date"""
 
     def _deserialize(self, value, attr, data):
         if isinstance(value, dt.date):
