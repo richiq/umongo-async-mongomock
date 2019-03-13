@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 
 from bson import DBRef, ObjectId, Decimal128
 from marshmallow import ValidationError, missing
@@ -168,7 +168,7 @@ class FloatField(BaseField, ma_fields.Float):
 class DateTimeField(BaseField, ma_fields.DateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = value
         else:
             ret = super()._deserialize(value, attr, data)
@@ -180,7 +180,7 @@ class DateTimeField(BaseField, ma_fields.DateTime):
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = value
         else:
             ret = super()._deserialize(value, attr, data)
@@ -193,8 +193,19 @@ class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 #     pass
 
 
-# class DateField(BaseField, ma_fields.Date):
-#     pass
+class DateField(BaseField, ma_fields.Date):
+    """Convert date to datetime to store as BSON Date"""
+
+    def _deserialize(self, value, attr, data):
+        if isinstance(value, dt.date):
+            return value
+        return super()._deserialize(value, attr, data)
+
+    def _serialize_to_mongo(self, obj):
+        return dt.datetime(obj.year, obj.month, obj.day)
+
+    def _deserialize_from_mongo(self, value):
+        return value.date()
 
 
 # class TimeDeltaField(BaseField, ma_fields.TimeDelta):
@@ -225,7 +236,7 @@ IntField = IntegerField
 class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
 
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
+        if isinstance(value, dt.datetime):
             ret = self._set_tz_awareness(value)
         else:
             ret = super()._deserialize(value, attr, data)
