@@ -658,7 +658,9 @@ class TestMotorAsyncio(BaseDBTest):
 
             # Now ask for indexes building
             await UniqueIndexChildDoc.ensure_indexes()
-            indexes = [e async for e in UniqueIndexChildDoc.collection.list_indexes()]
+            indexes = []
+            async for index in UniqueIndexChildDoc.collection.list_indexes():
+                indexes.append(index)
             expected_indexes = [
                 {
                     'key': {'_id': 1},
