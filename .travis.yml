@@ -27,21 +27,18 @@ jobs:
 
   include:
 
-    - { python: '3.6', env: TOXENV=lint }
+    - { python: '3.7', env: TOXENV=lint }
     - { python: '3.5', env: TOXENV=py35-pymongo }
     - { python: '3.5', env: TOXENV=py35-motor }
     - { python: '3.5', env: TOXENV=py35-txmongo }
-    - { python: '3.6', env: TOXENV=py36-pymongo }
-    - { python: '3.6', env: TOXENV=py36-motor }
-    - { python: '3.6', env: TOXENV=py36-txmongo }
     - { python: '3.7', env: TOXENV=py37-pymongo }
     - { python: '3.7', env: TOXENV=py37-motor }
     - { python: '3.7', env: TOXENV=py37-txmongo }
 
     - stage: PyPI Release
       if: tag IS present
-      python: '3.6'
-      env: TOXENV=py36-pymongo
+      python: '3.7'
+      env: TOXENV=py37-pymongo
       install: skip
       script: echo "Releasing to PyPI..."
       deploy:
@@ -53,4 +50,4 @@ jobs:
           on:
             tags: true
             repo: Scille/umongo
-            python: 3.6
+            python: 3.7
