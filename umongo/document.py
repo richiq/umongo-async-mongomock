@@ -314,7 +314,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         """
         Overload this method to get a callback before document insertion.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
 
@@ -324,7 +324,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         :return: Additional filters dict that will be used for the query to
             select the document to update.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
 
@@ -334,7 +334,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         :return: Additional filters dict that will be used for the query to
             select the document to update.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
 
@@ -343,7 +343,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         Overload this method to get a callback after document insertion.
         :param ret: Pymongo response sent by the database.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
 
@@ -352,7 +352,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         Overload this method to get a callback after document update.
         :param ret: Pymongo response sent by the database.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
 
@@ -361,6 +361,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         Overload this method to get a callback after document deletion.
         :param ret: Pymongo response sent by the database.
 
-        .. note:: If you use an async driver, this callback can return a defer/future.
+        .. note:: If you use an async driver, this callback can be asynchronous.
         """
         pass
