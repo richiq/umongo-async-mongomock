@@ -2,8 +2,12 @@
 History
 =======
 
-dev
----
+2.0.0 (unreleased)
+------------------
+
+* Support Python 3.7 (see #181).
+* Drop Python 3.4 support (see #176).
+* Only use async/await coroutine style in asyncio framework (see #179).
 * ``missing`` attribute is no longer used in umongo fields, only ``default`` is
   used. ``marshmallow_missing`` and ``marshmallow_default`` attribute can be
   used to overwrite the value to use in the pure marshmallow field returned
