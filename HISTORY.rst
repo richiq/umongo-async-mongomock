@@ -2,33 +2,44 @@
 History
 =======
 
-2.0.0 (unreleased)
+2.0.0 (2019-03-18)
 ------------------
 
-* Support Python 3.7 (see #181).
-* Drop Python 3.4 support (see #176).
-* Only use async/await coroutine style in asyncio framework (see #179).
-* ``missing`` attribute is no longer used in umongo fields, only ``default`` is
-  used. ``marshmallow_missing`` and ``marshmallow_default`` attribute can be
-  used to overwrite the value to use in the pure marshmallow field returned
-  by ``as_marshmallow_field`` method (see #36 and #107).
-* ``as_marshmallow_field`` does not pass ``load_from``, ``dump_to`` and
-  ``attribute`` to the pure marshmallow field anymore. It only passes
-  ``validate``, ``required``, ``allow_none``, ``dump_only``, ``load_only`` and
-  ``error_messages``, as well as ``default`` and ``missing`` values inferred
-  from umongo's ``default``. Parameters prefixed with ``marshmallow_`` in the
-  umongo field are passed to the pure marshmallow field and override their
-  non-prefixed counterpart. (see #170)
-* ``DictField`` and ``ListField`` don't default to empty ``Dict``/``List``. To
-  keep old behaviour, pass ``dict``/``list`` as default. (see #105)
-* Serialize empty ``Dict``/``List`` as empty rather than missing (see #105).
-* Fix passing a default value to a ``DictField``/``ListField`` as a raw Python
-  ``dict``/``list`` (see #78).
-* Deserialize and validate ``default`` parameter (see #174).
+Features :
+
+* *Backwards-incompatible*: ``missing`` attribute is no longer used in umongo
+  fields, only ``default`` is used. ``marshmallow_missing`` and
+  ``marshmallow_default`` attribute can be used to overwrite the value to use
+  in the pure marshmallow field returned by ``as_marshmallow_field`` method
+  (see #36 and #107).
+* *Backwards-incompatible*: ``as_marshmallow_field`` does not pass
+  ``load_from``, ``dump_to`` and ``attribute`` to the pure marshmallow field
+  anymore. It only passes ``validate``, ``required``, ``allow_none``,
+  ``dump_only``, ``load_only`` and ``error_messages``, as well as ``default``
+  and ``missing`` values inferred from umongo's ``default``. Parameters
+  prefixed with ``marshmallow_`` in the umongo field are passed to the pure
+  marshmallow field and override their non-prefixed counterpart. (see #170)
+* *Backwards-incompatible*: ``DictField`` and ``ListField`` don't default to
+  empty ``Dict``/``List``. To keep old behaviour, pass ``dict``/``list`` as
+  default. (see #105)
+* *Backwards-incompatible*: Serialize empty ``Dict``/``List`` as empty rather
+  than missing (see #105).
 * Round datetimes to millisecond precision in ``DateTimeField``,
   ``LocalDateTimeField`` and ``StrictDateTimeField`` to keep consistency
   between object and database representation (see #172 and #175).
 * Add ``DateField`` (see #178).
+
+Bug fixes :
+
+* Fix passing a default value to a ``DictField``/``ListField`` as a raw Python
+  ``dict``/``list`` (see #78).
+* The ``default`` parameter of a Field is deserialized and validated (see #174).
+
+Other changes :
+
+* Support Python 3.7 (see #181).
+* *Backwards-incompatible*: Drop Python 3.4 support (see #176) and only use
+  async/await coroutine style in asyncio framework (see #179).
 
 1.2.0 (2019-02-08)
 ------------------
