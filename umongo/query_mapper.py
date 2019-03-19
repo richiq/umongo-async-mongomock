@@ -1,3 +1,5 @@
+import warnings
+
 from umongo.fields import ListField, EmbeddedField
 
 
@@ -17,6 +19,11 @@ def map_entry(entry, fields):
         fields = field.container.embedded_document_cls.schema.fields
     elif isinstance(field, EmbeddedField):
         fields = field.embedded_document_cls.schema.fields
+    elif field is None and not entry.startswith('$'):
+        warnings.warn(
+            "Query mapper can't find field for this query. Field name won't be mapped.",
+            RuntimeWarning,
+        )
     return getattr(field, 'attribute', None) or entry, fields
 
 

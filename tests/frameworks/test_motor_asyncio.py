@@ -739,7 +739,8 @@ class TestMotorAsyncio(BaseDBTest):
             assert (await InheritanceSearchChild1Child.find().count()) == 1
             assert (await InheritanceSearchChild2.find().count()) == 1
 
-            res = await InheritanceSearchParent.find_one({'sc1f': 1})
+            with pytest.warns(RuntimeWarning):
+                res = await InheritanceSearchParent.find_one({'sc1f': 1})
             assert isinstance(res, InheritanceSearchChild1Child)
 
             cursor = InheritanceSearchParent.find({'pf': 1})

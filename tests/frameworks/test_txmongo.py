@@ -687,7 +687,8 @@ class TestTxMongo(BaseDBTest):
         res = yield InheritanceSearchChild2.find()
         assert len(res) == 1
 
-        res = yield InheritanceSearchParent.find_one({'sc1f': 1})
+        with pytest.warns(RuntimeWarning):
+            res = yield InheritanceSearchParent.find_one({'sc1f': 1})
         assert isinstance(res, InheritanceSearchChild1Child)
 
         res = yield InheritanceSearchParent.find({'pf': 1})
