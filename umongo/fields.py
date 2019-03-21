@@ -313,10 +313,6 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         return obj.pk
 
     def _deserialize_from_mongo(self, value):
-        # When this method is called from `_deserialize`, `value` can be
-        # already deserialized, in such a case do nothing.
-        if isinstance(value, self.reference_cls):
-            return value
         return self.reference_cls(self.document_cls, value)
 
     def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
@@ -377,10 +373,6 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
 
     def _deserialize_from_mongo(self, value):
-        # When this method is called from `_deserialize`, `value` can be
-        # already deserialized, in such a case do nothing.
-        if isinstance(value, self.reference_cls):
-            return value
         document_cls = self._document_cls(value['_cls'])
         return self.reference_cls(document_cls, value['_id'])
 

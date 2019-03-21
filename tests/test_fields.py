@@ -595,12 +595,6 @@ class TestFields(BaseTest):
         d2.from_mongo({'in_mongo_ref': None})
         assert d2.get('ref') is None
 
-        # Test from_mongo behavior with already deserialized data
-        d3 = MyDataProxy()
-        d3.from_mongo({
-            'in_mongo_ref': Reference(MyReferencedDoc, ObjectId("5672d47b1d41c88dcd37ef05"))})
-        assert not isinstance(d3._data['in_mongo_ref'].pk, Reference)
-
     def test_reference_lazy(self):
 
         @self.instance.register
@@ -681,12 +675,6 @@ class TestFields(BaseTest):
         assert d2.to_mongo() == {'in_mongo_gref': None}
         d2.from_mongo({'in_mongo_gref': None})
         assert d2.get('gref') is None
-
-        # Test from_mongo behavior with already deserialized data
-        d3 = MyDataProxy()
-        d3.from_mongo({
-            'in_mongo_gref': Reference(ToRef1, ObjectId("5672d47b1d41c88dcd37ef05"))})
-        assert not isinstance(d3._data['in_mongo_gref'].pk, Reference)
 
     def test_decimal(self):
 
