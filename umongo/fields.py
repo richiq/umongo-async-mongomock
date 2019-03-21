@@ -337,6 +337,13 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         from .document import DocumentImplementation
         self._document_implementation_cls = DocumentImplementation
 
+    def _document_cls(self, class_name):
+        try:
+            return self.instance.retrieve_document(class_name)
+        except NotRegisteredDocumentError:
+            raise ValidationError(_('Unknown document `{document}`.').format(
+                document=class_name))
+
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
@@ -361,10 +368,8 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
                 _id = ObjectId(value['id'])
             except ValueError:
                 raise ValidationError(_("Invalid `id` field."))
-            return self._deserialize_from_mongo({
-                '_cls': value['cls'],
-                '_id': _id
-            })
+            document_cls = self._document_cls(value['cls'])
+            return self.reference_cls(document_cls, _id)
         else:
             raise ValidationError(_("Invalid value for generic reference field."))
 
@@ -376,11 +381,7 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.reference_cls):
             return value
-        try:
-            document_cls = self.instance.retrieve_document(value['_cls'])
-        except NotRegisteredDocumentError:
-            raise ValidationError(_('Unknown document `{document}`.').format(
-                document=value['_cls']))
+        document_cls = self._document_cls(value['_cls'])
         return self.reference_cls(document_cls, value['_id'])
 
     def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
