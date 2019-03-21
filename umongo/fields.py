@@ -307,9 +307,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
         value = super()._deserialize(value, attr, data)
-        # `value` is similar to data received from the database so we
-        # can use `_deserialize_from_mongo` to finish the deserialization
-        return self._deserialize_from_mongo(value)
+        return self.reference_cls(self.document_cls, value)
 
     def _serialize_to_mongo(self, obj):
         return obj.pk
