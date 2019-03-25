@@ -212,8 +212,9 @@ class TestEmbeddedDocument(BaseTest):
         assert child.to_mongo() == {'in_mongo_a_child': 1, 'b': 2, 'c': 3, '_cls': 'EmbeddedChild'}
         assert grandchild.to_mongo() == {'d': 4, '_cls': 'GrandChild'}
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc:
             MyDoc(parent=OtherEmbedded())
+        assert exc.value.args[0] == {'parent': {'_schema': ['Invalid input type.']}}
         with pytest.raises(ValidationError):
             MyDoc(child=parent)
         doc = MyDoc(parent=child, child=child)

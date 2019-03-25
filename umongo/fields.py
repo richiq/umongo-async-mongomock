@@ -307,18 +307,12 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
         value = super()._deserialize(value, attr, data)
-        # `value` is similar to data received from the database so we
-        # can use `_deserialize_from_mongo` to finish the deserialization
-        return self._deserialize_from_mongo(value)
+        return self.reference_cls(self.document_cls, value)
 
     def _serialize_to_mongo(self, obj):
         return obj.pk
 
     def _deserialize_from_mongo(self, value):
-        # When this method is called from `_deserialize`, `value` can be
-        # already deserialized, in such a case do nothing.
-        if isinstance(value, self.reference_cls):
-            return value
         return self.reference_cls(self.document_cls, value)
 
     def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
@@ -338,6 +332,13 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         # Avoid importing multiple times
         from .document import DocumentImplementation
         self._document_implementation_cls = DocumentImplementation
+
+    def _document_cls(self, class_name):
+        try:
+            return self.instance.retrieve_document(class_name)
+        except NotRegisteredDocumentError:
+            raise ValidationError(_('Unknown document `{document}`.').format(
+                document=class_name))
 
     def _serialize(self, value, attr, obj):
         if value is None:
@@ -363,10 +364,8 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
                 _id = ObjectId(value['id'])
             except ValueError:
                 raise ValidationError(_("Invalid `id` field."))
-            return self._deserialize_from_mongo({
-                '_cls': value['cls'],
-                '_id': _id
-            })
+            document_cls = self._document_cls(value['cls'])
+            return self.reference_cls(document_cls, _id)
         else:
             raise ValidationError(_("Invalid value for generic reference field."))
 
@@ -374,15 +373,7 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
 
     def _deserialize_from_mongo(self, value):
-        # When this method is called from `_deserialize`, `value` can be
-        # already deserialized, in such a case do nothing.
-        if isinstance(value, self.reference_cls):
-            return value
-        try:
-            document_cls = self.instance.retrieve_document(value['_cls'])
-        except NotRegisteredDocumentError:
-            raise ValidationError(_('Unknown document `{document}`.').format(
-                document=value['_cls']))
+        document_cls = self._document_cls(value['_cls'])
         return self.reference_cls(document_cls, value['_id'])
 
     def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
@@ -441,8 +432,10 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         embedded_document_cls = self.embedded_document_cls
         if isinstance(value, embedded_document_cls):
             return value
+        if not isinstance(value, dict):
+            raise ValidationError({'_schema': ['Invalid input type.']})
         # Handle inheritance deserialization here using `cls` field as hint
-        if embedded_document_cls.opts.offspring and isinstance(value, dict) and 'cls' in value:
+        if embedded_document_cls.opts.offspring and 'cls' in value:
             to_use_cls_name = value.pop('cls')
             if not any(o for o in embedded_document_cls.opts.offspring
                        if o.__name__ == to_use_cls_name):
@@ -455,20 +448,12 @@ class EmbeddedField(BaseField, ma_fields.Nested):
                 raise ValidationError(str(e))
             return to_use_cls(**value)
         else:
-            # `Nested._deserialize` calls schema.load without partial=True
-            data, errors = self.schema.load(value, partial=True)
-            if errors:
-                raise ValidationError(errors, data=data)
-            return self._deserialize_from_mongo(data)
+            return embedded_document_cls(**value)
 
     def _serialize_to_mongo(self, obj):
         return obj.to_mongo()
 
     def _deserialize_from_mongo(self, value):
-        # When this method is called from `_deserialize`, `value` can be
-        # already deserialized, in such a case do nothing.
-        if isinstance(value, self.embedded_document_cls):
-            return value
         return self.embedded_document_cls.build_from_mongo(value)
 
     def _validate_missing(self, value):
