@@ -2,10 +2,18 @@
 History
 =======
 
+2.0.1 (2019-03-25)
+------------------
+
+Bug fixes:
+
+* Fix deserialization of ``EmbeddedDocument`` containing fields overriding
+  ``_deserialize_from_mongo`` (see #186).
+
 2.0.0 (2019-03-18)
 ------------------
 
-Features :
+Features:
 
 * *Backwards-incompatible*: ``missing`` attribute is no longer used in umongo
   fields, only ``default`` is used. ``marshmallow_missing`` and
@@ -29,13 +37,13 @@ Features :
   between object and database representation (see #172 and #175).
 * Add ``DateField`` (see #178).
 
-Bug fixes :
+Bug fixes:
 
 * Fix passing a default value to a ``DictField``/``ListField`` as a raw Python
   ``dict``/``list`` (see #78).
 * The ``default`` parameter of a Field is deserialized and validated (see #174).
 
-Other changes :
+Other changes:
 
 * Support Python 3.7 (see #181).
 * *Backwards-incompatible*: Drop Python 3.4 support (see #176) and only use
