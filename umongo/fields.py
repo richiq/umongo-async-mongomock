@@ -248,9 +248,7 @@ class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
             ret = self._set_tz_awareness(value)
         else:
             ret = super()._deserialize(value, attr, data)
-        # MongoDB stores datetimes with a millisecond precision.
-        # Don't keep more precision in the object than in the database.
-        return ret.replace(microsecond=round(ret.microsecond, -3))
+        return _round_to_millisecond(ret)
 
     def _deserialize_from_mongo(self, value):
         return self._set_tz_awareness(value)

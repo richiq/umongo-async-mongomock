@@ -243,6 +243,11 @@ class TestFields(BaseTest):
         s = MySchema()
         data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 30, 30, 123456)})
         assert data['a'].microsecond == 123000
+        data, _ = s.load({'a': dt.datetime(2016, 8, 6, 12, 59, 59, 999876)})
+        assert data['a'].hour == 13
+        assert data['a'].minute == 0
+        assert data['a'].second == 0
+        assert data['a'].microsecond == 0
 
     def test_date(self):
 
