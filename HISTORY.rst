@@ -2,13 +2,21 @@
 History
 =======
 
+2.0.3 (2019-04-10)
+------------------
+
+Bug fixes:
+
+* Fix millisecond overflow when milliseconds round to 1s in
+  ``StrictDateTimeField`` (see #189).
+
 2.0.2 (2019-04-10)
 ------------------
 
 Bug fixes:
 
 * Fix millisecond overflow when milliseconds round to 1s in ``DateTimeField``
-  (see #189).
+  and ``LocalDateTimeField`` (see #189).
 
 2.0.1 (2019-03-25)
 ------------------
