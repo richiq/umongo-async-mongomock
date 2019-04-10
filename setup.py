@@ -22,7 +22,7 @@ requirements = [
 
 setup(
     name='umongo',
-    version='2.0.2',
+    version='2.0.3',
     description="sync/async MongoDB ODM, yes.",
     long_description=readme + '\n\n' + history,
     author="Emmanuel Leblond",
