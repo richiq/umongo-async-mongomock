@@ -269,7 +269,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
 
     @classmethod
-    async def count(cls, filter=None, *, with_limit_and_skip=False, **kwargs):
+    async def count_documents(cls, filter=None, *, with_limit_and_skip=False, **kwargs):
         """
         Return a count of the documents in a collection.
         """

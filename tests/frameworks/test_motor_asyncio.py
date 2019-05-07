@@ -115,17 +115,17 @@ class TestMotorAsyncio(BaseDBTest):
             with pytest.raises(exceptions.NotCreatedError):
                 await john.remove()
             await john.commit()
-            assert (await Student.count()) == 1
+            assert (await Student.count_documents()) == 1
             ret = await john.remove()
             assert isinstance(ret, DeleteResult)
             assert not john.is_created
-            assert (await Student.count()) == 0
+            assert (await Student.count_documents()) == 0
             with pytest.raises(exceptions.NotCreatedError):
                 await john.remove()
             # Can re-commit the document in database
             await john.commit()
             assert john.is_created
-            assert (await Student.count()) == 1
+            assert (await Student.count_documents()) == 1
             # Test conditional delete
             with pytest.raises(exceptions.DeleteError):
                 await john.remove(conditions={'name': 'Bad Name'})
@@ -172,8 +172,8 @@ class TestMotorAsyncio(BaseDBTest):
                 count_with_limit_and_skip = await cursor.count(with_limit_and_skip=True)
                 assert count_with_limit_and_skip == 4
             else:
-                assert (await Student.count()) == 10
-                assert (await Student.count(limit=5, skip=6)) == 4
+                assert (await Student.count_documents()) == 10
+                assert (await Student.count_documents(limit=5, skip=6)) == 4
 
             # Make sure returned documents are wrapped
             names = []
@@ -741,10 +741,10 @@ class TestMotorAsyncio(BaseDBTest):
             await InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
             await InheritanceSearchChild2(pf=2, c2f=2).commit()
 
-            assert (await InheritanceSearchParent.count()) == 4
-            assert (await InheritanceSearchChild1.count()) == 2
-            assert (await InheritanceSearchChild1Child.count()) == 1
-            assert (await InheritanceSearchChild2.count()) == 1
+            assert (await InheritanceSearchParent.count_documents()) == 4
+            assert (await InheritanceSearchChild1.count_documents()) == 2
+            assert (await InheritanceSearchChild1Child.count_documents()) == 1
+            assert (await InheritanceSearchChild2.count_documents()) == 1
 
             res = await InheritanceSearchParent.find_one({'sc1f': 1})
             assert isinstance(res, InheritanceSearchChild1Child)
@@ -814,13 +814,13 @@ class TestMotorAsyncio(BaseDBTest):
                 ]
             ).commit()
 
-            res = await Book.count({'title': 'The Hobbit'})
+            res = await Book.count_documents({'title': 'The Hobbit'})
             assert res == 1
-            res = await Book.count({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
+            res = await Book.count_documents({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
             assert res == 2
-            res = await Book.count({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
+            res = await Book.count_documents({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
             assert res == 1
-            res = await Book.count({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
+            res = await Book.count_documents({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
             assert res == 1
 
         loop.run_until_complete(do_test())
