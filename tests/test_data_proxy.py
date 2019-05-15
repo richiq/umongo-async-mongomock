@@ -73,10 +73,13 @@ class TestDataProxy(BaseTest):
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
         assert d.get_modified_fields() == []
+        assert d.get_modified_fields_by_mongo_name() == []
         d.load({'a': 1, 'b': 2})
         assert list(sorted(d.get_modified_fields())) == ['a', 'b']
+        assert list(sorted(d.get_modified_fields_by_mongo_name())) == ['a', 'in_mongo_b']
         d.from_mongo({'a': 1, 'in_mongo_b': 2})
         assert d.get_modified_fields() == []
+        assert d.get_modified_fields_by_mongo_name() == []
         assert d.to_mongo() == {'a': 1, 'in_mongo_b': 2}
         assert d.to_mongo(update=True) is None
         d.set('a', 3)
@@ -84,6 +87,7 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': {'in_mongo_b': ''}}
         d.clear_modified()
         assert d.get_modified_fields() == []
+        assert d.get_modified_fields_by_mongo_name() == []
         assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
 
