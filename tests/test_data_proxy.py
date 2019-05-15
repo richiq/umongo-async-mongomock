@@ -126,6 +126,13 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo() == {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}
         assert d.to_mongo(update=True) == {'$set': {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}}
         d.clear_modified()
+        del d._data['a'][0]
+        del d._data['in_mongo_b'][0]
+        assert list(sorted(d.get_modified_fields())) == ['a', 'b']
+        assert list(sorted(d.get_modified_fields_by_mongo_name())) == ['a', 'in_mongo_b']
+        assert d.to_mongo() == {'a': [1], 'in_mongo_b': [2, 2]}
+        assert d.to_mongo(update=True) == {'$set': {'a': [1], 'in_mongo_b': [2, 2]}}
+        d.clear_modified()
         d._data['a'].clear()
         d._data['in_mongo_b'].clear()
         assert list(sorted(d.get_modified_fields())) == ['a', 'b']

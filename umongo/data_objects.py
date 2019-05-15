@@ -21,6 +21,10 @@ class List(BaseDataObject, list):
         super().__setitem__(key, obj)
         self.set_modified()
 
+    def __delitem__(self, key):
+        super().__delitem__(key)
+        self.set_modified()
+
     def append(self, obj):
         obj = self.container_field.deserialize(obj)
         ret = super().append(obj)
