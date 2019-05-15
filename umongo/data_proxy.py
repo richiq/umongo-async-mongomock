@@ -170,17 +170,16 @@ class BaseDataProxy:
         return NotImplemented
 
     def get_modified_fields_by_mongo_name(self):
-        modified_fields = self.get_modified_fields()
-        return [self._fields[name].attribute or name for name in modified_fields]
+        return {self._fields[name].attribute or name for name in self.get_modified_fields()}
 
     def get_modified_fields(self):
-        modified = []
+        modified = set()
         for name, field in self._fields.items():
             value_name = field.attribute or name
             value = self._data[value_name]
             if value_name in self._modified_data or (
                     isinstance(value, BaseDataObject) and value.is_modified()):
-                modified.append(name)
+                modified.add(name)
         return modified
 
     def clear_modified(self):
