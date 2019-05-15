@@ -71,6 +71,7 @@ class List(BaseDataObject, list):
         if len(self) and isinstance(self[0], BaseDataObject):
             # Recursive handling needed
             return any(obj.is_modified() for obj in self)
+        return False
 
     def clear_modified(self):
         self._modified = False
