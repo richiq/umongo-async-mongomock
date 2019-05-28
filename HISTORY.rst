@@ -2,6 +2,17 @@
 History
 =======
 
+2.0.4 (2019-05-28)
+------------------
+
+Bug fixes:
+
+* Include modified ``BaseDataObject`` in ``BaseDataProxy.get_modified_fields``
+  and ``BaseDataProxy.get_modified_fields_by_mongo_name`` (see #195).
+* Always return a boolean in ``List.is_modified`` (see #195).
+* ``List``: call ``set_modified`` when deleting an element using the ``del``
+  builtin (see #195).
+
 2.0.3 (2019-04-10)
 ------------------
 
