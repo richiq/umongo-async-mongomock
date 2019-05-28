@@ -45,16 +45,14 @@ class BaseDataProxy:
         mongo_data = {}
         set_data = {}
         unset_data = []
-        for name, field in self._fields.items():
+        for name in self.get_modified_fields():
+            field = self._fields[name]
             name = field.attribute or name
-            v = self._data[name]
-            if name in self._modified_data or (
-                    isinstance(v, BaseDataObject) and v.is_modified()):
-                v = field.serialize_to_mongo(v)
-                if v is missing:
-                    unset_data.append(name)
-                else:
-                    set_data[name] = v
+            v = field.serialize_to_mongo(self._data[name])
+            if v is missing:
+                unset_data.append(name)
+            else:
+                set_data[name] = v
         if set_data:
             mongo_data['$set'] = set_data
         if unset_data:
@@ -172,14 +170,16 @@ class BaseDataProxy:
         return NotImplemented
 
     def get_modified_fields_by_mongo_name(self):
-        return self._modified_data
+        return {self._fields[name].attribute or name for name in self.get_modified_fields()}
 
     def get_modified_fields(self):
-        modified = []
+        modified = set()
         for name, field in self._fields.items():
             value_name = field.attribute or name
-            if value_name in self._modified_data:
-                modified.append(name)
+            value = self._data[value_name]
+            if value_name in self._modified_data or (
+                    isinstance(value, BaseDataObject) and value.is_modified()):
+                modified.add(name)
         return modified
 
     def clear_modified(self):

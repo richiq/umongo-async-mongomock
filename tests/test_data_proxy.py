@@ -72,22 +72,75 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
-        assert d.get_modified_fields() == []
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
         d.load({'a': 1, 'b': 2})
-        assert list(sorted(d.get_modified_fields())) == ['a', 'b']
+        assert d.get_modified_fields() == {'a', 'b'}
+        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         d.from_mongo({'a': 1, 'in_mongo_b': 2})
-        assert d.get_modified_fields() == []
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo() == {'a': 1, 'in_mongo_b': 2}
         assert d.to_mongo(update=True) is None
         d.set('a', 3)
         d.delete('b')
         assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': {'in_mongo_b': ''}}
         d.clear_modified()
-        assert d.get_modified_fields() == []
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
 
-    def test_complexe_field_clear_modified(self):
+    def test_list_field_modify(self):
+
+        class MySchema(EmbeddedSchema):
+            a = fields.ListField(fields.IntField())
+            b = fields.ListField(fields.IntField(), attribute='in_mongo_b')
+
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
+        d.load({'a': [1], 'b': [2, 2]})
+        assert d.get_modified_fields() == {'a', 'b'}
+        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
+        d.from_mongo({'a': [1], 'in_mongo_b': [2, 2]})
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
+        assert d.to_mongo() == {'a': [1], 'in_mongo_b': [2, 2]}
+        assert d.to_mongo(update=True) is None
+        d.set('a', [3, 3, 3])
+        d.delete('b')
+        assert d.to_mongo(update=True) == {'$set': {'a': [3, 3, 3]}, '$unset': {'in_mongo_b': ''}}
+        d.clear_modified()
+        assert d.get_modified_fields() == set()
+        assert d.get_modified_fields_by_mongo_name() == set()
+        assert d.to_mongo() == {'a': [3, 3, 3]}
+        assert d.to_mongo(update=True) is None
+        d.clear_modified()
+        d.load({'a': [1], 'b': [2, 2]})
+        d._data['a'].append(1)
+        d._data['in_mongo_b'].append(2)
+        assert d.get_modified_fields() == {'a', 'b'}
+        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
+        assert d.to_mongo() == {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}
+        assert d.to_mongo(update=True) == {'$set': {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}}
+        d.clear_modified()
+        del d._data['a'][0]
+        del d._data['in_mongo_b'][0]
+        assert d.get_modified_fields() == {'a', 'b'}
+        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
+        assert d.to_mongo() == {'a': [1], 'in_mongo_b': [2, 2]}
+        assert d.to_mongo(update=True) == {'$set': {'a': [1], 'in_mongo_b': [2, 2]}}
+        d.clear_modified()
+        d._data['a'].clear()
+        d._data['in_mongo_b'].clear()
+        assert d.get_modified_fields() == {'a', 'b'}
+        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
+        assert d.to_mongo() == {'a': [], 'in_mongo_b': []}
+        assert d.to_mongo(update=True) == {'$set': {'a': [], 'in_mongo_b': []}}
+
+    def test_complex_field_clear_modified(self):
 
         @self.instance.register
         class MyEmbedded(EmbeddedDocument):
