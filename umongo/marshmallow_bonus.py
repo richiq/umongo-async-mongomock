@@ -149,6 +149,9 @@ class Reference(ObjectId):
             return str(value)
         else:
             # In OO world, value is a :class:`umongo.data_object.Reference`
+            # or an ObjectId before being loaded into a Document
+            if isinstance(value, bson.ObjectId):
+                return str(value)
             return str(value.pk)
 
 
@@ -169,6 +172,9 @@ class GenericReference(ma_fields.Field):
             return {'id': str(value['_id']), 'cls': value['_cls']}
         else:
             # In OO world, value is a :class:`umongo.data_object.Reference`
+            # or a dict before being loaded into a Document
+            if isinstance(value, dict):
+                return {'id': str(value['id']), 'cls': value['cls']}
             return {'id': str(value.pk), 'cls': value.document_cls.__name__}
 
     def _deserialize(self, value, attr, data):

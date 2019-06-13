@@ -432,9 +432,15 @@ class TestMarshmallow(BaseTest):
         # schema to OO world
         ma_schema_cls = Doc.schema.as_marshmallow_schema()
         ma_schema = ma_schema_cls()
+        # Dump uMongo object
         ret = ma_schema.dump(doc)
         assert not ret.errors
         assert ret.data == serialized
+        # Dump OO data (not uMongo object) to ensure bonus fields round-trip
+        ret = ma_schema.dump(oo_data)
+        assert not ret.errors
+        assert ret.data == serialized
+        # Load serialized data
         ret = ma_schema.load(serialized)
         assert not ret.errors
         assert ret.data == oo_data
