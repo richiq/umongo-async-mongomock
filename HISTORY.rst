@@ -2,6 +2,13 @@
 History
 =======
 
+2.0.5 (2019-06-13)
+------------------
+
+Bug fixes:
+
+* Ensure ``Reference`` and ``GenericReference`` fields round-trip (see #200).
+
 2.0.4 (2019-05-28)
 ------------------
 
