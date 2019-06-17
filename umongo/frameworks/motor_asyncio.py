@@ -48,19 +48,8 @@ class WrappedCursor(AsyncIOMotorCursor):
         return self.raw_cursor.each(wrapped_callback)
 
     def to_list(self, length, callback=None):
-        if MOTOR_VERSION < (2, 0):
-            raw_future = self.raw_cursor.to_list(length, callback=callback)
-        else:
-            raw_future = self.raw_cursor.to_list(length)
-
-            def callback_wrapper(future):
-                error = None
-                try:
-                    result = future.result()
-                except Exception as exc:
-                    error = exc
-                callback(result, error)
-            raw_future.add_done_callback(callback_wrapper)
+        kwargs = {"callback": callback} if callback else {}
+        raw_future = self.raw_cursor.to_list(length, **kwargs)
         cooked_future = asyncio.Future()
         builder = self.document_cls.build_from_mongo
 

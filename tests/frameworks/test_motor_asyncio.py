@@ -175,6 +175,11 @@ class TestMotorAsyncio(BaseDBTest):
                 assert (await Student.count_documents()) == 10
                 assert (await Student.count_documents(limit=5, skip=6)) == 4
 
+            # to_list with callback should fail
+            error = NotImplementedError if MOTOR_VERSION < (2, 0, 0) else TypeError
+            with pytest.raises(error):
+                await cursor.to_list(length=100, callback=lambda r, e: r if r else e)
+
             # Make sure returned documents are wrapped
             names = []
             for elem in (await cursor.to_list(length=100)):
