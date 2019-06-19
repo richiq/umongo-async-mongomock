@@ -1,6 +1,7 @@
 import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
+from motor import version_tuple as MOTOR_VERSION
 from pymongo.errors import DuplicateKeyError
 from inspect import iscoroutine
 
@@ -47,7 +48,8 @@ class WrappedCursor(AsyncIOMotorCursor):
         return self.raw_cursor.each(wrapped_callback)
 
     def to_list(self, length, callback=None):
-        raw_future = self.raw_cursor.to_list(length, callback=callback)
+        kwargs = {"callback": callback} if callback else {}
+        raw_future = self.raw_cursor.to_list(length, **kwargs)
         cooked_future = asyncio.Future()
         builder = self.document_cls.build_from_mongo
 
@@ -254,6 +256,18 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         filter = cook_find_filter(cls, filter)
         return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
+
+    @classmethod
+    async def count_documents(cls, filter=None, *, with_limit_and_skip=False, **kwargs):
+        """
+        Return a count of the documents in a collection.
+        """
+        filter = cook_find_filter(cls, filter or {})
+        if MOTOR_VERSION < (2, 0):
+            count = await cls.find(filter, **kwargs).count(with_limit_and_skip)
+            return count
+        count = await cls.collection.count_documents(filter, **kwargs)
+        return count
 
     @classmethod
     async def ensure_indexes(cls):

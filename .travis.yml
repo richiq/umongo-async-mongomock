@@ -29,10 +29,10 @@ jobs:
 
     - { python: '3.7', env: TOXENV=lint }
     - { python: '3.5', env: TOXENV=py35-pymongo }
-    - { python: '3.5', env: TOXENV=py35-motor }
+    - { python: '3.5', env: TOXENV=py35-motor1 }
     - { python: '3.5', env: TOXENV=py35-txmongo }
     - { python: '3.7', env: TOXENV=py37-pymongo }
-    - { python: '3.7', env: TOXENV=py37-motor }
+    - { python: '3.7', env: TOXENV=py37-motor2 }
     - { python: '3.7', env: TOXENV=py37-txmongo }
 
     - stage: PyPI Release

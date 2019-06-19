@@ -8,6 +8,7 @@ from bson import ObjectId
 # Check if the required dependancies are met to run this driver's tests
 try:
     from motor.motor_asyncio import AsyncIOMotorClient
+    from motor import version_tuple as MOTOR_VERSION
 except ImportError as e:
     dep_error = str(e)
 else:
@@ -114,17 +115,17 @@ class TestMotorAsyncio(BaseDBTest):
             with pytest.raises(exceptions.NotCreatedError):
                 await john.remove()
             await john.commit()
-            assert (await Student.find().count()) == 1
+            assert (await Student.count_documents()) == 1
             ret = await john.remove()
             assert isinstance(ret, DeleteResult)
             assert not john.is_created
-            assert (await Student.find().count()) == 0
+            assert (await Student.count_documents()) == 0
             with pytest.raises(exceptions.NotCreatedError):
                 await john.remove()
             # Can re-commit the document in database
             await john.commit()
             assert john.is_created
-            assert (await Student.find().count()) == 1
+            assert (await Student.count_documents()) == 1
             # Test conditional delete
             with pytest.raises(exceptions.DeleteError):
                 await john.remove(conditions={'name': 'Bad Name'})
@@ -163,10 +164,21 @@ class TestMotorAsyncio(BaseDBTest):
             for i in range(10):
                 await Student(name='student-%s' % i).commit()
             cursor = Student.find(limit=5, skip=6)
-            count = await cursor.count()
-            assert count == 10
-            count_with_limit_and_skip = await cursor.count(with_limit_and_skip=True)
-            assert count_with_limit_and_skip == 4
+            if MOTOR_VERSION < (2, 0):
+                # this test doesn't make as much sense in motor>2.0, since the cursor no
+                # longer supports a count() method
+                count = await cursor.count()
+                assert count == 10
+                count_with_limit_and_skip = await cursor.count(with_limit_and_skip=True)
+                assert count_with_limit_and_skip == 4
+            else:
+                assert (await Student.count_documents()) == 10
+                assert (await Student.count_documents(limit=5, skip=6)) == 4
+
+            # to_list with callback should fail
+            error = NotImplementedError if MOTOR_VERSION < (2, 0, 0) else TypeError
+            with pytest.raises(error):
+                await cursor.to_list(length=100, callback=lambda r, e: r if r else e)
 
             # Make sure returned documents are wrapped
             names = []
@@ -734,10 +746,10 @@ class TestMotorAsyncio(BaseDBTest):
             await InheritanceSearchChild1Child(pf=1, sc1f=1).commit()
             await InheritanceSearchChild2(pf=2, c2f=2).commit()
 
-            assert (await InheritanceSearchParent.find().count()) == 4
-            assert (await InheritanceSearchChild1.find().count()) == 2
-            assert (await InheritanceSearchChild1Child.find().count()) == 1
-            assert (await InheritanceSearchChild2.find().count()) == 1
+            assert (await InheritanceSearchParent.count_documents()) == 4
+            assert (await InheritanceSearchChild1.count_documents()) == 2
+            assert (await InheritanceSearchChild1Child.count_documents()) == 1
+            assert (await InheritanceSearchChild2.count_documents()) == 1
 
             res = await InheritanceSearchParent.find_one({'sc1f': 1})
             assert isinstance(res, InheritanceSearchChild1Child)
@@ -807,13 +819,13 @@ class TestMotorAsyncio(BaseDBTest):
                 ]
             ).commit()
 
-            res = await Book.find({'title': 'The Hobbit'}).count()
+            res = await Book.count_documents({'title': 'The Hobbit'})
             assert res == 1
-            res = await Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}}).count()
+            res = await Book.count_documents({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
             assert res == 2
-            res = await Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]}).count()
+            res = await Book.count_documents({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
             assert res == 1
-            res = await Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}}).count()
+            res = await Book.count_documents({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
             assert res == 1
 
         loop.run_until_complete(do_test())
