@@ -6,11 +6,14 @@ Development Lead
 ----------------
 
 * Emmanuel Leblond `@touilleMan <https://github.com/touilleMan>`_
+* Jérôme Lafréchoux `@lafrech <https://github.com/lafrech>`_
+* Walter Scheper `@wfscheper <https://github.com/wfscheper>`_
 
 Contributors
 ------------
 
-* Jérôme Lafréchoux `@lafrech <https://github.com/lafrech>`_
-* Imblc `@imbolc <https://github.com/imbolc>`_
+* Imbolc `@imbolc <https://github.com/imbolc>`_
 * `@patlach42 <https://github.com/patlach42>`_
 * Serj Shevchenko `@serjshevchenko <https://github.com/serjshevchenko>`_
+* Élysson MR `@elyssonmr <https://github.com/elyssonmr>`_
+* Mandar Upadhye `@mandarup<https://github.com/mandarup>`_
