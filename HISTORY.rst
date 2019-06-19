@@ -2,6 +2,18 @@
 History
 =======
 
+2.1.0 (2019-06-19)
+------------------
+
+Features:
+
+* Add support for motor 2.+ by adding a ``count_documents`` class method to the
+  ``MotorAsyncIODocument`` class. ``count_documents`` attempts to transparently
+  use the correct motor call signature depending on which version of the
+  driver is installed. Note that the behavior of the cursor object returned by
+  ``MotorAsyncIODocument.find`` strictly adheres to the interface provided by
+  the underlying driver.
+
 2.0.5 (2019-06-13)
 ------------------
 
