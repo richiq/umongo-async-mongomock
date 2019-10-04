@@ -458,6 +458,24 @@ class TestMarshmallow(BaseTest):
         ret = ma_mongo_schema.load({"gen_ref": {'_cls': 'Doc', '_id': "57c1a71113adf27ab96b2c4f"}})
         assert ret.errors == {'gen_ref': ['Generic reference must have `id` and `cls` fields.']}
 
+    def test_marshmallow_bonus_objectid_field(self):
+
+        class DocSchema(marshmallow.Schema):
+            id = ma_bonus_fields.ObjectId()
+
+            class Meta:
+                strict = True
+
+        schema = DocSchema()
+
+        assert schema.load({"id": "57c1a71113adf27ab96b2c4f"}).data == {
+            "id": ObjectId("57c1a71113adf27ab96b2c4f")}
+
+        for invalid_id in ("lol", [1, 2], {"1", 2}):
+            with pytest.raises(marshmallow.ValidationError) as exc:
+                schema.load({"id": invalid_id})
+            assert exc.value.messages == {"id": ["Invalid ObjectId."]}
+
     def test_marshmallow_schema_helpers(self):
 
         class CheckUnknownSchema(marshmallow.Schema):
