@@ -2,6 +2,14 @@
 History
 =======
 
+2.1.1 (2019-10-04)
+------------------
+
+Bug fixes:
+
+* Fix ``ObjectId`` bonus field: catch ``TypeError`` when deserializing
+  (see #207).
+
 2.1.0 (2019-06-19)
 ------------------
 
