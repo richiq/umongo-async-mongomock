@@ -2,6 +2,13 @@
 History
 =======
 
+2.2.0 (unreleased)
+------------------
+
+Other changes:
+
+* Support Python 3.8 (see #210).
+
 2.1.1 (2019-10-04)
 ------------------
 
