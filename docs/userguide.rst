@@ -229,10 +229,10 @@ You can also access the collection used by the document at any time
 Multi-driver support
 ====================
 
-Remember the ``@insance.register`` ? That's now it kicks in !
+Remember the ``@instance.register`` ? That's now it kicks in !
 
 The idea behind μMongo is to allow the same document definition to be used
-with diferent mongoDB drivers.
+with different mongoDB drivers.
 
 To achieve that the user only define document templates. Templates which
 will be implemented when registered by an instance:
