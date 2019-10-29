@@ -16,4 +16,5 @@ Contributors
 * `@patlach42 <https://github.com/patlach42>`_
 * Serj Shevchenko `@serjshevchenko <https://github.com/serjshevchenko>`_
 * Élysson MR `@elyssonmr <https://github.com/elyssonmr>`_
-* Mandar Upadhye `@mandarup<https://github.com/mandarup>`_
+* Mandar Upadhye `@mandarup <https://github.com/mandarup>`_
+* Pavel Kulyov `@pkulev <https://github.com/pkulev>`_
