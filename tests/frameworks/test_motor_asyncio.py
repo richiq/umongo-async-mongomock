@@ -229,6 +229,12 @@ class TestMotorAsyncio(BaseDBTest):
             cursor2_student = cursor2.next_object()
             assert cursor_student == cursor2_student
 
+            # Filter + projection
+            cursor = Student.find({'name': 'student-0'}, ['name'])
+            students = list(await cursor.to_list(length=100))
+            assert len(students) == 1
+            assert students[0].name == 'student-0'
+
         loop.run_until_complete(do_test())
 
     def test_classroom(self, loop, classroom_model):
@@ -762,6 +768,9 @@ class TestMotorAsyncio(BaseDBTest):
             await isc.commit()
             res = await InheritanceSearchChild1.find_one(isc.id)
             assert res == isc
+
+            res = await InheritanceSearchChild1.find_one(isc.id, ['c1f'])
+            assert res.c1f == 2
 
         loop.run_until_complete(do_test())
 

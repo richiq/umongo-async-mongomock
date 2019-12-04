@@ -168,6 +168,11 @@ class TestTxMongo(BaseDBTest):
             assert isinstance(elem, Student)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+        # Filter + projection
+        results = yield Student.find({'name': 'student-0'}, ['name'])
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert results[0].name == 'student-0'
 
     @pytest_inlineCallbacks
     def test_find_with_cursor(self, classroom_model):
@@ -184,7 +189,11 @@ class TestTxMongo(BaseDBTest):
         for elem in batch1:
             assert isinstance(elem, Student)
             names.append(elem.name)
+        # Filter + projection
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
+        batch1, cursor1 = yield Student.find({'name': 'student-0'}, ['name'], cursor=True)
+        assert len(batch1) == 1
+        assert batch1[0].name == 'student-0'
 
     @pytest_inlineCallbacks
     def test_classroom(self, classroom_model):
@@ -698,6 +707,9 @@ class TestTxMongo(BaseDBTest):
         yield isc.commit()
         res = yield InheritanceSearchChild1.find_one(isc.id)
         assert res == isc
+
+        res = yield InheritanceSearchChild1.find_one(isc.id, ['c1f'])
+        assert res.c1f == 2
 
     @pytest_inlineCallbacks
     def test_search(self, instance):
