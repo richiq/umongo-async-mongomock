@@ -190,7 +190,7 @@ class PyMongoDocument(DocumentImplementation):
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = cls.collection.find_one(*args, filter=filter, **kwargs)
+        ret = cls.collection.find_one(filter, *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -203,7 +203,7 @@ class PyMongoDocument(DocumentImplementation):
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        raw_cursor = cls.collection.find(*args, filter=filter, **kwargs)
+        raw_cursor = cls.collection.find(filter, *args, **kwargs)
         return cls.cursor_cls(cls, raw_cursor)
 
     @classmethod

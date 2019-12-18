@@ -154,7 +154,7 @@ class TxMongoDocument(DocumentImplementation):
         """
         # In txmongo, `spec` is for filtering and `filter` is for sorting
         spec = cook_find_filter(cls, spec)
-        ret = yield cls.collection.find_one(*args, spec=spec, **kwargs)
+        ret = yield cls.collection.find_one(spec, *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -169,7 +169,7 @@ class TxMongoDocument(DocumentImplementation):
         """
         # In txmongo, `spec` is for filtering and `filter` is for sorting
         spec = cook_find_filter(cls, spec)
-        raw_cursor_or_list = yield cls.collection.find(*args, spec=spec, **kwargs)
+        raw_cursor_or_list = yield cls.collection.find(spec, *args, **kwargs)
         if isinstance(raw_cursor_or_list, tuple):
 
             def wrap_raw_results(result):

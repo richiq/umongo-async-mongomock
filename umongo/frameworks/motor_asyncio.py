@@ -242,7 +242,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = await cls.collection.find_one(*args, filter=filter, **kwargs)
+        ret = await cls.collection.find_one(filter, *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -255,7 +255,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
+        return WrappedCursor(cls, cls.collection.find(filter, *args, **kwargs))
 
     @classmethod
     async def count_documents(cls, filter=None, *, with_limit_and_skip=False, **kwargs):

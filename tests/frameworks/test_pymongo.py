@@ -149,6 +149,12 @@ class TestPymongo(BaseDBTest):
         names = (elem.name for elem in cursor[2:5])
         assert sorted(names) == ['student-%s' % i for i in range(2, 5)]
 
+        # Filter + projection
+        cursor = Student.find({'name': 'student-0'}, ['name'])
+        students = list(cursor)
+        assert len(students) == 1
+        assert students[0].name == 'student-0'
+
     def test_classroom(self, classroom_model):
         student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
         student.commit()
@@ -597,6 +603,9 @@ class TestPymongo(BaseDBTest):
         isc.commit()
         res = InheritanceSearchChild1.find_one(isc.id)
         assert res == isc
+
+        res = InheritanceSearchChild1.find_one(isc.id, ['c1f'])
+        assert res.c1f == 2
 
     def test_search(self, instance):
 

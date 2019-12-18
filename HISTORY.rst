@@ -5,6 +5,11 @@ History
 2.2.0 (unreleased)
 ------------------
 
+Bug fixes:
+
+* Fix ``find``/``find_one``: pass ``filter`` as first positional argument
+  (see #215).
+
 Other changes:
 
 * Support Python 3.8 (see #210).
