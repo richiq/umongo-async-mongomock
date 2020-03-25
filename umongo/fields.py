@@ -205,6 +205,12 @@ class AwareDateTimeField(BaseField, ma_fields.AwareDateTime):
             ret = super()._deserialize(value, attr, data, **kwargs)
         return _round_to_millisecond(ret)
 
+    def _deserialize_from_mongo(self, value):
+        value = value.replace(tzinfo=dt.timezone.utc)
+        if self.default_timezone is not None:
+            value = value.astimezone(self.default_timezone)
+        return value
+
 
 # class TimeField(BaseField, ma_fields.Time):
 #     pass

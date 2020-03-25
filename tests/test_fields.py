@@ -170,6 +170,38 @@ class TestFields(BaseTest):
         assert data['a'].second == 0
         assert data['a'].microsecond == 0
 
+    def test_aware_datetime(self):
+
+        timezone_2h = dt.timezone(dt.timedelta(hours=2), "test")
+
+        class MySchema(EmbeddedSchema):
+            a = fields.AwareDateTimeField()
+            b = fields.AwareDateTimeField(default_timezone=timezone_2h)
+
+        s = MySchema()
+        data = s.load({'a': dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)})
+        assert data['a'] == dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)
+        data = s.load({'a': "2016-08-06T00:00:00Z"})
+        assert data['a'] == dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)
+        with pytest.raises(ValidationError):
+            data = s.load({'a': "2016-08-06T00:00:00"})
+        with pytest.raises(ValidationError):
+            s.load({'a': "dummy"})
+
+        # Test AwareDateTimeField deserializes as aware
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        d.from_mongo(
+            {
+                'a': dt.datetime(2016, 8, 6),
+                'b': dt.datetime(2016, 8, 6),
+            }
+        )
+        assert d.get('a') == dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)
+        assert d.get('a').tzinfo == dt.timezone.utc
+        assert d.get('b') == dt.datetime(2016, 8, 6, tzinfo=dt.timezone.utc)
+        assert d.get('b').tzinfo == timezone_2h
+
     def test_date(self):
 
         class MySchema(EmbeddedSchema):
