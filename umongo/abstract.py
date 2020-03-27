@@ -178,18 +178,12 @@ class BaseField(ma_fields.Field):
                 'instance={self.instance})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def serialize(self, attr, obj, accessor=None):
-        return super().serialize(attr, obj, accessor=accessor)
-
     def _validate_missing(self, value):
         # Overwrite marshmallow.Field._validate_missing given it also checks
         # for missing required fields (this is done at commit time in umongo
         # using `DataProxy.required_validate`).
         if value is None and getattr(self, 'allow_none', False) is False:
             self.fail('null')
-
-    def deserialize(self, value, attr=None, data=None, **kwargs):
-        return super().deserialize(value, attr=attr, data=data, **kwargs)
 
     def serialize_to_mongo(self, obj):
         if obj is None and getattr(self, 'allow_none', False) is True:
