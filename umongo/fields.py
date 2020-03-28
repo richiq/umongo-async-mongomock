@@ -53,6 +53,19 @@ __all__ = (
 
 class DictField(BaseField, ma_fields.Dict):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def cast_value_or_callable(value):
+            if value is missing:
+                return missing
+            if callable(value):
+                return lambda: Dict(value())
+            return Dict(value)
+
+        self.default = cast_value_or_callable(self.default)
+        self.missing = cast_value_or_callable(self.missing)
+
     def _deserialize(self, value, attr, data, **kwargs):
         value = super()._deserialize(value, attr, data, **kwargs)
         return Dict(value)
@@ -74,6 +87,19 @@ class DictField(BaseField, ma_fields.Dict):
 
 
 class ListField(BaseField, ma_fields.List):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def cast_value_or_callable(inner, value):
+            if value is missing:
+                return missing
+            if callable(value):
+                return lambda: List(inner, value())
+            return List(inner, value)
+
+        self.default = cast_value_or_callable(self.inner, self.default)
+        self.missing = cast_value_or_callable(self.inner, self.missing)
 
     def _deserialize(self, value, attr, data, **kwargs):
         ret = List(self.inner, super()._deserialize(value, attr, data, **kwargs))
