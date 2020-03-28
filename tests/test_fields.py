@@ -275,33 +275,6 @@ class TestFields(BaseTest):
         d4.from_mongo({'in_mongo_dict': None})
         assert d4.get('dict') is None
 
-    def test_dict_default(self):
-
-        class MySchema(Schema):
-            # Passing a mutable as default is a bad idea in real life
-            d_dict = fields.DictField(default={'1': 1, '2': 2})
-            c_dict = fields.DictField(default=lambda: {'1': 1, '2': 2})
-
-        MyDataProxy = data_proxy_factory('My', MySchema())
-        d = MyDataProxy()
-        assert d.to_mongo() == {
-            'd_dict': {'1': 1, '2': 2},
-            'c_dict': {'1': 1, '2': 2},
-        }
-        assert isinstance(d.get('d_dict'), Dict)
-        assert isinstance(d.get('c_dict'), Dict)
-        d.get('d_dict')['3'] = 3
-        d.get('c_dict')['3'] = 3
-
-        d.delete('d_dict')
-        d.delete('c_dict')
-        assert d.to_mongo() == {
-            'd_dict': {'1': 1, '2': 2},
-            'c_dict': {'1': 1, '2': 2},
-        }
-        assert isinstance(d.get('d_dict'), Dict)
-        assert isinstance(d.get('c_dict'), Dict)
-
     def test_list(self):
 
         class MySchema(Schema):
@@ -386,36 +359,6 @@ class TestFields(BaseTest):
         assert repr(
             d3._data.get('in_mongo_list')
         ) == '<object umongo.data_objects.List([])>'
-
-    def test_list_default(self):
-
-        class MySchema(Schema):
-            d_list = fields.ListField(fields.IntField(), default=(1, 2, 3))
-            c_list = fields.ListField(fields.IntField(), default=lambda: (1, 2, 3))
-
-        MyDataProxy = data_proxy_factory('My', MySchema())
-        d = MyDataProxy()
-        assert d.to_mongo() == {
-            'd_list': [1, 2, 3],
-            'c_list': [1, 2, 3],
-        }
-        assert isinstance(d.get('d_list'), List)
-        assert isinstance(d.get('c_list'), List)
-        d.get('d_list').append(4)
-        d.get('c_list').append(4)
-        assert d.to_mongo(update=True) == {
-            '$set': {'c_list': [1, 2, 3, 4], 'd_list': [1, 2, 3, 4]}}
-
-        d.delete('d_list')
-        d.delete('c_list')
-        assert d.to_mongo() == {
-            'd_list': [1, 2, 3],
-            'c_list': [1, 2, 3],
-        }
-        assert isinstance(d.get('d_list'), List)
-        assert isinstance(d.get('c_list'), List)
-        assert d.to_mongo(update=True) == {
-            '$set': {'c_list': [1, 2, 3], 'd_list': [1, 2, 3]}}
 
     def test_complex_list(self):
 

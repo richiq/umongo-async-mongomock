@@ -419,16 +419,6 @@ class TestDocument(BaseTest):
         assert jane.id != john.id
         assert jane.name == 'John Doe'
 
-    def test_validate_default(self):
-        """Check default values are validated"""
-
-        with pytest.raises(exceptions.ValidationError):
-            class User(Document):
-                name = fields.StringField(
-                    default='Eric',
-                    validate=validate.OneOf(('Stan', 'Kyle', 'Kenny'))
-                )
-
 
 class TestConfig(BaseTest):
 

@@ -141,18 +141,6 @@ class BaseField(ma_fields.Field):
         self.marshmallow_missing = ma_missing if ma_missing is not None else self.default
         self.marshmallow_default = ma_default if ma_default is not None else self.default
 
-        # Deserialize default/missing values
-        # This ensures they are validated and get the proper types and constraints
-        for attr in ('default', 'missing'):
-            default = getattr(self, attr)
-            if default is not missing:
-                if callable(default):
-                    def call_default():
-                        return self.deserialize(default())
-                    setattr(self, attr, call_default)
-                else:
-                    setattr(self, attr, self.deserialize(default))
-
         # Overwrite error_messages to handle i18n translation
         self.error_messages = I18nErrorDict(self.error_messages)
         # `io_validate` will be run after `io_validate_resursive`
