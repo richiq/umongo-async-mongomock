@@ -268,13 +268,13 @@ def _reference_io_validate(field, value):
 
 @inlineCallbacks
 def _list_io_validate(field, value):
-    validators = field.container.io_validate
+    validators = field.inner.io_validate
     if not validators or not value:
         return
     errors = {}
     defers = []
     for i, e in enumerate(value):
-        defer = _run_validators(validators, field.container, e)
+        defer = _run_validators(validators, field.inner, e)
         defer.addErrback(_errback_factory(errors, i))
         defers.append(defer)
     yield DeferredList(defers)

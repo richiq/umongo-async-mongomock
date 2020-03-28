@@ -23,9 +23,10 @@ __all__ = (
     'IntegerField',
     'DecimalField',
     'BooleanField',
-    'FormattedStringField',
     'FloatField',
     'DateTimeField',
+    'NaiveDateTimeField',
+    'AwareDateTimeField',
     # 'TimeField',
     'DateField',
     # 'TimeDeltaField',
@@ -36,7 +37,6 @@ __all__ = (
     'BoolField',
     'IntField',
     'ConstantField',
-    'StrictDateTimeField',
     'ObjectIdField',
     'ReferenceField',
     'GenericReferenceField',
@@ -53,8 +53,8 @@ __all__ = (
 
 class DictField(BaseField, ma_fields.Dict):
 
-    def _deserialize(self, value, attr, data):
-        value = super()._deserialize(value, attr, data)
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
         return Dict(value)
 
     def _serialize_to_mongo(self, obj):
@@ -75,44 +75,47 @@ class DictField(BaseField, ma_fields.Dict):
 
 class ListField(BaseField, ma_fields.List):
 
-    def _deserialize(self, value, attr, data):
-        return List(self.container, super()._deserialize(value, attr, data))
+    def _deserialize(self, value, attr, data, **kwargs):
+        ret = List(self.inner, super()._deserialize(value, attr, data, **kwargs))
+        return ret
 
     def _serialize_to_mongo(self, obj):
         if obj is None:
             return missing
-        return [self.container.serialize_to_mongo(each) for each in obj]
+        return [self.inner.serialize_to_mongo(each) for each in obj]
 
     def _deserialize_from_mongo(self, value):
         if value:
-            return List(self.container, [self.container.deserialize_from_mongo(each)
-                                         for each in value])
-        return List(self.container)
+            return List(
+                self.inner,
+                [self.inner.deserialize_from_mongo(each) for each in value]
+            )
+        return List(self.inner)
 
     def map_to_field(self, mongo_path, path, func):
         """Apply a function to every field in the schema
         """
-        func(mongo_path, path, self.container)
-        if hasattr(self.container, 'map_to_field'):
-            self.container.map_to_field(mongo_path, path, func)
+        func(mongo_path, path, self.inner)
+        if hasattr(self.inner, 'map_to_field'):
+            self.inner.map_to_field(mongo_path, path, func)
 
     def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
         # Overwrite default `as_marshmallow_field` to handle deserialization
         # difference (`_id` vs `id`)
         field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
-            container_params = params.pop('params', None)
+            inner_params = params.pop('params', None)
             field_kwargs.update(params)
         else:
-            container_params = None
-        container_ma_schema = self.container.as_marshmallow_field(
-            mongo_world=mongo_world, params=container_params, **kwargs)
-        return ma_fields.List(container_ma_schema, **field_kwargs)
+            inner_params = None
+        inner_ma_schema = self.inner.as_marshmallow_field(
+            mongo_world=mongo_world, params=inner_params, **kwargs)
+        return ma_fields.List(inner_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
-        if value is missing or not hasattr(self.container, '_required_validate'):
+        if value is missing or not hasattr(self.inner, '_required_validate'):
             return
-        required_validate = self.container._required_validate
+        required_validate = self.inner._required_validate
         errors = {}
         for i, sub_value in enumerate(value):
             try:
@@ -157,10 +160,6 @@ class BooleanField(BaseField, ma_fields.Boolean):
     pass
 
 
-class FormattedStringField(BaseField, ma_fields.FormattedString):
-    pass
-
-
 class FloatField(BaseField, ma_fields.Float):
     pass
 
@@ -179,22 +178,38 @@ def _round_to_millisecond(datetime):
 
 class DateTimeField(BaseField, ma_fields.DateTime):
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if isinstance(value, dt.datetime):
             ret = value
         else:
-            ret = super()._deserialize(value, attr, data)
+            ret = super()._deserialize(value, attr, data, **kwargs)
         return _round_to_millisecond(ret)
 
 
-class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
+class NaiveDateTimeField(BaseField, ma_fields.NaiveDateTime):
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if isinstance(value, dt.datetime):
             ret = value
         else:
-            ret = super()._deserialize(value, attr, data)
+            ret = super()._deserialize(value, attr, data, **kwargs)
         return _round_to_millisecond(ret)
+
+
+class AwareDateTimeField(BaseField, ma_fields.AwareDateTime):
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        if isinstance(value, dt.datetime):
+            ret = value
+        else:
+            ret = super()._deserialize(value, attr, data, **kwargs)
+        return _round_to_millisecond(ret)
+
+    def _deserialize_from_mongo(self, value):
+        value = value.replace(tzinfo=dt.timezone.utc)
+        if self.default_timezone is not None:
+            value = value.astimezone(self.default_timezone)
+        return value
 
 
 # class TimeField(BaseField, ma_fields.Time):
@@ -204,7 +219,7 @@ class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
 class DateField(BaseField, ma_fields.Date):
     """This field converts a date to a datetime to store it as a BSON Date"""
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if isinstance(value, dt.date):
             return value
         return super()._deserialize(value, attr, data)
@@ -237,21 +252,6 @@ URLField = UrlField
 StrField = StringField
 BoolField = BooleanField
 IntField = IntegerField
-
-
-# Bonus: new fields !
-
-class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
-
-    def _deserialize(self, value, attr, data):
-        if isinstance(value, dt.datetime):
-            ret = self._set_tz_awareness(value)
-        else:
-            ret = super()._deserialize(value, attr, data)
-        return _round_to_millisecond(ret)
-
-    def _deserialize_from_mongo(self, value):
-        return self._set_tz_awareness(value)
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
@@ -289,7 +289,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             self._document_cls = self.instance.retrieve_document(self.document)
         return self._document_cls
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return None
         if isinstance(value, DBRef):
@@ -312,7 +312,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         elif isinstance(value, self._document_implementation_cls):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
-        value = super()._deserialize(value, attr, data)
+        value = super()._deserialize(value, attr, data, **kwargs)
         return self.reference_cls(self.document_cls, value)
 
     def _serialize_to_mongo(self, obj):
@@ -351,7 +351,7 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
             return None
         return {'id': str(value.pk), 'cls': value.document_cls.__name__}
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return None
         if isinstance(value, Reference):
@@ -434,7 +434,7 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             return None
         return value.dump()
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         embedded_document_cls = self.embedded_document_cls
         if isinstance(value, embedded_document_cls):
             return value

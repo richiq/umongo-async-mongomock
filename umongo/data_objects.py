@@ -9,15 +9,15 @@ __all__ = ('List', 'Dict', 'Reference')
 
 class List(BaseDataObject, list):
 
-    __slots__ = ('container_field', '_modified')
+    __slots__ = ('inner_field', '_modified')
 
-    def __init__(self, container_field, *args, **kwargs):
+    def __init__(self, inner_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._modified = False
-        self.container_field = container_field
+        self.inner_field = inner_field
 
     def __setitem__(self, key, obj):
-        obj = self.container_field.deserialize(obj)
+        obj = self.inner_field.deserialize(obj)
         super().__setitem__(key, obj)
         self.set_modified()
 
@@ -26,7 +26,7 @@ class List(BaseDataObject, list):
         self.set_modified()
 
     def append(self, obj):
-        obj = self.container_field.deserialize(obj)
+        obj = self.inner_field.deserialize(obj)
         ret = super().append(obj)
         self.set_modified()
         return ret
@@ -57,7 +57,7 @@ class List(BaseDataObject, list):
         return ret
 
     def extend(self, iterable):
-        iterable = [self.container_field.deserialize(obj) for obj in iterable]
+        iterable = [self.inner_field.deserialize(obj) for obj in iterable]
         ret = super().extend(iterable)
         self.set_modified()
         return ret

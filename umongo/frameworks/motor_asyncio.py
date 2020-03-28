@@ -328,10 +328,10 @@ async def _reference_io_validate(field, value):
 
 
 async def _list_io_validate(field, value):
-    validators = field.container.io_validate
+    validators = field.inner.io_validate
     if not validators or not value:
         return
-    tasks = [_run_validators(validators, field.container, e) for e in value]
+    tasks = [_run_validators(validators, field.inner, e) for e in value]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     errors = {}
     for i, res in enumerate(results):

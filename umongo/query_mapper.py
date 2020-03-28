@@ -13,8 +13,8 @@ def map_entry(entry, fields):
         - valid field with an attribute name to use instead
     """
     field = fields.get(entry)
-    if isinstance(field, ListField) and isinstance(field.container, EmbeddedField):
-        fields = field.container.embedded_document_cls.schema.fields
+    if isinstance(field, ListField) and isinstance(field.inner, EmbeddedField):
+        fields = field.inner.embedded_document_cls.schema.fields
     elif isinstance(field, EmbeddedField):
         fields = field.embedded_document_cls.schema.fields
     return getattr(field, 'attribute', None) or entry, fields

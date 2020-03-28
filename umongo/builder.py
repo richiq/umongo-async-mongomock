@@ -44,7 +44,7 @@ def _collect_schema_attrs(nmspc):
     schema_non_fields = {}
     doc_nmspc = {}
     for key, item in nmspc.items():
-        if hasattr(item, '__marshmallow_tags__'):
+        if hasattr(item, '__marshmallow_hook__'):
             # Decorated special functions (e.g. `post_load`)
             schema_non_fields[key] = item
         elif isinstance(item, Field):
@@ -199,7 +199,7 @@ class BaseBuilder:
         # Recursively set the `instance` attribute to all fields
         field.instance = self.instance
         if isinstance(field, ListField):
-            self._patch_field(field.container)
+            self._patch_field(field.inner)
         if isinstance(field, EmbeddedField):
             for embedded_field in field.schema.fields.values():
                 self._patch_field(embedded_field)
