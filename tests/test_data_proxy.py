@@ -462,16 +462,23 @@ class TestDataProxy(BaseTest):
 
         class MySchema(EmbeddedSchema):
             # EmbeddedField need instance to retrieve implementation
-            listed = fields.ListField(fields.EmbeddedField(MyEmbedded, instance=self.instance))
-            embedded = fields.EmbeddedField(MyEmbedded, instance=self.instance)
             required = fields.IntField(required=True)
+            embedded = fields.EmbeddedField(MyEmbedded, instance=self.instance)
+            listed = fields.ListField(fields.EmbeddedField(MyEmbedded, instance=self.instance))
+            dicted = fields.DictField(
+                values=fields.EmbeddedField(MyEmbedded, instance=self.instance))
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
 
-        d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{'required': 42}]})
+        d.load({
+            'required': 42,
+            'embedded': {'required': 42},
+            'listed': [{'required': 42}],
+            'dicted': {'a': {'required': 42}}
+        })
         d.required_validate()
-        # Empty list should not trigger required if embedded field has required fields
+        # Empty list/dict should not trigger required if embedded field has required fields
         d.load({'embedded': {'required': 42}, 'required': 42})
         d.required_validate()
 
@@ -489,10 +496,13 @@ class TestDataProxy(BaseTest):
             d.required_validate()
         assert exc.value.messages == {'embedded': {'required': ['Missing data for required field.']}}
 
-        d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{}]})
+        d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{}], 'dicted': {'a': {}}})
         with pytest.raises(ValidationError) as exc:
             d.required_validate()
-        assert exc.value.messages == {'listed': {0: {'required': ['Missing data for required field.']}}}
+        assert exc.value.messages == {
+            'listed': {0: {'required': ['Missing data for required field.']}},
+            'dicted': {'a': {'value': {'required': ['Missing data for required field.']}}},
+        }
 
     def test_unkown_field_in_db(self):
         class MySchema(EmbeddedSchema):

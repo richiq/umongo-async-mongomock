@@ -81,8 +81,10 @@ class TestMarshmallow(BaseTest):
         @self.instance.register
         class Bag(Document):
             id = fields.EmbeddedField(Accessory, attribute='_id', required=True)
-            names = fields.ListField(fields.StringField())
+            names = fields.ListField(fields.StringField)
             content = fields.ListField(fields.EmbeddedField(Accessory))
+            relations = fields.DictField(fields.StringField, fields.StringField)
+            inventory = fields.DictField(fields.StringField, fields.EmbeddedField(Accessory))
 
         ma_field = Bag.schema.fields['id'].as_marshmallow_field(params={
             'load_only': True,
@@ -100,6 +102,17 @@ class TestMarshmallow(BaseTest):
         assert ma_field.load_only is True
         assert ma_field.inner.required is True
         assert ma_field.inner.nested._declared_fields['value'].dump_only
+        ma_field = Bag.schema.fields['relations'].as_marshmallow_field(params={
+            'load_only': True,
+            'params': {'dump_only': True}})
+        assert ma_field.load_only is True
+        assert ma_field.value_field.dump_only is True
+        ma_field = Bag.schema.fields['inventory'].as_marshmallow_field(params={
+            'load_only': True,
+            'params': {'required': True, 'params': {'value': {'dump_only': True}}}})
+        assert ma_field.load_only is True
+        assert ma_field.value_field.required is True
+        assert ma_field.value_field.nested._declared_fields['value'].dump_only
 
     def test_pass_meta_attributes(self):
         @self.instance.register
@@ -111,6 +124,7 @@ class TestMarshmallow(BaseTest):
         class Bag(Document):
             id = fields.EmbeddedField(Accessory, attribute='_id', required=True)
             content = fields.ListField(fields.EmbeddedField(Accessory))
+            inventory = fields.DictField(fields.StringField, fields.EmbeddedField(Accessory))
 
         ma_schema = Bag.schema.as_marshmallow_schema(meta={'exclude': ('id',)})
         assert ma_schema.Meta.exclude == ('id',)
@@ -120,6 +134,9 @@ class TestMarshmallow(BaseTest):
         ma_schema = Bag.schema.as_marshmallow_schema(params={
             'content': {'params': {'meta': {'exclude': ('value',)}}}})
         assert ma_schema._declared_fields['content'].inner.nested.Meta.exclude == ('value',)
+        ma_schema = Bag.schema.as_marshmallow_schema(params={
+            'inventory': {'params': {'meta': {'exclude': ('value',)}}}})
+        assert ma_schema._declared_fields['inventory'].value_field.nested.Meta.exclude == ('value',)
 
         class DumpOnlyIdSchema(marshmallow.Schema):
             class Meta:

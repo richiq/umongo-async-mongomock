@@ -8,7 +8,7 @@ from bson import ObjectId, DBRef, Decimal128
 from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory
-from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference
+from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference, validate
 from umongo.data_objects import List, Dict
 
 from .common import BaseTest
@@ -45,8 +45,10 @@ class TestRequired(BaseTest):
             embedded = fields.EmbeddedField(MyEmbedded)
             embedded_required = fields.EmbeddedField(MyEmbedded, required=True)
             embedded_list = fields.ListField(fields.EmbeddedField(MyEmbedded))
+            embedded_dict = fields.DictField(values=fields.EmbeddedField(MyEmbedded))
 
-        MyDoc(embedded={}, embedded_list=[{}])  # Required fields are check on commit
+        # Required fields are checked on commit
+        MyDoc(embedded={}, embedded_list=[{}], embedded_dict={'a': {}})
         # Don't check required fields in not required missing embedded
         MyDoc(embedded_required={'required_field': 42}).required_validate()
         # Now trigger required fails
@@ -57,17 +59,32 @@ class TestRequired(BaseTest):
             MyDoc(embedded_required={'optional_field': 1}).required_validate()
         assert exc.value.messages == {'embedded_required': {'required_field': ['Missing data for required field.']}}
         with pytest.raises(ValidationError) as exc:
-            MyDoc(embedded={'optional_field': 1},
-                  embedded_required={'required_field': 42}).required_validate()
+            MyDoc(
+                embedded={'optional_field': 1},
+                embedded_required={'required_field': 42}
+            ).required_validate()
         assert exc.value.messages == {'embedded': {'required_field': ['Missing data for required field.']}}
         with pytest.raises(ValidationError) as exc:
-            MyDoc(embedded={'required_field': 1}, embedded_list=[{'optional_field': 1}], embedded_required={'required_field': 42}).required_validate()
-        assert exc.value.messages == {'embedded_list': {0: {'required_field': ['Missing data for required field.']}}}
+            MyDoc(
+                embedded={'required_field': 1},
+                embedded_list=[{'optional_field': 1}],
+                embedded_dict={'a': {'optional_field': 1}},
+                embedded_required={'required_field': 42}
+            ).required_validate()
+        assert exc.value.messages == {
+            'embedded_list': {0: {'required_field': ['Missing data for required field.']}},
+            'embedded_dict': {'a': {'value': {'required_field': ['Missing data for required field.']}}},
+        }
 
         # Check valid constructions
-        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[], embedded_required={'required_field': 42})
+        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[], embedded_dict={}, embedded_required={'required_field': 42})
         doc.required_validate()
-        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[{'required_field': 1}], embedded_required={'required_field': 42})
+        doc = MyDoc(
+            embedded={'required_field': 1},
+            embedded_list=[{'required_field': 1}],
+            embedded_dict={'a': {'required_field': 1}},
+            embedded_required={'required_field': 42},
+        )
         doc.required_validate()
 
 
@@ -227,6 +244,13 @@ class TestFields(BaseTest):
 
         class MySchema(Schema):
             dict = fields.DictField(attribute='in_mongo_dict', allow_none=True)
+            kdict = fields.DictField(keys=fields.StringField(validate=validate.Length(0, 1)))
+            vdict = fields.DictField(values=fields.IntField(validate=validate.Range(max=5)))
+            kvdict = fields.DictField(
+                keys=fields.StringField(validate=validate.Length(0, 1)),
+                values=fields.IntField(validate=validate.Range(max=5))
+            )
+            dtdict = fields.DictField(values=fields.DateTimeField)
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -237,18 +261,22 @@ class TestFields(BaseTest):
         assert d.get('dict') == {'a': 1, 'b': {'c': True}}
         assert d.to_mongo() == {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}
 
-        # Must manually set_dirty to take the changes into account
         dict_ = d.get('dict')
         dict_['a'] = 1
-        assert d.to_mongo(update=True) is None
-        dict_.set_modified()
         assert d.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}}
         dict_.clear_modified()
         assert d.to_mongo(update=True) is None
 
+        # Test repr readability
+        repr_d = repr(d.get('dict'))
+        assert any(
+            repr_d == "<object umongo.data_objects.Dict({})>".format(d)
+            for d in ("{'a': 1, 'b': {'c': True}}", "{'b': {'c': True}, 'a': 1}")
+        )
+
         d2 = MyDataProxy({'dict': {'a': 1, 'b': {'c': True}}})
         assert d2.to_mongo() == {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}
-
+        assert d2.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'a': 1, 'b': {'c': True}}}}
         d2.set('dict', {})
         assert d2.to_mongo() == {'in_mongo_dict': {}}
         assert d2.to_mongo(update=True) == {'$set': {'in_mongo_dict': {}}}
@@ -264,23 +292,38 @@ class TestFields(BaseTest):
 
         d3.from_mongo({'in_mongo_dict': {}})
         assert d3._data.get('in_mongo_dict') == {}
-        d3.get('dict')['field'] = 'value'
-        assert d3.to_mongo(update=True) is None
-        d3.get('dict').set_modified()
-        assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'field': 'value'}}}
-        assert d3.to_mongo() == {'in_mongo_dict': {'field': 'value'}}
+        d3.get('dict')['c'] = 3
+        assert d3.to_mongo(update=True) == {'$set': {'in_mongo_dict': {'c': 3}}}
+        assert d3.to_mongo() == {'in_mongo_dict': {'c': 3}}
 
         d4 = MyDataProxy({'dict': None})
         assert d4.to_mongo() == {'in_mongo_dict': None}
         d4.from_mongo({'in_mongo_dict': None})
         assert d4.get('dict') is None
 
+        with pytest.raises(ValidationError) as exc:
+            MyDataProxy({'kdict': {'ab': 1}})
+        assert exc.value.messages == {'kdict': {'ab': {'key': ['Length must be between 0 and 1.']}}}
+        with pytest.raises(ValidationError) as exc:
+            MyDataProxy({'vdict': {'a': 9}})
+        assert exc.value.messages == {
+            'vdict': {'a': {'value': ['Must be less than or equal to 5.']}}}
+        with pytest.raises(ValidationError) as exc:
+            MyDataProxy({'kvdict': {'ab': 9}})
+        assert exc.value.messages == {'kvdict': {'ab': {
+            'key': ['Length must be between 0 and 1.'],
+            'value': ['Must be less than or equal to 5.']
+        }}}
+
+        d5 = MyDataProxy({'dtdict': {'a': "2016-08-06T00:00:00"}})
+        assert d5.to_mongo() == {'dtdict': {'a': dt.datetime(2016, 8, 6)}}
+
     def test_dict_default(self):
 
         class MySchema(Schema):
             # Passing a mutable as default is a bad idea in real life
-            d_dict = fields.DictField(default={'1': 1, '2': 2})
-            c_dict = fields.DictField(default=lambda: {'1': 1, '2': 2})
+            d_dict = fields.DictField(values=fields.IntField, default={'1': 1, '2': 2})
+            c_dict = fields.DictField(values=fields.IntField, default=lambda: {'1': 1, '2': 2})
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
@@ -301,6 +344,67 @@ class TestFields(BaseTest):
         }
         assert isinstance(d.get('d_dict'), Dict)
         assert isinstance(d.get('c_dict'), Dict)
+
+    def test_complex_dict(self):
+
+        @self.instance.register
+        class MyEmbeddedDocument(EmbeddedDocument):
+            field = fields.IntField()
+
+        @self.instance.register
+        class ToRefDoc(Document):
+            pass
+
+        @self.instance.register
+        class MyDoc(Document):
+            embeds = fields.DictField(values=fields.EmbeddedField(MyEmbeddedDocument))
+            refs = fields.DictField(values=fields.ReferenceField(ToRefDoc))
+
+        MySchema = MyDoc.Schema
+
+        obj_id1 = ObjectId()
+        obj_id2 = ObjectId()
+        to_ref_doc1 = ToRefDoc.build_from_mongo(data={'_id': obj_id1})
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        d.load({
+            'embeds': {
+                'a': MyEmbeddedDocument(field=1),
+                'b': {'field': 2},
+            },
+            'refs': {
+                '1': to_ref_doc1,
+                '2': Reference(ToRefDoc, obj_id2),
+            }
+        })
+        assert d.to_mongo() == {
+            'embeds': {'a': {'field': 1}, 'b': {'field': 2}},
+            'refs': {'1': obj_id1, '2': obj_id2},
+        }
+        assert isinstance(d.get('embeds'), Dict)
+        assert isinstance(d.get('refs'), Dict)
+        for e in d.get('refs').values():
+            assert isinstance(e, Reference)
+        for e in d.get('embeds').values():
+            assert isinstance(e, MyEmbeddedDocument)
+        # Test dict modification as well
+        refs_dict = d.get('refs')
+        refs_dict.update({'3': to_ref_doc1, '4': Reference(ToRefDoc, obj_id2)})
+        for e in refs_dict.values():
+            assert isinstance(e, Reference)
+        embeds_dict = d.get('embeds')
+        embeds_dict.update({'c': MyEmbeddedDocument(field=3), 'd': {'field': 4}})
+        for e in embeds_dict.values():
+            assert isinstance(e, MyEmbeddedDocument)
+        # Modifying an EmbeddedDocument inside a dict should count a dict modification
+        d.clear_modified()
+        d.get('refs')['1'] = obj_id2
+        assert d.to_mongo(update=True) == {'$set': {'refs': {
+            '1': obj_id2, '2': obj_id2, '3': obj_id1, '4': obj_id2}}}
+        d.clear_modified()
+        d.get('embeds')['b'].field = 42
+        assert d.to_mongo(update=True) == {'$set': {'embeds': {
+            'a': {'field': 1}, 'b': {'field': 42}, 'c': {'field': 3}, 'd': {'field': 4}}}}
 
     def test_list(self):
 
