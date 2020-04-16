@@ -196,9 +196,6 @@ class BaseField(ma_fields.Field):
     def _deserialize_from_mongo(self, value):
         return value
 
-    def translate_query(self, key, query):
-        return {self.attribute or key: query}
-
     def _extract_marshmallow_field_params(self, mongo_world):
         params = {
             attribute: getattr(self, attribute)
