@@ -13,7 +13,7 @@ from ..common import BaseDBTest, TEST_DB, con
 # Check if the required dependencies are met to run this driver's tests
 dep_error = None
 try:
-    import pytest_twisted as _
+    import pytest_twisted
     from txmongo import MongoConnection
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
@@ -31,7 +31,7 @@ except ImportError:
 
     pytest_inlineCallbacks = skip_wrapper
 else:
-    pytest_inlineCallbacks = pytest.inlineCallbacks
+    pytest_inlineCallbacks = pytest_twisted.inlineCallbacks
 
 from umongo import Document, EmbeddedDocument, fields, exceptions, Reference
 
