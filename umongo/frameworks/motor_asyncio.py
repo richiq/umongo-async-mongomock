@@ -1,9 +1,9 @@
+from inspect import iscoroutine
 import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
 from motor import version_tuple as MOTOR_VERSION
 from pymongo.errors import DuplicateKeyError
-from inspect import iscoroutine
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
@@ -176,12 +176,13 @@ class MotorAsyncIODocument(DocumentImplementation):
                         key = tuple(keys)[0]
                         msg = self.schema.fields[key].error_messages['unique']
                         raise ValidationError({key: msg})
-                    else:
-                        fields = self.schema.fields
-                        # Compound index (sort value to make testing easier)
-                        keys = sorted(keys)
-                        raise ValidationError({k: fields[k].error_messages[
-                            'unique_compound'].format(fields=keys) for k in keys})
+                    fields = self.schema.fields
+                    # Compound index (sort value to make testing easier)
+                    keys = sorted(keys)
+                    raise ValidationError({
+                        k: fields[k].error_messages['unique_compound'].format(fields=keys)
+                        for k in keys
+                    })
             # Unknown index, cannot wrap the error so just reraise it
             raise
         self._data.clear_modified()
@@ -232,9 +233,8 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         if validate_all:
             return await _io_validate_data_proxy(self.schema, self._data)
-        else:
-            return await _io_validate_data_proxy(
-                self.schema, self._data, partial=self._data.get_modified_fields())
+        return await _io_validate_data_proxy(
+            self.schema, self._data, partial=self._data.get_modified_fields())
 
     @classmethod
     async def find_one(cls, filter=None, *args, **kwargs):
@@ -276,7 +276,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         for index in cls.opts.indexes:
             kwargs = index.document.copy()
-            keys = [(k, d) for k, d in kwargs.pop('key').items()]
+            keys = kwargs.pop('key').items()
             await cls.collection.create_index(keys, **kwargs)
 
 
@@ -311,8 +311,8 @@ async def _io_validate_data_proxy(schema, data_proxy, partial=None):
             if field.io_validate:
                 tasks.append(_run_validators(field.io_validate, field, value))
                 tasks_field_name.append(name)
-        except ValidationError as ve:
-            errors[name] = ve.messages
+        except ValidationError as exc:
+            errors[name] = exc.messages
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for i, res in enumerate(results):
         if isinstance(res, ValidationError):
@@ -383,8 +383,10 @@ class MotorAsyncIOBuilder(BaseBuilder):
                 validators = list(validators)
             else:
                 validators = [validators]
-            field.io_validate = [v if asyncio.iscoroutinefunction(v) else asyncio.coroutine(v)
-                                 for v in validators]
+            field.io_validate = [
+                v if asyncio.iscoroutinefunction(v) else asyncio.coroutine(v)
+                for v in validators
+            ]
         if isinstance(field, ListField):
             field.io_validate_recursive = _list_io_validate
         if isinstance(field, ReferenceField):

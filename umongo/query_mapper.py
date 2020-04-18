@@ -42,7 +42,6 @@ def map_query(query, fields):
             mapped_entry, entry_fields = map_entry_with_dots(entry, fields)
             mapped_query[mapped_entry] = map_query(entry_query, entry_fields)
         return mapped_query
-    elif isinstance(query, (list, tuple)):
+    if isinstance(query, (list, tuple)):
         return [map_query(x, fields) for x in query]
-    else:
-        return query
+    return query

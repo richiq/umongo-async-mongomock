@@ -6,6 +6,7 @@ from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
 
 # from .registerer import retrieve_document
+from .document import DocumentImplementation
 from .exceptions import NotRegisteredDocumentError
 from .template import get_template
 from .data_objects import Reference, List, Dict
@@ -367,7 +368,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             if value.document_cls != self.document_cls:
                 raise ValidationError(_("`{document}` reference expected.").format(
                     document=self.document_cls.__name__))
-            if type(value) is not self.reference_cls:
+            if not isinstance(value, self.reference_cls):
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
         elif isinstance(value, self.document_cls):
@@ -401,8 +402,6 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
     def __init__(self, *args, reference_cls=Reference, **kwargs):
         super().__init__(*args, **kwargs)
         self.reference_cls = reference_cls
-        # Avoid importing multiple times
-        from .document import DocumentImplementation
         self._document_implementation_cls = DocumentImplementation
 
     def _document_cls(self, class_name):
@@ -421,15 +420,15 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         if value is None:
             return None
         if isinstance(value, Reference):
-            if type(value) is not self.reference_cls:
+            if not isinstance(value, self.reference_cls):
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
-        elif isinstance(value, self._document_implementation_cls):
+        if isinstance(value, self._document_implementation_cls):
             if not value.is_created:
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
             return self.reference_cls(value.__class__, value.pk)
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             if value.keys() != {'cls', 'id'}:
                 raise ValidationError(_("Generic reference must have `id` and `cls` fields."))
             try:
@@ -438,8 +437,7 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
                 raise ValidationError(_("Invalid `id` field."))
             document_cls = self._document_cls(value['cls'])
             return self.reference_cls(document_cls, _id)
-        else:
-            raise ValidationError(_("Invalid value for generic reference field."))
+        raise ValidationError(_("Invalid value for generic reference field."))
 
     def _serialize_to_mongo(self, obj):
         return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
@@ -516,11 +514,10 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             try:
                 to_use_cls = embedded_document_cls.opts.instance.retrieve_embedded_document(
                     to_use_cls_name)
-            except NotRegisteredDocumentError as e:
-                raise ValidationError(str(e))
+            except NotRegisteredDocumentError as exc:
+                raise ValidationError(str(exc))
             return to_use_cls(**value)
-        else:
-            return embedded_document_cls(**value)
+        return embedded_document_cls(**value)
 
     def _serialize_to_mongo(self, obj):
         return obj.to_mongo()
@@ -533,7 +530,7 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         super()._validate_missing(value)
         errors = {}
         if value is missing:
-            def get_sub_value(key):
+            def get_sub_value(_):
                 return missing
         elif isinstance(value, dict):
             # value is a dict for deserialization
@@ -555,8 +552,8 @@ class EmbeddedField(BaseField, ma_fields.Nested):
                 continue
             try:
                 field._validate_missing(sub_value)
-            except ValidationError as ve:
-                errors[name] = ve.messages
+            except ValidationError as exc:
+                errors[name] = exc.messages
         if errors:
             raise ValidationError(errors)
 

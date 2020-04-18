@@ -130,12 +130,11 @@ class PyMongoDocument(DocumentImplementation):
                     if len(keys) == 1:
                         msg = self.schema.fields[keys[0]].error_messages['unique']
                         raise ValidationError({keys[0]: msg})
-                    else:
-                        fields = self.schema.fields
-                        # Compound index (sort value to make testing easier)
-                        keys = sorted(keys)
-                        raise ValidationError({k: fields[k].error_messages[
-                            'unique_compound'].format(fields=keys) for k in keys})
+                    fields = self.schema.fields
+                    # Compound index (sort value to make testing easier)
+                    keys = sorted(keys)
+                    raise ValidationError({k: fields[k].error_messages[
+                        'unique_compound'].format(fields=keys) for k in keys})
             # Unknown index, cannot wrap the error so just reraise it
             raise
         self._data.clear_modified()
@@ -235,8 +234,8 @@ def _run_validators(validators, field, value):
         for validator in validators:
             try:
                 validator(field, value)
-            except ValidationError as ve:
-                errors.extend(ve.messages)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
         if errors:
             raise ValidationError(errors)
 
@@ -255,8 +254,8 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
                 field.io_validate_recursive(field, value)
             if field.io_validate:
                 _run_validators(field.io_validate, field, value)
-        except ValidationError as ve:
-            errors[name] = ve.messages
+        except ValidationError as exc:
+            errors[name] = exc.messages
     if errors:
         raise ValidationError(errors)
 
@@ -270,11 +269,11 @@ def _list_io_validate(field, value):
     validators = field.inner.io_validate
     if not validators:
         return
-    for i, e in enumerate(value):
+    for idx, val in enumerate(value):
         try:
-            _run_validators(validators, field.inner, e)
-        except ValidationError as ev:
-            errors[i] = ev.messages
+            _run_validators(validators, field.inner, val)
+        except ValidationError as exc:
+            errors[idx] = exc.messages
     if errors:
         raise ValidationError(errors)
 

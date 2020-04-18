@@ -78,7 +78,7 @@ class List(BaseDataObject, list):
 
     def clear_modified(self):
         self._modified = False
-        if len(self) and isinstance(self[0], BaseDataObject):
+        if self and isinstance(self[0], BaseDataObject):
             for obj in self:
                 obj.clear_modified()
 
@@ -179,8 +179,8 @@ class Reference:
     def __eq__(self, other):
         if isinstance(other, self.document_cls):
             return other.pk == self.pk
-        elif isinstance(other, Reference):
+        if isinstance(other, Reference):
             return self.pk == other.pk and self.document_cls == other.document_cls
-        elif isinstance(other, DBRef):
+        if isinstance(other, DBRef):
             return self.pk == other.id and self.document_cls.collection.name == other.collection
         return NotImplemented

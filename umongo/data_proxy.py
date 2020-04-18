@@ -19,6 +19,7 @@ class BaseDataProxy:
         self.not_loaded_fields = set()
         # Inside data proxy, data are stored in mongo world representation
         self._modified_data = set()
+        self._data = {}
         self.load(data or {})
 
     @property
@@ -29,16 +30,15 @@ class BaseDataProxy:
     def to_mongo(self, update=False):
         if update:
             return self._to_mongo_update()
-        else:
-            return self._to_mongo()
+        return self._to_mongo()
 
     def _to_mongo(self):
         mongo_data = {}
-        for k, v in self._data.items():
-            field = self._fields_from_mongo_key[k]
-            v = field.serialize_to_mongo(v)
-            if v is not missing:
-                mongo_data[k] = v
+        for key, val in self._data.items():
+            field = self._fields_from_mongo_key[key]
+            val = field.serialize_to_mongo(val)
+            if val is not missing:
+                mongo_data[key] = val
         return mongo_data
 
     def _to_mongo_update(self):
@@ -48,11 +48,11 @@ class BaseDataProxy:
         for name in self.get_modified_fields():
             field = self._fields[name]
             name = field.attribute or name
-            v = field.serialize_to_mongo(self._data[name])
-            if v is missing:
+            val = field.serialize_to_mongo(self._data[name])
+            if val is missing:
                 unset_data.append(name)
             else:
-                set_data[name] = v
+                set_data[name] = val
         if set_data:
             mongo_data['$set'] = set_data
         if unset_data:
@@ -61,14 +61,15 @@ class BaseDataProxy:
 
     def from_mongo(self, data, partial=False):
         self._data = {}
-        for k, v in data.items():
+        for key, val in data.items():
             try:
-                field = self._fields_from_mongo_key[k]
+                field = self._fields_from_mongo_key[key]
             except KeyError:
-                raise UnknownFieldInDBError(
-                    _('{cls}: unknown "{key}" field found in DB.'
-                    .format(key=k, cls=self.__class__.__name__)))
-            self._data[k] = field.deserialize_from_mongo(v)
+                raise UnknownFieldInDBError(_(
+                    '{cls}: unknown "{key}" field found in DB.'
+                    .format(key=key, cls=self.__class__.__name__)
+                ))
+            self._data[key] = field.deserialize_from_mongo(val)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:
@@ -158,7 +159,7 @@ class BaseDataProxy:
     def __eq__(self, other):
         if isinstance(other, dict):
             return self._data == other
-        elif hasattr(other, '_data'):
+        if hasattr(other, '_data'):
             return self._data == other._data
         return NotImplemented
 
@@ -177,14 +178,16 @@ class BaseDataProxy:
 
     def clear_modified(self):
         self._modified_data.clear()
-        for v in self._data.values():
-            if isinstance(v, BaseDataObject):
-                v.clear_modified()
+        for val in self._data.values():
+            if isinstance(val, BaseDataObject):
+                val.clear_modified()
 
     def is_modified(self):
-        return (bool(self._modified_data) or
+        return (
+            bool(self._modified_data) or
             any(isinstance(v, BaseDataObject) and v.is_modified()
-                for v in self._data.values()))
+                for v in self._data.values())
+        )
 
     def _collect_partial_fields(self, loaded_fields, as_mongo_fields=False):
         if as_mongo_fields:
@@ -222,8 +225,9 @@ class BaseDataProxy:
     # Standards iterators providing oo and mongo worlds views
 
     def items(self):
-        return ((key, self._data[field.attribute or key])
-                 for key, field in self._fields.items())
+        return (
+            (key, self._data[field.attribute or key]) for key, field in self._fields.items()
+        )
 
     def items_by_mongo_name(self):
         return self._data.items()
@@ -257,13 +261,13 @@ class BaseNonStrictDataProxy(BaseDataProxy):
 
     def from_mongo(self, data, partial=False):
         self._data = {}
-        for k, v in data.items():
+        for key, val in data.items():
             try:
-                field = self._fields_from_mongo_key[k]
+                field = self._fields_from_mongo_key[key]
             except KeyError:
-                self._additional_data[k] = v
+                self._additional_data[key] = val
             else:
-                self._data[k] = field.deserialize_from_mongo(v)
+                self._data[key] = field.deserialize_from_mongo(val)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:
