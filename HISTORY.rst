@@ -2,12 +2,16 @@
 History
 =======
 
-3.0.0b2 (unreleased)
+3.0.0b2 (2020-04-18)
 --------------------
 
 Features:
 
 * Use fields for keys/values in DictField (see #245).
+
+Bug fixes:
+
+* Fix BaseField.__repr__ (see #247).
 
 3.0.0b1 (2020-03-29)
 --------------------
