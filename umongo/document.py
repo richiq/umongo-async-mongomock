@@ -8,6 +8,7 @@ from .data_proxy import missing
 from .exceptions import (NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .template import Implementation, Template, MetaImplementation
+from .data_objects import Reference
 
 
 __all__ = (
@@ -37,7 +38,6 @@ class DocumentTemplate(Template):
         or `marshmallow.post_dump`) to this class that will be passed
         to the marshmallow schema internally used for this document.
     """
-    pass
 
 
 Document = DocumentTemplate
@@ -76,9 +76,7 @@ class DocumentOpts:
     indexes              yes                    List of custom indexes
     offspring            no                     List of Documents inheriting this one
     ==================== ====================== ===========
-
     """
-
     def __repr__(self):
         return ('<{ClassName}('
                 'instance={self.instance}, '
@@ -148,14 +146,13 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
             self.__module__, self.__class__.__name__, dict(self._data.items()))
 
     def __eq__(self, other):
-        from .data_objects import Reference
         if self.pk is None:
             return self is other
-        elif isinstance(other, self.__class__) and other.pk is not None:
+        if isinstance(other, self.__class__) and other.pk is not None:
             return self.pk == other.pk
-        elif isinstance(other, DBRef):
+        if isinstance(other, DBRef):
             return other.collection == self.collection.name and other.id == self.pk
-        elif isinstance(other, Reference):
+        if isinstance(other, Reference):
             return isinstance(self, other.document_cls) and self.pk == other.pk
         return NotImplemented
 
@@ -316,7 +313,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass
 
     def pre_update(self):
         """
@@ -326,7 +322,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass
 
     def pre_delete(self):
         """
@@ -336,7 +331,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass
 
     def post_insert(self, ret):
         """
@@ -345,7 +339,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass
 
     def post_update(self, ret):
         """
@@ -354,7 +347,6 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass
 
     def post_delete(self, ret):
         """
@@ -363,4 +355,3 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
-        pass

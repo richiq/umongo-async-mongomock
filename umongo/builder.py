@@ -16,8 +16,8 @@ from .fields import ListField, DictField, EmbeddedField
 
 
 def camel_to_snake(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    tmp_str = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', tmp_str).lower()
 
 
 def _is_child(bases):
@@ -72,8 +72,10 @@ def _collect_indexes(meta, schema_nmspc, bases):
 
     # Then get our own custom indexes
     if is_child:
-        custom_indexes = [parse_index(x, base_compound_field='_cls')
-                   for x in getattr(meta, 'indexes', ())]
+        custom_indexes = [
+            parse_index(x, base_compound_field='_cls')
+            for x in getattr(meta, 'indexes', ())
+        ]
     else:
         custom_indexes = [parse_index(x) for x in getattr(meta, 'indexes', ())]
     indexes += custom_indexes

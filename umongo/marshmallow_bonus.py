@@ -35,8 +35,7 @@ def schema_from_umongo_get_attribute(self, obj, attr, default):
     if ret is None and ret is not default and attr in obj.schema.fields:
         raw_ret = obj._data.get(attr)
         return default if raw_ret is missing else raw_ret
-    else:
-        return ret
+    return ret
 
 
 class SchemaFromUmongo(MaSchema):
@@ -84,12 +83,11 @@ class Reference(ObjectId):
         if self.mongo_world:
             # In mongo world, value is a regular ObjectId
             return str(value)
-        else:
-            # In OO world, value is a :class:`umongo.data_object.Reference`
-            # or an ObjectId before being loaded into a Document
-            if isinstance(value, bson.ObjectId):
-                return str(value)
-            return str(value.pk)
+        # In OO world, value is a :class:`umongo.data_object.Reference`
+        # or an ObjectId before being loaded into a Document
+        if isinstance(value, bson.ObjectId):
+            return str(value)
+        return str(value.pk)
 
 
 class GenericReference(ma_fields.Field):
@@ -107,12 +105,11 @@ class GenericReference(ma_fields.Field):
         if self.mongo_world:
             # In mongo world, value a dict of cls and id
             return {'id': str(value['_id']), 'cls': value['_cls']}
-        else:
-            # In OO world, value is a :class:`umongo.data_object.Reference`
-            # or a dict before being loaded into a Document
-            if isinstance(value, dict):
-                return {'id': str(value['id']), 'cls': value['cls']}
-            return {'id': str(value.pk), 'cls': value.document_cls.__name__}
+        # In OO world, value is a :class:`umongo.data_object.Reference`
+        # or a dict before being loaded into a Document
+        if isinstance(value, dict):
+            return {'id': str(value['id']), 'cls': value['cls']}
+        return {'id': str(value.pk), 'cls': value.document_cls.__name__}
 
     def _deserialize(self, value, attr, data, **kwargs):
         if not isinstance(value, dict):
@@ -125,5 +122,4 @@ class GenericReference(ma_fields.Field):
             raise ValidationError(_("Invalid `id` field."))
         if self.mongo_world:
             return {'_cls': value['cls'], '_id': _id}
-        else:
-            return {'cls': value['cls'], 'id': _id}
+        return {'cls': value['cls'], 'id': _id}
