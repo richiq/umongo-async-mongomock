@@ -477,7 +477,6 @@ class TestMotorAsyncio(BaseDBTest):
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = 'simple_index_doc'
                     indexes = ['indexed']
 
             await SimpleIndexDoc.collection.drop_indexes()
@@ -512,7 +511,6 @@ class TestMotorAsyncio(BaseDBTest):
                 no_indexed = fields.IntField()
 
                 class Meta:
-                    collection = 'simple_index_doc'
                     indexes = ['indexed']
 
             await SimpleIndexDoc.collection.drop_indexes()
@@ -546,9 +544,6 @@ class TestMotorAsyncio(BaseDBTest):
                 not_unique = fields.StrField(unique=False)
                 sparse_unique = fields.IntField(unique=True)
                 required_unique = fields.IntField(unique=True, required=True)
-
-                class Meta:
-                    collection = 'unique_index_doc'
 
             await UniqueIndexDoc.collection.drop()
             await UniqueIndexDoc.collection.drop_indexes()
@@ -599,7 +594,6 @@ class TestMotorAsyncio(BaseDBTest):
                 not_unique = fields.StrField()
 
                 class Meta:
-                    collection = 'unique_index_compound_doc'
                     # Must define custom index to do that
                     indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
@@ -660,7 +654,6 @@ class TestMotorAsyncio(BaseDBTest):
                 unique = fields.IntField(unique=True)
 
                 class Meta:
-                    collection = 'unique_index_inheritance_doc'
                     allow_inheritance = True
 
             @instance.register
@@ -727,7 +720,6 @@ class TestMotorAsyncio(BaseDBTest):
                 pf = fields.IntField()
 
                 class Meta:
-                    collection = 'inheritance_search'
                     allow_inheritance = True
 
             @instance.register

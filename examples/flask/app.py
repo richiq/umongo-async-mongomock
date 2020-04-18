@@ -37,7 +37,7 @@ class User(Document):
     password = fields.StrField()  # Don't store it in clear in real life !
 
     class Meta:
-        collection = db.user
+        collection_name = "user"
 
 
 def populate_db():
