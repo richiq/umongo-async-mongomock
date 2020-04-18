@@ -12,7 +12,7 @@ from .embedded_document import (
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
 from .schema import Schema, on_need_add_id_field, add_child_field
 from .indexes import parse_index
-from .fields import ListField, EmbeddedField
+from .fields import ListField, DictField, EmbeddedField
 
 
 def camel_to_snake(name):
@@ -200,7 +200,12 @@ class BaseBuilder:
         field.instance = self.instance
         if isinstance(field, ListField):
             self._patch_field(field.inner)
-        if isinstance(field, EmbeddedField):
+        elif isinstance(field, DictField):
+            if field.key_field:
+                self._patch_field(field.key_field)
+            if field.value_field:
+                self._patch_field(field.value_field)
+        elif isinstance(field, EmbeddedField):
             for embedded_field in field.schema.fields.values():
                 self._patch_field(embedded_field)
 

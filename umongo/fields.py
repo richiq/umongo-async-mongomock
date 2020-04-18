@@ -1,3 +1,4 @@
+import collections
 import datetime as dt
 
 from bson import DBRef, ObjectId, Decimal128
@@ -16,8 +17,6 @@ from .i18n import gettext as _
 __all__ = (
     # 'RawField',
     # 'MappingField',
-    'DictField',
-    'ListField',
     # 'TupleField',
     'StringField',
     'UUIDField',
@@ -38,6 +37,8 @@ __all__ = (
     'StrField',
     'BoolField',
     'IntField',
+    'DictField',
+    'ListField',
     'ConstantField',
     # 'PluckField'
     'ObjectIdField',
@@ -52,102 +53,6 @@ __all__ = (
 
 # class RawField(BaseField, ma_fields.Raw):
 #     pass
-
-
-class DictField(BaseField, ma_fields.Dict):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        def cast_value_or_callable(value):
-            if value is missing:
-                return missing
-            if callable(value):
-                return lambda: Dict(value())
-            return Dict(value)
-
-        self.default = cast_value_or_callable(self.default)
-        self.missing = cast_value_or_callable(self.missing)
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        value = super()._deserialize(value, attr, data, **kwargs)
-        return Dict(value)
-
-    def _serialize_to_mongo(self, obj):
-        if obj is None:
-            return missing
-        return dict(obj)
-
-    def _deserialize_from_mongo(self, value):
-        if value:
-            return Dict(value)
-        return Dict()
-
-
-class ListField(BaseField, ma_fields.List):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        def cast_value_or_callable(inner, value):
-            if value is missing:
-                return missing
-            if callable(value):
-                return lambda: List(inner, value())
-            return List(inner, value)
-
-        self.default = cast_value_or_callable(self.inner, self.default)
-        self.missing = cast_value_or_callable(self.inner, self.missing)
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        ret = List(self.inner, super()._deserialize(value, attr, data, **kwargs))
-        return ret
-
-    def _serialize_to_mongo(self, obj):
-        if obj is None:
-            return missing
-        return [self.inner.serialize_to_mongo(each) for each in obj]
-
-    def _deserialize_from_mongo(self, value):
-        if value:
-            return List(
-                self.inner,
-                [self.inner.deserialize_from_mongo(each) for each in value]
-            )
-        return List(self.inner)
-
-    def map_to_field(self, mongo_path, path, func):
-        """Apply a function to every field in the schema
-        """
-        func(mongo_path, path, self.inner)
-        if hasattr(self.inner, 'map_to_field'):
-            self.inner.map_to_field(mongo_path, path, func)
-
-    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
-        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
-        if params:
-            inner_params = params.pop('params', None)
-            field_kwargs.update(params)
-        else:
-            inner_params = None
-        inner_ma_schema = self.inner.as_marshmallow_field(
-            mongo_world=mongo_world, params=inner_params, **kwargs)
-        return ma_fields.List(inner_ma_schema, **field_kwargs)
-
-    def _required_validate(self, value):
-        if value is missing or not hasattr(self.inner, '_required_validate'):
-            return
-        required_validate = self.inner._required_validate
-        errors = {}
-        for i, sub_value in enumerate(value):
-            try:
-                required_validate(sub_value)
-            except ValidationError as exc:
-                errors[i] = exc.messages
-        if errors:
-            raise ValidationError(errors)
 
 
 class StringField(BaseField, ma_fields.String):
@@ -269,6 +174,143 @@ class EmailField(BaseField, ma_fields.Email):
 
 class ConstantField(BaseField, ma_fields.Constant):
     pass
+
+
+class DictField(BaseField, ma_fields.Dict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def cast_value_or_callable(key_field, value_field, value):
+            if value is missing:
+                return missing
+            if callable(value):
+                return lambda: Dict(key_field, value_field, value())
+            return Dict(key_field, value_field, value)
+
+        self.default = cast_value_or_callable(self.key_field, self.value_field, self.default)
+        self.missing = cast_value_or_callable(self.key_field, self.value_field, self.missing)
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
+        return Dict(self.key_field, self.value_field, value)
+
+    def _serialize_to_mongo(self, obj):
+        if obj is None:
+            return missing
+        return {
+            self.key_field.serialize_to_mongo(k) if self.key_field else k:
+            self.value_field.serialize_to_mongo(v) if self.value_field else v
+            for k, v in obj.items()
+        }
+
+    def _deserialize_from_mongo(self, value):
+        if value:
+            return Dict(
+                self.key_field,
+                self.value_field,
+                {
+                    self.key_field.deserialize_from_mongo(k) if self.key_field else k:
+                    self.value_field.deserialize_from_mongo(v) if self.value_field else v
+                    for k, v in value.items()
+                }
+            )
+        return Dict(self.key_field, self.value_field)
+
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
+        # Overwrite default `as_marshmallow_field` to handle deserialization
+        # difference (`_id` vs `id`)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            inner_params = params.pop('params', None)
+            field_kwargs.update(params)
+        else:
+            inner_params = None
+        if self.value_field:
+            inner_ma_schema = self.value_field.as_marshmallow_field(
+                mongo_world=mongo_world, params=inner_params, **kwargs)
+        else:
+            inner_ma_schema = None
+        return ma_fields.Dict(self.key_field, inner_ma_schema, **field_kwargs)
+
+    def _required_validate(self, value):
+        if value is missing or not hasattr(self.value_field, '_required_validate'):
+            return
+        required_validate = self.value_field._required_validate
+        errors = collections.defaultdict(dict)
+        for key, val in value.items():
+            try:
+                required_validate(val)
+            except ValidationError as exc:
+                errors[key]["value"] = exc.messages
+        if errors:
+            raise ValidationError(errors)
+
+
+class ListField(BaseField, ma_fields.List):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def cast_value_or_callable(inner, value):
+            if value is missing:
+                return missing
+            if callable(value):
+                return lambda: List(inner, value())
+            return List(inner, value)
+
+        self.default = cast_value_or_callable(self.inner, self.default)
+        self.missing = cast_value_or_callable(self.inner, self.missing)
+
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
+        return List(self.inner, value)
+
+    def _serialize_to_mongo(self, obj):
+        if obj is None:
+            return missing
+        return [self.inner.serialize_to_mongo(each) for each in obj]
+
+    def _deserialize_from_mongo(self, value):
+        if value:
+            return List(
+                self.inner,
+                [self.inner.deserialize_from_mongo(each) for each in value]
+            )
+        return List(self.inner)
+
+    def map_to_field(self, mongo_path, path, func):
+        """Apply a function to every field in the schema
+        """
+        func(mongo_path, path, self.inner)
+        if hasattr(self.inner, 'map_to_field'):
+            self.inner.map_to_field(mongo_path, path, func)
+
+    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
+        # Overwrite default `as_marshmallow_field` to handle deserialization
+        # difference (`_id` vs `id`)
+        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
+        if params:
+            inner_params = params.pop('params', None)
+            field_kwargs.update(params)
+        else:
+            inner_params = None
+        inner_ma_schema = self.inner.as_marshmallow_field(
+            mongo_world=mongo_world, params=inner_params, **kwargs)
+        return ma_fields.List(inner_ma_schema, **field_kwargs)
+
+    def _required_validate(self, value):
+        if value is missing or not hasattr(self.inner, '_required_validate'):
+            return
+        required_validate = self.inner._required_validate
+        errors = {}
+        for i, sub_value in enumerate(value):
+            try:
+                required_validate(sub_value)
+            except ValidationError as exc:
+                errors[i] = exc.messages
+        if errors:
+            raise ValidationError(errors)
 
 
 # Aliases
