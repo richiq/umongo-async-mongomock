@@ -2,6 +2,13 @@
 History
 =======
 
+3.0.0b2 (unreleased)
+--------------------
+
+Features:
+
+* Use fields for keys/values in DictField (see #245).
+
 3.0.0b1 (2020-03-29)
 --------------------
 
