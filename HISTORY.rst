@@ -2,6 +2,13 @@
 History
 =======
 
+3.0.0b3 (unreleased)
+--------------------
+
+Other changes:
+
+* *Backwards-incompatible*: Drop Python 3.5 support (see #248).
+
 3.0.0b2 (2020-04-18)
 --------------------
 
