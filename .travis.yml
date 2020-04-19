@@ -1,5 +1,4 @@
 language: python
-dist: xenial
 cache: pip
 
 services:
@@ -28,9 +27,9 @@ jobs:
   include:
 
     - { python: '3.8', env: TOXENV=lint }
-    - { python: '3.5', env: TOXENV=py35-pymongo }
-    - { python: '3.5', env: TOXENV=py35-motor1 }
-    - { python: '3.5', env: TOXENV=py35-txmongo }
+    - { python: '3.6', env: TOXENV=py36-pymongo }
+    - { python: '3.6', env: TOXENV=py36-motor1 }
+    - { python: '3.6', env: TOXENV=py36-txmongo }
     - { python: '3.8', env: TOXENV=py38-pymongo }
     - { python: '3.8', env: TOXENV=py38-motor2 }
     - { python: '3.8', env: TOXENV=py38-txmongo }
