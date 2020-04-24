@@ -8,7 +8,9 @@ from ..builder import BaseBuilder
 from ..document import DocumentImplementation
 from ..data_proxy import missing
 from ..data_objects import Reference
-from ..exceptions import NotCreatedError, UpdateError, DeleteError, ValidationError
+from ..exceptions import (
+    NotCreatedError, UpdateError, DeleteError, ValidationError, NoneReferenceError
+)
 from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
@@ -297,7 +299,7 @@ class TxMongoReference(Reference):
     def fetch(self, no_data=False, force_reload=False):
         if not self._document or force_reload:
             if self.pk is None:
-                raise ReferenceError('Cannot retrieve a None Reference')
+                raise NoneReferenceError('Cannot retrieve a None Reference')
             self._document = yield self.document_cls.find_one(self.pk)
             if not self._document:
                 raise ValidationError(self.error_messages['not_found'].format(
