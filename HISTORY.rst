@@ -5,6 +5,12 @@ History
 3.0.0b3 (unreleased)
 --------------------
 
+Features:
+
+* *Backwards-incompatible*: Replace ``ReferenceError`` with
+  ``NoneReferenceError``. Review the list of exceptions importable from
+  root ``umongo`` module. (see #251)
+
 Other changes:
 
 * *Backwards-incompatible*: Drop Python 3.5 support (see #248).
