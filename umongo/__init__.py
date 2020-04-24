@@ -18,12 +18,11 @@ from .document import (
 from .exceptions import (
     UMongoError,
     ValidationError,
-    NoDBDefinedError,
-    NotRegisteredDocumentError,
-    AlreadyRegisteredDocumentError,
     UpdateError,
+    DeleteError,
     NotCreatedError,
-    FieldNotLoadedError
+    FieldNotLoadedError,
+    UnknownFieldInDBError,
 )
 from . import fields, validate
 from .schema import BaseSchema, Schema, EmbeddedSchema
@@ -55,12 +54,11 @@ __all__ = (
 
     'UMongoError',
     'ValidationError',
-    'NoDBDefinedError',
-    'NotRegisteredDocumentError',
-    'AlreadyRegisteredDocumentError',
     'UpdateError',
+    'DeleteError',
     'NotCreatedError',
     'FieldNotLoadedError',
+    'UnknownFieldInDBError',
 
     'fields',
 
