@@ -46,5 +46,9 @@ class FieldNotLoadedError(UMongoError):
     """Accessing a field not loaded after partial load"""
 
 
+class NoneReferenceError(UMongoError):
+    """Retrieving a None reference"""
+
+
 class UnknownFieldInDBError(UMongoError):
     """Data from database contains unknown field"""

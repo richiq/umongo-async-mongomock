@@ -22,6 +22,7 @@ from .exceptions import (
     DeleteError,
     NotCreatedError,
     FieldNotLoadedError,
+    NoneReferenceError,
     UnknownFieldInDBError,
 )
 from . import fields, validate
@@ -58,6 +59,7 @@ __all__ = (
     'DeleteError',
     'NotCreatedError',
     'FieldNotLoadedError',
+    'NoneReferenceError',
     'UnknownFieldInDBError',
 
     'fields',
