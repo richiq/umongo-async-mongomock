@@ -21,11 +21,8 @@ from .exceptions import (
     NoDBDefinedError,
     NotRegisteredDocumentError,
     AlreadyRegisteredDocumentError,
-    BuilderNotDefinedError,
     UpdateError,
-    MissingSchemaError,
     NotCreatedError,
-    NoCollectionDefinedError,
     FieldNotLoadedError
 )
 from . import fields, validate
@@ -61,11 +58,8 @@ __all__ = (
     'NoDBDefinedError',
     'NotRegisteredDocumentError',
     'AlreadyRegisteredDocumentError',
-    'BuilderNotDefinedError',
     'UpdateError',
-    'MissingSchemaError',
     'NotCreatedError',
-    'NoCollectionDefinedError',
     'FieldNotLoadedError',
 
     'fields',
