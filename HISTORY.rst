@@ -11,6 +11,11 @@ Features:
   ``NoneReferenceError``. Review the list of exceptions importable from
   root ``umongo`` module. (see #251)
 
+Bug fixes:
+
+* Don't modify data when calling ``set_by_mongo_name`` on a field that was not
+  loaded in a partial load. (see #253)
+
 Other changes:
 
 * *Backwards-incompatible*: Drop Python 3.5 support (see #248).
