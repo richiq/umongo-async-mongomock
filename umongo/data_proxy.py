@@ -109,15 +109,14 @@ class BaseDataProxy:
         self._add_missing_fields()
 
     def get_by_mongo_name(self, name):
-        value = self._data[name]
         if self._fields_from_mongo_key[name] in self.not_loaded_fields:
             raise FieldNotLoadedError(name)
-        return value
+        return self._data[name]
 
     def set_by_mongo_name(self, name, value):
-        self._data[name] = value
         if self._fields_from_mongo_key[name] in self.not_loaded_fields:
             raise FieldNotLoadedError(name)
+        self._data[name] = value
         self._mark_as_modified(name)
 
     def delete_by_mongo_name(self, name):

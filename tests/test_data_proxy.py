@@ -379,12 +379,27 @@ class TestDataProxy(BaseTest):
         d.from_mongo({'loaded': "foo", 'loaded_but_empty': missing}, partial=True)
         assert d.partial is True
         for field in ('with_default', 'normal'):
+            val = d._data[field]
             with pytest.raises(exceptions.FieldNotLoadedError):
                 d.get(field)
+            assert d._data[field] == val
             with pytest.raises(exceptions.FieldNotLoadedError):
                 d.set(field, "test")
+            assert d._data[field] == val
             with pytest.raises(exceptions.FieldNotLoadedError):
                 d.delete(field)
+            assert d._data[field] == val
+        for field in ('normal', 'in_mongo_field'):
+            val = d._data[field]
+            with pytest.raises(exceptions.FieldNotLoadedError):
+                d.get_by_mongo_name(field)
+            assert d._data[field] == val
+            with pytest.raises(exceptions.FieldNotLoadedError):
+                d.set_by_mongo_name(field, "test")
+            assert d._data[field] == val
+            with pytest.raises(exceptions.FieldNotLoadedError):
+                d.delete_by_mongo_name(field)
+            assert d._data[field] == val
         assert d.get('loaded') == "foo"
         assert d.get('loaded_but_empty') is missing
         d.set('loaded_but_empty', "bar")
