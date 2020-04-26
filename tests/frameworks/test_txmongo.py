@@ -180,7 +180,7 @@ class TestTxMongo(BaseDBTest):
         Student.collection.drop()
         for i in range(10):
             yield Student(name='student-%s' % i).commit()
-        batch1, cursor1 = yield Student.find(limit=5, skip=6, cursor=True)
+        batch1, cursor1 = yield Student.find_with_cursor(limit=5, skip=6)
         assert len(batch1) == 4
         batch2, cursor2 = yield cursor1
         assert len(batch2) == 0
@@ -191,7 +191,7 @@ class TestTxMongo(BaseDBTest):
             names.append(elem.name)
         # Filter + projection
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
-        batch1, cursor1 = yield Student.find({'name': 'student-0'}, ['name'], cursor=True)
+        batch1, cursor1 = yield Student.find_with_cursor({'name': 'student-0'}, ['name'])
         assert len(batch1) == 1
         assert batch1[0].name == 'student-0'
 

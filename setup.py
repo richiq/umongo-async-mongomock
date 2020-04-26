@@ -33,7 +33,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'motor': ['motor>=1.1,<3.0'],
-        'txmongo': ['txmongo>=16.0.1'],
+        'txmongo': ['txmongo>=19.2.0'],
         'mongomock': ['mongomock'],
     },
     license="MIT",

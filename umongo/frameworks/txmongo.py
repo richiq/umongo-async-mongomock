@@ -152,47 +152,54 @@ class TxMongoDocument(DocumentImplementation):
 
     @classmethod
     @inlineCallbacks
-    def find_one(cls, spec=None, *args, **kwargs):
+    def find_one(cls, filter=None, *args, **kwargs):
         """
         Find a single document in database.
         """
-        # In txmongo, `spec` is for filtering and `filter` is for sorting
-        spec = cook_find_filter(cls, spec)
-        ret = yield cls.collection.find_one(spec, *args, **kwargs)
+        filter = cook_find_filter(cls, filter)
+        ret = yield cls.collection.find_one(filter, *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
     @inlineCallbacks
-    def find(cls, spec=None, *args, **kwargs):
+    def find(cls, filter=None, *args, **kwargs):
         """
         Find a list document in database.
 
-        Returns a cursor that provide Documents.
+        Returns a list of Documents.
         """
-        # In txmongo, `spec` is for filtering and `filter` is for sorting
-        spec = cook_find_filter(cls, spec)
-        raw_cursor_or_list = yield cls.collection.find(spec, *args, **kwargs)
-        if isinstance(raw_cursor_or_list, tuple):
-
-            def wrap_raw_results(result):
-                cursor = result[1]
-                if cursor is not None:
-                    cursor.addCallback(wrap_raw_results)
-                return ([cls.build_from_mongo(e, use_cls=True) for e in result[0]], cursor)
-
-            return wrap_raw_results(raw_cursor_or_list)
+        filter = cook_find_filter(cls, filter)
+        raw_cursor_or_list = yield cls.collection.find(filter, *args, **kwargs)
         return [cls.build_from_mongo(e, use_cls=True) for e in raw_cursor_or_list]
 
     @classmethod
-    def count(cls, spec=None, **kwargs):
+    @inlineCallbacks
+    def find_with_cursor(cls, filter=None, *args, **kwargs):
+        """
+        Find a list document in database.
+
+        Returns a cursor that provides Documents.
+        """
+        filter = cook_find_filter(cls, filter)
+        raw_cursor_or_list = yield cls.collection.find_with_cursor(filter, *args, **kwargs)
+
+        def wrap_raw_results(result):
+            cursor = result[1]
+            if cursor is not None:
+                cursor.addCallback(wrap_raw_results)
+            return ([cls.build_from_mongo(e, use_cls=True) for e in result[0]], cursor)
+
+        return wrap_raw_results(raw_cursor_or_list)
+
+    @classmethod
+    def count(cls, filter=None, **kwargs):
         """
         Get the number of documents in this collection.
         """
-        # In txmongo, `spec` is for filtering and `filter` is for sorting
-        spec = cook_find_filter(cls, spec)
-        return cls.collection.count(spec=spec, **kwargs)
+        filter = cook_find_filter(cls, filter)
+        return cls.collection.count(filter=filter, **kwargs)
 
     @classmethod
     @inlineCallbacks
