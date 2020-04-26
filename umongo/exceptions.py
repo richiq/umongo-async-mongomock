@@ -42,10 +42,6 @@ class NotCreatedError(UMongoError):
     """Document does not exist in database"""
 
 
-class FieldNotLoadedError(UMongoError):
-    """Accessing a field not loaded after partial load"""
-
-
 class NoneReferenceError(UMongoError):
     """Retrieving a None reference"""
 

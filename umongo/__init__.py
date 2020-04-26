@@ -21,7 +21,6 @@ from .exceptions import (
     UpdateError,
     DeleteError,
     NotCreatedError,
-    FieldNotLoadedError,
     NoneReferenceError,
     UnknownFieldInDBError,
 )
@@ -58,7 +57,6 @@ __all__ = (
     'UpdateError',
     'DeleteError',
     'NotCreatedError',
-    'FieldNotLoadedError',
     'NoneReferenceError',
     'UnknownFieldInDBError',
 
