@@ -5,7 +5,7 @@ from marshmallow import pre_load, post_load, pre_dump, post_dump, validates_sche
 
 from .abstract import BaseDataObject
 from .data_proxy import missing
-from .exceptions import (NotCreatedError, NoDBDefinedError,
+from .exceptions import (AlreadyCreatedError, NotCreatedError, NoDBDefinedError,
                          AbstractDocumentError, DocumentDefinitionError)
 from .template import Implementation, Template, MetaImplementation
 from .data_objects import Reference
@@ -233,14 +233,13 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
                        update payload instead of containing the entire document
         """
         if update and not self.is_created:
-            raise NotCreatedError('Must create the document before'
-                                  ' using update')
+            raise NotCreatedError('Must create the document before using update')
         return self._data.to_mongo(update=update)
 
     def update(self, data):
-        """
-        Update the document with the given data.
-        """
+        """Update the document with the given data."""
+        if self.is_created and self.pk_field in data.keys():
+            raise AlreadyCreatedError("Can't modify id of a created document")
         self._data.update(data)
 
     def dump(self):
@@ -273,11 +272,21 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         value = self._data.get(name)
         return value if value is not missing else None
 
+    def __setitem__(self, name, value):
+        if self.is_created and name == self.pk_field:
+            raise AlreadyCreatedError("Can't modify id of a created document")
+        self._data.set(name, value)
+
     def __delitem__(self, name):
+        if self.is_created and name == self.pk_field:
+            raise AlreadyCreatedError("Can't modify id of a created document")
         self._data.delete(name)
 
-    def __setitem__(self, name, value):
-        self._data.set(name, value)
+    def __getattr__(self, name):
+        if name[:2] == name[-2:] == '__':
+            raise AttributeError(name)
+        value = self._data.get(name, to_raise=AttributeError)
+        return value if value is not missing else None
 
     def __setattr__(self, name, value):
         # Try to retrieve name among class's attributes and __slots__
@@ -288,13 +297,9 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         if name in self.__real_attributes:
             object.__setattr__(self, name, value)
         else:
+            if self.is_created and name == self.pk_field:
+                raise AlreadyCreatedError("Can't modify id of a created document")
             self._data.set(name, value, to_raise=AttributeError)
-
-    def __getattr__(self, name):
-        if name[:2] == name[-2:] == '__':
-            raise AttributeError(name)
-        value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not missing else None
 
     def __delattr__(self, name):
         if not self.__real_attributes:
@@ -302,6 +307,8 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         if name in self.__real_attributes:
             object.__delattr__(self, name)
         else:
+            if self.is_created and name == self.pk_field:
+                raise AlreadyCreatedError("Can't modify pk of a created document")
             self._data.delete(name, to_raise=AttributeError)
 
     # Callbacks
