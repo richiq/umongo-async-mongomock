@@ -38,6 +38,10 @@ class DeleteError(UMongoError):
     """Error while deleting document"""
 
 
+class AlreadyCreatedError(UMongoError):
+    """Modifying id of an already created document"""
+
+
 class NotCreatedError(UMongoError):
     """Document does not exist in database"""
 
