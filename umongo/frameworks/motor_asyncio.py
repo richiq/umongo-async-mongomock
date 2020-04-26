@@ -164,7 +164,7 @@ class MotorAsyncIODocument(DocumentImplementation):
                 payload = self._data.to_mongo(update=False)
                 ret = await self.collection.insert_one(payload)
                 # TODO: check ret ?
-                self._data.set_by_mongo_name('_id', ret.inserted_id)
+                self._data.set(self.pk_field, ret.inserted_id)
                 self.is_created = True
                 await self.__coroutined_post_insert(ret)
         except DuplicateKeyError as exc:
