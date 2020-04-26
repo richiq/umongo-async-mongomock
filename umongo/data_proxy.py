@@ -91,16 +91,6 @@ class BaseDataProxy:
         # TODO: mark added missing fields as modified?
         self._add_missing_fields()
 
-    def get_by_mongo_name(self, name):
-        return self._data[name]
-
-    def set_by_mongo_name(self, name, value):
-        self._data[name] = value
-        self._mark_as_modified(name)
-
-    def delete_by_mongo_name(self, name):
-        self.set_by_mongo_name(name, missing)
-
     def _get_field(self, name, to_raise):
         if name not in self._fields:
             raise to_raise(name)
@@ -138,9 +128,6 @@ class BaseDataProxy:
         if hasattr(other, '_data'):
             return self._data == other._data
         return NotImplemented
-
-    def get_modified_fields_by_mongo_name(self):
-        return {self._fields[name].attribute or name for name in self.get_modified_fields()}
 
     def get_modified_fields(self):
         modified = set()
@@ -196,14 +183,8 @@ class BaseDataProxy:
             (key, self._data[field.attribute or key]) for key, field in self._fields.items()
         )
 
-    def items_by_mongo_name(self):
-        return self._data.items()
-
     def keys(self):
         return (field.attribute or key for key, field in self._fields.items())
-
-    def keys_by_mongo_name(self):
-        return self._data.keys()
 
     def values(self):
         return self._data.values()

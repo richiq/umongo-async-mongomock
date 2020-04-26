@@ -73,13 +73,10 @@ class TestDataProxy(BaseTest):
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         d.load({'a': 1, 'b': 2})
         assert d.get_modified_fields() == {'a', 'b'}
-        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         d.from_mongo({'a': 1, 'in_mongo_b': 2})
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo() == {'a': 1, 'in_mongo_b': 2}
         assert d.to_mongo(update=True) is None
         d.set('a', 3)
@@ -87,7 +84,6 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo(update=True) == {'$set': {'a': 3}, '$unset': {'in_mongo_b': ''}}
         d.clear_modified()
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo(update=True) is None
         assert d.to_mongo() == {'a': 3}
 
@@ -100,13 +96,10 @@ class TestDataProxy(BaseTest):
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         d.load({'a': [1], 'b': [2, 2]})
         assert d.get_modified_fields() == {'a', 'b'}
-        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         d.from_mongo({'a': [1], 'in_mongo_b': [2, 2]})
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo() == {'a': [1], 'in_mongo_b': [2, 2]}
         assert d.to_mongo(update=True) is None
         d.set('a', [3, 3, 3])
@@ -114,7 +107,6 @@ class TestDataProxy(BaseTest):
         assert d.to_mongo(update=True) == {'$set': {'a': [3, 3, 3]}, '$unset': {'in_mongo_b': ''}}
         d.clear_modified()
         assert d.get_modified_fields() == set()
-        assert d.get_modified_fields_by_mongo_name() == set()
         assert d.to_mongo() == {'a': [3, 3, 3]}
         assert d.to_mongo(update=True) is None
         d.clear_modified()
@@ -122,21 +114,18 @@ class TestDataProxy(BaseTest):
         d._data['a'].append(1)
         d._data['in_mongo_b'].append(2)
         assert d.get_modified_fields() == {'a', 'b'}
-        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         assert d.to_mongo() == {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}
         assert d.to_mongo(update=True) == {'$set': {'a': [1, 1], 'in_mongo_b': [2, 2, 2]}}
         d.clear_modified()
         del d._data['a'][0]
         del d._data['in_mongo_b'][0]
         assert d.get_modified_fields() == {'a', 'b'}
-        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         assert d.to_mongo() == {'a': [1], 'in_mongo_b': [2, 2]}
         assert d.to_mongo(update=True) == {'$set': {'a': [1], 'in_mongo_b': [2, 2]}}
         d.clear_modified()
         d._data['a'].clear()
         d._data['in_mongo_b'].clear()
         assert d.get_modified_fields() == {'a', 'b'}
-        assert d.get_modified_fields_by_mongo_name() == {'a', 'in_mongo_b'}
         assert d.to_mongo() == {'a': [], 'in_mongo_b': []}
         assert d.to_mongo(update=True) == {'$set': {'a': [], 'in_mongo_b': []}}
 
@@ -281,25 +270,6 @@ class TestDataProxy(BaseTest):
         d2.load({'b': 2})
         assert d1 != d2
 
-    def test_access_by_mongo_name(self):
-
-        class MySchema(EmbeddedSchema):
-            a = fields.IntField()
-            b = fields.IntField(attribute='in_mongo_b')
-
-        MyDataProxy = data_proxy_factory('My', MySchema())
-        d = MyDataProxy()
-        d.from_mongo({'a': 1, 'in_mongo_b': 2})
-        assert d.get_by_mongo_name('in_mongo_b') == 2
-        assert d.get_by_mongo_name('a') == 1
-        with pytest.raises(KeyError):
-            d.get_by_mongo_name('b')
-        d.set_by_mongo_name('in_mongo_b', 3)
-        assert d.to_mongo(update=True) == {'$set': {'in_mongo_b': 3}}
-        assert d.get_by_mongo_name('in_mongo_b') == 3
-        d.delete_by_mongo_name('in_mongo_b')
-        assert d.to_mongo(update=True) == {'$unset': {'in_mongo_b': ''}}
-
     def test_set_to_missing_fields(self):
 
         class MySchema(EmbeddedSchema):
@@ -309,7 +279,6 @@ class TestDataProxy(BaseTest):
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy(data={'a': 1})
         assert d.get('b') is missing
-        assert d.get_by_mongo_name('in_mongo_b') is missing
         assert d._data['in_mongo_b'] is missing
         d.set('b', 2)
         assert d.get('b') == 2
@@ -436,17 +405,13 @@ class TestDataProxy(BaseTest):
         d.from_mongo({'mongo_field_a': 42, 'mongo_field_b': 24})
 
         assert set(d.keys()) == {'mongo_field_a', 'mongo_field_b'}
-        assert set(d.keys_by_mongo_name()) == {'mongo_field_a', 'mongo_field_b'}
         assert set(d.values()) == {42, 24}
         assert set(d.items()) == {('field_a', 42), ('field_b', 24)}
-        assert set(d.items_by_mongo_name()) == {('mongo_field_a', 42), ('mongo_field_b', 24)}
 
         d.load({'field_a': 100, 'field_b': 200})
         assert set(d.keys()) == {'mongo_field_a', 'mongo_field_b'}
-        assert set(d.keys_by_mongo_name()) == {'mongo_field_a', 'mongo_field_b'}
         assert set(d.values()) == {100, 200}
         assert set(d.items()) == {('field_a', 100), ('field_b', 200)}
-        assert set(d.items_by_mongo_name()) == {('mongo_field_a', 100), ('mongo_field_b', 200)}
 
 
 class TestNonStrictDataProxy(BaseTest):
