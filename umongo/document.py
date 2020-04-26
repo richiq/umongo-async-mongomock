@@ -201,7 +201,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         return DBRef(collection=self.collection.name, id=self.pk)
 
     @classmethod
-    def build_from_mongo(cls, data, partial=False, use_cls=False):
+    def build_from_mongo(cls, data, use_cls=False):
         """
         Create a document instance from MongoDB data
 
@@ -213,17 +213,16 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         if use_cls and '_cls' in data:
             cls = cls.opts.instance.retrieve_document(data['_cls'])
         doc = cls()
-        doc.from_mongo(data, partial=partial)
+        doc.from_mongo(data)
         return doc
 
-    def from_mongo(self, data, partial=False):
+    def from_mongo(self, data):
         """
         Update the document with the MongoDB data
 
         :param data: data as retrieved from MongoDB
         """
-        # TODO: handle partial
-        self._data.from_mongo(data, partial=partial)
+        self._data.from_mongo(data)
         self.is_created = True
 
     def to_mongo(self, update=False):
