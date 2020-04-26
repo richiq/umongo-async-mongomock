@@ -2,6 +2,17 @@
 History
 =======
 
+3.0.0b4 (unreleased)
+--------------------
+
+Features:
+
+* *Backwards-incompatible*: Remove partial load feature (see #256).
+* *Backwards-incompatible*: Add ``Document.pk_field`` and remove
+  ``BaseDataProxy.*_by_mongo_name methods`` (see #257).
+* *Backwards-incompatible*: Raise AlreadyCreatedError when modifying pk of
+  created document (see #258).
+
 3.0.0b3 (2020-04-26)
 --------------------
 
