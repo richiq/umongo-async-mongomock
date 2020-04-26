@@ -239,7 +239,7 @@ class BaseBuilder:
                               if hasattr(base, 'Schema')])
         if not schema_bases:
             schema_bases = (Schema, )
-        on_need_add_id_field(schema_bases, schema_fields)
+        nmspc['pk_field'] = on_need_add_id_field(schema_bases, schema_fields)
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
             add_child_field(name, schema_fields)

@@ -187,7 +187,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
                      has already been commited to database given ``_id``
                      field could be generated before insertion
         """
-        value = self._data.get_by_mongo_name('_id')
+        value = self._data.get(self.pk_field)
         return value if value is not missing else None
 
     @property

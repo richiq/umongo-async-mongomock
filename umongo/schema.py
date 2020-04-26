@@ -19,19 +19,24 @@ def on_need_add_id_field(bases, fields_dict):
             if not isinstance(field, Field):
                 continue
             if (name == '_id' and not field.attribute) or field.attribute == '_id':
-                return name, field
+                return name
         return None
 
     # Search among parents for the id field
     for base in bases:
         schema = base()
-        if find_id_field(schema.fields):
-            return
+        name = find_id_field(schema.fields)
+        if name is not None:
+            return name
 
-    # Search amongo our own fields
-    if not find_id_field(fields_dict):
-        # No id field found, add a default one
-        fields_dict['id'] = fields.ObjectIdField(attribute='_id', dump_only=True)
+    # Search among our own fields
+    name = find_id_field(fields_dict)
+    if name is not None:
+        return name
+
+    # No id field found, add a default one
+    fields_dict['id'] = fields.ObjectIdField(attribute='_id', dump_only=True)
+    return 'id'
 
 
 def add_child_field(name, fields_dict):
