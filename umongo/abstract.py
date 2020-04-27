@@ -53,6 +53,8 @@ class BaseSchema(MaSchema):
         """
         params = params or {}
         meta = meta or {}
+        if not check_unknown_fields:
+            meta.setdefault('unknown', EXCLUDE)
         # Use hashable parameters as cache dict key and dict parameters for manual comparison
         cache_key = (self.__class__, base_schema_cls, check_unknown_fields, mongo_world)
         cache_modifiers = (params, meta)
@@ -69,8 +71,6 @@ class BaseSchema(MaSchema):
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
-        if not check_unknown_fields:
-            meta.setdefault('unknown', EXCLUDE)
         # By default OO world returns `missing` fields as `None`,
         # disable this behavior here to let marshmallow deal with it
         if not mongo_world:
