@@ -211,10 +211,6 @@ class TestMarshmallow(BaseTest):
         assert new_ma_schema_cls != ma_schema_cls
 
         new_ma_schema_cls = self.User.schema.as_marshmallow_schema(
-            check_unknown_fields=False)
-        assert new_ma_schema_cls != ma_schema_cls
-
-        new_ma_schema_cls = self.User.schema.as_marshmallow_schema(
             mongo_world=True)
         assert new_ma_schema_cls != ma_schema_cls
 
@@ -307,14 +303,32 @@ class TestMarshmallow(BaseTest):
             'birthday': ['OMG !!! Not a valid datetime.'],
             'dummy_field': ['OMG !!! Unknown field.']}
 
-    def test_unknow_fields_check(self):
+    def test_unknown_fields_check(self):
+
+        class ExcludeBaseSchema(marshmallow.Schema):
+            class Meta:
+                unknown = marshmallow.EXCLUDE
+
+        data = {'name': 'John', 'dummy_field': 'dummy'}
+        excl_data = {'name': 'John'}
+
+        # By default, marshmallow schemas raise on unknown fields
         ma_schema_cls = self.User.schema.as_marshmallow_schema()
         with pytest.raises(marshmallow.ValidationError) as excinfo:
-            ma_schema_cls().load({'name': 'John', 'dummy_field': 'dummy'})
+            ma_schema_cls().load(data)
         assert excinfo.value.messages == {'dummy_field': ['Unknown field.']}
 
-        ma_schema_cls = self.User.schema.as_marshmallow_schema(check_unknown_fields=False)
-        assert ma_schema_cls().load({'name': 'John', 'dummy_field': 'dummy'}) == {'name': 'John'}
+        # Pass base schema with Meta.unknown = exclude unknown fields
+        ma_schema_cls = self.User.schema.as_marshmallow_schema(
+            base_schema_cls=ExcludeBaseSchema)
+        assert ma_schema_cls().load(data) == excl_data
+
+        # Pass meta to override base schema Meta
+        ma_schema_cls = self.User.schema.as_marshmallow_schema(
+            base_schema_cls=ExcludeBaseSchema,
+            meta={'unknown': marshmallow.INCLUDE}
+        )
+        assert ma_schema_cls().load(data) == data
 
     def test_missing_accessor(self):
 
@@ -372,13 +386,19 @@ class TestMarshmallow(BaseTest):
         assert ma_mongo_schema.dump(bag.to_mongo()) == data
         assert ma_mongo_schema.load(data) == bag.to_mongo()
 
-        # Check as_marshmallow_schema params (check_unknown_felds, base_schema_cls)
+        # Check as_marshmallow_schema params (base_schema_cls)
         # are passed to nested schemas
         data = {
             'id': {'brief': 'sportbag', 'value': 100, 'name': 'Unknown'},
             'content': [
                 {'brief': 'cellphone', 'value': 500, 'name': 'Unknown'},
                 {'brief': 'lighter', 'value': 2, 'name': 'Unknown'}]
+        }
+        excl_data = {
+            'id': {'brief': 'sportbag', 'value': 100},
+            'content': [
+                {'brief': 'cellphone', 'value': 500},
+                {'brief': 'lighter', 'value': 2}]
         }
         with pytest.raises(marshmallow.ValidationError) as excinfo:
             ma_schema.load(data)
@@ -389,14 +409,30 @@ class TestMarshmallow(BaseTest):
                 1: {'name': ['Unknown field.']},
             }}
 
-        ma_no_check_unknown_schema = Bag.schema.as_marshmallow_schema(check_unknown_fields=False)()
-        ma_no_check_unknown_schema.load(data)
+        class IncludeBaseSchema(marshmallow.Schema):
+            class Meta:
+                unknown = marshmallow.INCLUDE
+
+        # Pass base schema with Meta.unknown = include unknown fields
+        ma_include_schema = Bag.schema.as_marshmallow_schema(base_schema_cls=IncludeBaseSchema)()
+        assert ma_include_schema.load(data) == data
+
+        # Pass meta to override base schema Meta
+        ma_exclude_schema = Bag.schema.as_marshmallow_schema(
+            base_schema_cls=IncludeBaseSchema,
+            params={
+                'id': {'meta': {'unknown': marshmallow.EXCLUDE}},
+                'content': {'params': {'meta': {'unknown': marshmallow.EXCLUDE}}},
+            },
+            meta={'unknown': marshmallow.EXCLUDE}
+        )
+        assert ma_exclude_schema().load(data) == excl_data
 
         class WithNameSchema(marshmallow.Schema):
             name = marshmallow.fields.Str()
 
-        ma_custom_base_schema = Bag.schema.as_marshmallow_schema(base_schema_cls=WithNameSchema)()
-        ma_custom_base_schema.load(data)
+        ma_custom_base_schema = Bag.schema.as_marshmallow_schema(base_schema_cls=WithNameSchema)
+        assert ma_custom_base_schema().load(data) == data
 
     def test_marshmallow_bonus_fields(self):
         # Fields related to mongodb provided for marshmallow

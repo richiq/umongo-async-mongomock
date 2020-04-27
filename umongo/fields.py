@@ -576,8 +576,7 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         else:
             nested_params = None
             nested_meta = None
-        schema_kwargs = {k: v for k, v in kwargs.items()
-                         if k in ('base_schema_cls', 'check_unknown_fields')}
+        schema_kwargs = {k: v for k, v in kwargs.items() if k == 'base_schema_cls'}
         nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema(
             params=nested_params, mongo_world=mongo_world, meta=nested_meta, **schema_kwargs)
         return ma_fields.Nested(nested_ma_schema, **field_kwargs)

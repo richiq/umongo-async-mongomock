@@ -1,5 +1,5 @@
 from marshmallow import (Schema as MaSchema, fields as ma_fields,
-                         validate as ma_validate, missing, EXCLUDE)
+                         validate as ma_validate, missing)
 
 from .i18n import gettext as _, N_
 from .marshmallow_bonus import schema_from_umongo_get_attribute
@@ -39,24 +39,21 @@ class BaseSchema(MaSchema):
                 field.map_to_field(mongo_path, name, func)
 
     def as_marshmallow_schema(self, params=None, base_schema_cls=MaSchema,
-                              check_unknown_fields=True, mongo_world=False, meta=None):
+                              mongo_world=False, meta=None):
         """
         Return a pure-marshmallow version of this schema class.
 
         :param params: Per-field dict to pass parameters to their field creation.
         :param base_schema_cls: Class the schema will inherit from (
             default: :class:`marshmallow.Schema`).
-        :param check_unknown_fields: Unknown fields are considered as errors (default: True).
         :param mongo_world: If True the schema will work against the mongo world
             instead of the OO world (default: False).
         :param meta: Optional dict with attributes for the schema's Meta class.
         """
         params = params or {}
         meta = meta or {}
-        if not check_unknown_fields:
-            meta.setdefault('unknown', EXCLUDE)
         # Use hashable parameters as cache dict key and dict parameters for manual comparison
-        cache_key = (self.__class__, base_schema_cls, check_unknown_fields, mongo_world)
+        cache_key = (self.__class__, base_schema_cls, mongo_world)
         cache_modifiers = (params, meta)
         if cache_key in self._marshmallow_schemas_cache:
             for modifiers, ma_schema in self._marshmallow_schemas_cache[cache_key]:
@@ -65,9 +62,8 @@ class BaseSchema(MaSchema):
         nmspc = {
             name: field.as_marshmallow_field(
                 params=params.get(name),
-                base_schema_cls=base_schema_cls,
-                check_unknown_fields=check_unknown_fields,
-                mongo_world=mongo_world)
+                mongo_world=mongo_world,
+                base_schema_cls=base_schema_cls)
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
