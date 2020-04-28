@@ -4,7 +4,7 @@ from . import fields
 from .abstract import BaseSchema
 
 
-__all__ = ('Schema', 'EmbeddedSchema', 'on_need_add_id_field', 'add_child_field')
+__all__ = ('Schema', 'on_need_add_id_field', 'add_child_field')
 
 
 def on_need_add_id_field(bases, fields_dict):
@@ -45,7 +45,3 @@ def add_child_field(name, fields_dict):
 
 class Schema(BaseSchema):
     """Base schema class used by :class:`umongo.Document`"""
-
-
-class EmbeddedSchema(BaseSchema):
-    """Base schema class used by :class:`umongo.EmbeddedDocument`"""

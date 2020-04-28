@@ -8,7 +8,7 @@ from bson import ObjectId, DBRef, Decimal128
 from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory
-from umongo import Document, EmbeddedDocument, Schema, EmbeddedSchema, fields, Reference, validate
+from umongo import Document, EmbeddedDocument, Schema, fields, Reference, validate
 from umongo.data_objects import List, Dict
 
 from .common import BaseTest
@@ -92,7 +92,7 @@ class TestFields(BaseTest):
 
     def test_basefields(self):
 
-        class MySchema(EmbeddedSchema):
+        class MySchema(Schema):
             string = fields.StringField()
             uuid = fields.UUIDField()
             number = fields.NumberField()
@@ -159,7 +159,7 @@ class TestFields(BaseTest):
 
     def test_datetime(self):
 
-        class MySchema(EmbeddedSchema):
+        class MySchema(Schema):
             a = fields.DateTimeField()
 
         s = MySchema()
@@ -191,7 +191,7 @@ class TestFields(BaseTest):
 
         timezone_2h = dt.timezone(dt.timedelta(hours=2), "test")
 
-        class MySchema(EmbeddedSchema):
+        class MySchema(Schema):
             a = fields.AwareDateTimeField()
             b = fields.AwareDateTimeField(default_timezone=timezone_2h)
 
@@ -221,7 +221,7 @@ class TestFields(BaseTest):
 
     def test_date(self):
 
-        class MySchema(EmbeddedSchema):
+        class MySchema(Schema):
             a = fields.DateField()
 
         s = MySchema()
