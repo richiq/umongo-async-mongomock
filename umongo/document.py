@@ -1,7 +1,10 @@
 from copy import deepcopy
 
 from bson import DBRef
-from marshmallow import pre_load, post_load, pre_dump, post_dump, validates_schema  # republishing
+from marshmallow import (
+    pre_load, post_load, pre_dump, post_dump, validates_schema,  # republishing
+    Schema as MaSchema
+)
 
 from .abstract import BaseDataObject
 from .data_proxy import missing
@@ -38,6 +41,7 @@ class DocumentTemplate(Template):
         or `marshmallow.post_dump`) to this class that will be passed
         to the marshmallow schema internally used for this document.
     """
+    MA_BASE_SCHEMA_CLS = MaSchema
 
 
 Document = DocumentTemplate

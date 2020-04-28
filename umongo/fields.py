@@ -571,14 +571,11 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         field_kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
             nested_params = params.pop('params', None)
-            nested_meta = params.pop('meta', None)
             field_kwargs.update(params)
         else:
             nested_params = None
-            nested_meta = None
-        schema_kwargs = {k: v for k, v in kwargs.items() if k == 'base_schema_cls'}
         nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema(
-            params=nested_params, mongo_world=mongo_world, meta=nested_meta, **schema_kwargs)
+            params=nested_params, mongo_world=mongo_world)
         return ma_fields.Nested(nested_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):

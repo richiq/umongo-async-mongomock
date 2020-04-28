@@ -18,6 +18,7 @@ class BaseSchema(MaSchema):
     """
     All schema used in umongo should inherit from this base schema
     """
+    MA_BASE_SCHEMA_CLS = MaSchema
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,23 +39,18 @@ class BaseSchema(MaSchema):
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
 
-    def as_marshmallow_schema(self, *, params=None, base_schema_cls=MaSchema,
-                              mongo_world=False, meta=None):
+    def as_marshmallow_schema(self, *, params=None, mongo_world=False):
         """
         Return a pure-marshmallow version of this schema class.
 
         :param params: Per-field dict to pass parameters to their field creation.
-        :param base_schema_cls: Class the schema will inherit from (
-            default: :class:`marshmallow.Schema`).
         :param mongo_world: If True the schema will work against the mongo world
             instead of the OO world (default: False).
-        :param meta: Optional dict with attributes for the schema's Meta class.
         """
         params = params or {}
-        meta = meta or {}
         # Use hashable parameters as cache dict key and dict parameters for manual comparison
-        cache_key = (self.__class__, base_schema_cls, mongo_world)
-        cache_modifiers = (params, meta)
+        cache_key = (self.__class__, self.MA_BASE_SCHEMA_CLS, mongo_world)
+        cache_modifiers = (params, )
         if cache_key in self._marshmallow_schemas_cache:
             for modifiers, ma_schema in self._marshmallow_schemas_cache[cache_key]:
                 if modifiers == cache_modifiers:
@@ -63,7 +59,7 @@ class BaseSchema(MaSchema):
             name: field.as_marshmallow_field(
                 params=params.get(name),
                 mongo_world=mongo_world,
-                base_schema_cls=base_schema_cls)
+            )
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
@@ -71,9 +67,7 @@ class BaseSchema(MaSchema):
         # disable this behavior here to let marshmallow deal with it
         if not mongo_world:
             nmspc['get_attribute'] = schema_from_umongo_get_attribute
-        if meta:
-            nmspc['Meta'] = type('Meta', (base_schema_cls.Meta,), meta)
-        m_schema = type(name, (base_schema_cls, ), nmspc)
+        m_schema = type(name, (self.MA_BASE_SCHEMA_CLS, ), nmspc)
         # Add i18n support to the schema
         # We can't use I18nErrorDict here because __getitem__ is not called
         # when error_messages is updated with _default_error_messages.
