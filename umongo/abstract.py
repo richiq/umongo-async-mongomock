@@ -38,7 +38,7 @@ class BaseSchema(MaSchema):
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
 
-    def as_marshmallow_schema(self, params=None, base_schema_cls=MaSchema,
+    def as_marshmallow_schema(self, *, params=None, base_schema_cls=MaSchema,
                               mongo_world=False, meta=None):
         """
         Return a pure-marshmallow version of this schema class.
@@ -210,7 +210,7 @@ class BaseField(ma_fields.Field):
         params.update(self.metadata)
         return params
 
-    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
+    def as_marshmallow_field(self, *, params=None, mongo_world=False, **kwargs):
         """
         Return a pure-marshmallow version of this field.
 
