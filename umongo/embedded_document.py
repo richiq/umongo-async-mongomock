@@ -3,6 +3,7 @@ import marshmallow as ma
 
 from .template import Implementation, Template
 from .data_objects import BaseDataObject
+from .expose_missing import EXPOSE_MISSING
 from .exceptions import AbstractDocumentError
 
 
@@ -159,7 +160,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
 
     def __getitem__(self, name):
         value = self._data.get(name)
-        return value if value is not ma.missing else None
+        return None if value is ma.missing and not EXPOSE_MISSING.get() else value
 
     def __delitem__(self, name):
         self._data.delete(name)
@@ -182,7 +183,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         if name[:2] == name[-2:] == '__':
             raise AttributeError(name)
         value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not ma.missing else None
+        return None if value is ma.missing and not EXPOSE_MISSING.get() else value
 
     def __delattr__(self, name):
         if not self.__real_attributes:

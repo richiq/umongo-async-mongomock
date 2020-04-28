@@ -5,7 +5,7 @@ import pytest
 import marshmallow as ma
 
 from umongo.data_proxy import data_proxy_factory
-from umongo import Document, EmbeddedDocument, MixinDocument, fields, exceptions
+from umongo import Document, EmbeddedDocument, MixinDocument, fields, exceptions, ExposeMissing
 
 from .common import BaseTest
 
@@ -413,6 +413,26 @@ class TestEmbeddedDocument(BaseTest):
         assert jane.name == john.name
         assert jane.child == john.child
         assert jane.child is not john.child
+
+    def test_expose_missing(self):
+        @self.instance.register
+        class Child(EmbeddedDocument):
+            name = fields.StrField()
+            age = fields.IntField()
+
+        @self.instance.register
+        class Parent(EmbeddedDocument):
+            name = fields.StrField()
+            child = fields.EmbeddedField(Child)
+
+        parent = Parent(**{'child': {'age': 42}})
+        assert parent.name is None
+        assert parent.child.name is None
+        assert parent.child.age == 42
+        with ExposeMissing():
+            assert parent.name is ma.missing
+            assert parent.child.name is ma.missing
+            assert parent.child.age == 42
 
     def test_mixin(self):
 

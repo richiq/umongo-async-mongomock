@@ -29,6 +29,7 @@ from .schema import Schema
 from .data_objects import Reference
 from .embedded_document import EmbeddedDocument
 from .mixin import MixinDocument
+from .expose_missing import ExposeMissing
 from .i18n import set_gettext
 
 
@@ -52,6 +53,7 @@ __all__ = (
     'validates_schema',
     'EmbeddedDocument',
     'MixinDocument',
+    'ExposeMissing',
 
     'UMongoError',
     'ValidationError',
