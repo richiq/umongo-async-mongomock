@@ -4,7 +4,6 @@ from datetime import datetime
 import pytest
 
 from bson import ObjectId, DBRef
-from marshmallow import validate
 
 from umongo import (Document, EmbeddedDocument, BaseSchema, fields, exceptions,
                     post_dump, pre_load, validates_schema)
