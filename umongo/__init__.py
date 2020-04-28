@@ -26,7 +26,7 @@ from .exceptions import (
     UnknownFieldInDBError,
 )
 from . import fields, validate
-from .schema import BaseSchema, Schema
+from .abstract import BaseSchema
 from .data_objects import Reference
 from .embedded_document import EmbeddedDocument
 from .i18n import set_gettext
@@ -65,7 +65,6 @@ __all__ = (
     'fields',
 
     'BaseSchema',
-    'Schema',
 
     'Reference',
 
