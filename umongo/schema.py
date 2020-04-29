@@ -3,7 +3,7 @@ import marshmallow as ma
 
 from .abstract import BaseSchema
 from .i18n import gettext as _
-
+from .expose_missing import ExposeMissing
 
 __all__ = (
     'Schema',
@@ -26,11 +26,8 @@ def schema_from_umongo_get_attribute(self, obj, attr, default):
             ...
 
     """
-    ret = ma.Schema.get_attribute(self, obj, attr, default)
-    if ret is None and ret is not default and attr in obj.schema.fields:
-        raw_ret = obj._data.get(attr)
-        return default if raw_ret is ma.missing else raw_ret
-    return ret
+    with ExposeMissing():
+        return ma.Schema.get_attribute(self, obj, attr, default)
 
 
 class SchemaFromUmongo(ma.Schema):
