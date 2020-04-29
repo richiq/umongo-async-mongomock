@@ -2,6 +2,26 @@
 History
 =======
 
+3.0.0b5 (unreleased)
+--------------------
+
+Features:
+
+* *Backwards-incompatible*: Add ``MA_BASE_SCHEMA_CLS`` class attribute to
+  ``Document`` and ``EmbeddedDocument`` to specify a base class to use in
+  ``as_marshmallow_schema``. Drop the ``check_unknown_fields``, ``params`` and
+  ``meta`` attributes of ``as_marshmallow_schema``. Make ``mongo_world``
+  kwarg-only. The same effect can be achieved using base schema classes.
+  This incidentally fixes broken ``as_marshmallow_schema`` cache feature.
+  (see #263)
+* *Backwards-incompatible*: Add ``TxMongoDocument.find_with_cursor`` and
+  drop support for upstream deprecated ``find(cursor=True)``. (see #259).
+
+Other changes:
+
+* *Backwards-incompatible*: Require txmongo>=19.2.0 (see #259).
+
+
 3.0.0b4 (2020-04-27)
 --------------------
 
