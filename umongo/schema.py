@@ -8,7 +8,7 @@ from .expose_missing import ExposeMissing
 __all__ = (
     'Schema',
     'schema_from_umongo_get_attribute',
-    'SchemaFromUmongo',
+    'RemoveMissingSchema',
 )
 
 
@@ -30,15 +30,14 @@ def schema_from_umongo_get_attribute(self, obj, attr, default):
         return ma.Schema.get_attribute(self, obj, attr, default)
 
 
-class SchemaFromUmongo(ma.Schema):
+class RemoveMissingSchema(ma.Schema):
     """
-    Custom :class:`marshmallow.Schema` subclass providing unknown fields
-    checking and custom get_attribute for umongo documents.
-
-    .. note: It is not mandatory to use this schema with umongo document.
-        This is just a helper providing usefull behaviors.
+    Custom :class:`marshmallow.Schema` subclass returning missing rather than
+    None for missing fields in umongo :class:`umongo.Document`s.
     """
-    get_attribute = schema_from_umongo_get_attribute
+    def dump(self, *args, **kwargs):
+        with ExposeMissing():
+            return super().dump(*args, **kwargs)
 
 
 class Schema(BaseSchema):
