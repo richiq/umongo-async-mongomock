@@ -8,7 +8,7 @@ from bson import ObjectId, DBRef, Decimal128
 from marshmallow import ValidationError, missing
 
 from umongo.data_proxy import data_proxy_factory
-from umongo import Document, EmbeddedDocument, BaseSchema, fields, Reference, validate
+from umongo import Document, EmbeddedDocument, Schema, fields, Reference, validate
 from umongo.data_objects import List, Dict
 
 from .common import BaseTest
@@ -92,7 +92,7 @@ class TestFields(BaseTest):
 
     def test_basefields(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             string = fields.StringField()
             uuid = fields.UUIDField()
             number = fields.NumberField()
@@ -159,7 +159,7 @@ class TestFields(BaseTest):
 
     def test_datetime(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             a = fields.DateTimeField()
 
         s = MySchema()
@@ -191,7 +191,7 @@ class TestFields(BaseTest):
 
         timezone_2h = dt.timezone(dt.timedelta(hours=2), "test")
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             a = fields.AwareDateTimeField()
             b = fields.AwareDateTimeField(default_timezone=timezone_2h)
 
@@ -221,7 +221,7 @@ class TestFields(BaseTest):
 
     def test_date(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             a = fields.DateField()
 
         s = MySchema()
@@ -242,7 +242,7 @@ class TestFields(BaseTest):
 
     def test_dict(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             dict = fields.DictField(attribute='in_mongo_dict', allow_none=True)
             kdict = fields.DictField(keys=fields.StringField(validate=validate.Length(0, 1)))
             vdict = fields.DictField(values=fields.IntField(validate=validate.Range(max=5)))
@@ -320,7 +320,7 @@ class TestFields(BaseTest):
 
     def test_dict_default(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             # Passing a mutable as default is a bad idea in real life
             d_dict = fields.DictField(values=fields.IntField, default={'1': 1, '2': 2})
             c_dict = fields.DictField(values=fields.IntField, default=lambda: {'1': 1, '2': 2})
@@ -408,7 +408,7 @@ class TestFields(BaseTest):
 
     def test_list(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             list = fields.ListField(fields.IntField(), attribute='in_mongo_list', allow_none=True)
 
         MyDataProxy = data_proxy_factory('My', MySchema())
@@ -493,7 +493,7 @@ class TestFields(BaseTest):
 
     def test_list_default(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             d_list = fields.ListField(fields.IntField(), default=(1, 2, 3))
             c_list = fields.ListField(fields.IntField(), default=lambda: (1, 2, 3))
 
@@ -582,7 +582,7 @@ class TestFields(BaseTest):
 
     def test_objectid(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             objid = fields.ObjectIdField(attribute='in_mongo_objid')
 
         MyDataProxy = data_proxy_factory('My', MySchema())
@@ -753,7 +753,7 @@ class TestFields(BaseTest):
 
     def test_decimal(self):
 
-        class MySchema(BaseSchema):
+        class MySchema(Schema):
             price = fields.DecimalField(attribute='in_mongo_price')
 
         MyDataProxy = data_proxy_factory('My', MySchema())
