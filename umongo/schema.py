@@ -7,27 +7,8 @@ from .expose_missing import ExposeMissing
 
 __all__ = (
     'Schema',
-    'schema_from_umongo_get_attribute',
     'RemoveMissingSchema',
 )
-
-
-def schema_from_umongo_get_attribute(self, obj, attr, default):
-    """
-    Overwrite default `Schema.get_attribute` method by this one to access
-        umongo missing fields instead of returning `None`.
-
-    example::
-
-        class MySchema(marshsmallow.Schema):
-            get_attribute = schema_from_umongo_get_attribute
-
-            # Define the rest of your schema
-            ...
-
-    """
-    with ExposeMissing():
-        return ma.Schema.get_attribute(self, obj, attr, default)
 
 
 class RemoveMissingSchema(ma.Schema):
@@ -63,10 +44,6 @@ class Schema(BaseSchema):
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
-        # By default OO world returns `missing` fields as `None`,
-        # disable this behavior here to let marshmallow deal with it
-        if not mongo_world:
-            nmspc['get_attribute'] = schema_from_umongo_get_attribute
         m_schema = type(name, (self.MA_BASE_SCHEMA_CLS, ), nmspc)
         # Add i18n support to the schema
         # We can't use I18nErrorDict here because __getitem__ is not called

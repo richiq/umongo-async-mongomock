@@ -9,7 +9,7 @@ import marshmallow as ma
 from umongo import Document, EmbeddedDocument, fields, set_gettext, validate, missing
 from umongo import marshmallow_bonus as ma_bonus_fields, Schema
 from umongo.abstract import BaseField
-from umongo.schema import schema_from_umongo_get_attribute, RemoveMissingSchema
+from umongo.schema import RemoveMissingSchema
 
 from .common import BaseTest
 
@@ -377,7 +377,7 @@ class TestMarshmallow(BaseTest):
                 schema.load({"id": invalid_id})
             assert exc.value.messages == {"id": ["Invalid ObjectId."]}
 
-    def test_marshmallow_schema_helpers(self):
+    def test_marshmallow_remove_missing_schema(self):
 
         @self.instance.register
         class Doc(Document):
@@ -390,26 +390,79 @@ class TestMarshmallow(BaseTest):
         class VanillaDocSchema(ma.Schema):
             a = ma.fields.Int()
 
-        class CustomGetAttributeDocSchema(VanillaDocSchema):
-            get_attribute = schema_from_umongo_get_attribute
-
         class RemoveMissingDocSchema(RemoveMissingSchema):
             a = ma.fields.Int()
 
         data = VanillaDocSchema().dump(Doc())
         assert data == {'a': None}
 
-        data = CustomGetAttributeDocSchema().dump(Doc())
-        assert data == {}
-
-        data = CustomGetAttributeDocSchema().dump(Doc(a=1))
-        assert data == {'a': 1}
-
         data = RemoveMissingDocSchema().dump(Doc())
         assert data == {}
 
         data = RemoveMissingDocSchema().dump(Doc(a=1))
         assert data == {'a': 1}
+
+    @pytest.mark.parametrize("base_schema", (ma.Schema, RemoveMissingSchema))
+    def test_marshmallow_remove_missing_schema_as_base_schema(self, base_schema):
+        """Test RemoveMissingSchema used as base marshmallow Schema"""
+
+        # Typically, we'll use it in all our schemas, so let's define base
+        # Document and EmbeddedDocument classes using this base schema class
+        @self.instance.register
+        class MyDocument(Document):
+            MA_BASE_SCHEMA_CLS = base_schema
+
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class MyEmbeddedDocument(EmbeddedDocument):
+            MA_BASE_SCHEMA_CLS = base_schema
+
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class Accessory(MyEmbeddedDocument):
+            brief = fields.StrField()
+            value = fields.IntField()
+
+        @self.instance.register
+        class Bag(MyDocument):
+            item = fields.EmbeddedField(Accessory)
+            content = fields.ListField(fields.EmbeddedField(Accessory))
+
+        data = {
+            'item': {'brief': 'sportbag'},
+            'content': [
+                {'brief': 'cellphone'},
+                {'brief': 'lighter'}]
+        }
+        dump = {
+            'id': None,
+            'cls': 'Bag',
+            'content': [
+                {'brief': 'cellphone', 'cls': 'Accessory', 'value': None},
+                {'brief': 'lighter', 'cls': 'Accessory', 'value': None}
+            ],
+            'item': {'brief': 'sportbag', 'cls': 'Accessory', 'value': None}
+        }
+        remove_missing_dump = {
+            'cls': 'Bag',
+            'item': {'cls': 'Accessory', 'brief': 'sportbag'},
+            'content': [
+                {'cls': 'Accessory', 'brief': 'cellphone'},
+                {'cls': 'Accessory', 'brief': 'lighter'}
+            ]
+        }
+        expected_dump = {
+            ma.Schema: dump,
+            RemoveMissingSchema: remove_missing_dump,
+        }[base_schema]
+
+        bag = Bag(**data)
+        ma_schema = Bag.schema.as_marshmallow_schema()
+        assert ma_schema().dump(bag) == expected_dump
 
     def test_marshmallow_access_custom_attributes(self):
 
