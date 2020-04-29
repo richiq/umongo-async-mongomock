@@ -8,7 +8,7 @@ import marshmallow
 from umongo import Document, EmbeddedDocument, fields, set_gettext, validate, missing
 from umongo import marshmallow_bonus as ma_bonus_fields, Schema
 from umongo.abstract import BaseField
-from umongo.marshmallow_bonus import schema_from_umongo_get_attribute, SchemaFromUmongo
+from umongo.schema import schema_from_umongo_get_attribute, SchemaFromUmongo
 
 from .common import BaseTest
 
