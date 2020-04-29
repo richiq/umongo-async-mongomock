@@ -171,8 +171,8 @@ def change_password_user(nick_or_id):
         abort(404)
 
     # Use a field from our document to create a marshmallow schema
-    # Note that we use `SchemaFromUmongo` to get unknown fields check on
-    # deserialization and skip missing fields instead of returning None
+    # Note that we use `SchemaFromUmongo` to skip missing fields
+    # instead of returning None
     class ChangePasswordSchema(SchemaFromUmongo):
         password = User.schema.fields['password'].as_marshmallow_field(params={'required': True})
     # with `strict`, marshmallow raises a ValidationError if something is wrong

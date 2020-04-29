@@ -588,9 +588,8 @@ from scratch... almost:
     ...     breeds = marshmallow.fields.List(marshmallow.fields.Nested(MassiveBreedSchema))
 
 .. note:: A custom marshmallow schema :class:`umongo.marshmallow_bonus.SchemaFromUmongo`
-    can be used instead of regular :class:`marshmallow.Schema` to benefit a tighter
-    integration with umongo (unknown field checking and field with missing value
-    actually return the ``missing`` singleton instead of serializing it as `None`)
+    can be used instead of regular :class:`marshmallow.Schema` to skip missing fields
+    when dumping a :class:`umongo.Document` object.
 
 This time we directly convert umongo schema's fields into there marshmallow
 equivalent with ``as_marshmallow_field``. Now we can build our ducks easily:
