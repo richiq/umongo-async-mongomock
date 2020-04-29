@@ -262,6 +262,7 @@ class BaseBuilder:
         schema_nmspc = {}
         schema_nmspc.update(schema_fields)
         schema_nmspc.update(schema_non_fields)
+        schema_nmspc['MA_BASE_SCHEMA_CLS'] = template.MA_BASE_SCHEMA_CLS
         return type('%sSchema' % template.__name__, schema_bases, schema_nmspc)
 
     def build_document_from_template(self, template):

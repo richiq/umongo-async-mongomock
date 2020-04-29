@@ -1,5 +1,5 @@
 from marshmallow import (Schema as MaSchema, fields as ma_fields,
-                         validate as ma_validate, missing, EXCLUDE)
+                         validate as ma_validate, missing)
 
 from .i18n import gettext as _, N_
 from .marshmallow_bonus import schema_from_umongo_get_attribute
@@ -18,6 +18,7 @@ class BaseSchema(MaSchema):
     """
     All schema used in umongo should inherit from this base schema
     """
+    MA_BASE_SCHEMA_CLS = MaSchema
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,53 +39,35 @@ class BaseSchema(MaSchema):
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
 
-    def as_marshmallow_schema(self, params=None, base_schema_cls=MaSchema,
-                              check_unknown_fields=True, mongo_world=False, meta=None):
+    def as_marshmallow_schema(self, *, mongo_world=False):
         """
         Return a pure-marshmallow version of this schema class.
 
-        :param params: Per-field dict to pass parameters to their field creation.
-        :param base_schema_cls: Class the schema will inherit from (
-            default: :class:`marshmallow.Schema`).
-        :param check_unknown_fields: Unknown fields are considered as errors (default: True).
         :param mongo_world: If True the schema will work against the mongo world
             instead of the OO world (default: False).
-        :param meta: Optional dict with attributes for the schema's Meta class.
         """
-        params = params or {}
-        meta = meta or {}
-        # Use hashable parameters as cache dict key and dict parameters for manual comparison
-        cache_key = (self.__class__, base_schema_cls, check_unknown_fields, mongo_world)
-        cache_modifiers = (params, meta)
+        # Use a cache to avoid generating several times the same schema
+        cache_key = (self.__class__, self.MA_BASE_SCHEMA_CLS, mongo_world)
         if cache_key in self._marshmallow_schemas_cache:
-            for modifiers, ma_schema in self._marshmallow_schemas_cache[cache_key]:
-                if modifiers == cache_modifiers:
-                    return ma_schema
+            return self._marshmallow_schemas_cache[cache_key]
+
+        # Create schema if not found in cache
         nmspc = {
-            name: field.as_marshmallow_field(
-                params=params.get(name),
-                base_schema_cls=base_schema_cls,
-                check_unknown_fields=check_unknown_fields,
-                mongo_world=mongo_world)
+            name: field.as_marshmallow_field(mongo_world=mongo_world)
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
-        if not check_unknown_fields:
-            meta.setdefault('unknown', EXCLUDE)
         # By default OO world returns `missing` fields as `None`,
         # disable this behavior here to let marshmallow deal with it
         if not mongo_world:
             nmspc['get_attribute'] = schema_from_umongo_get_attribute
-        if meta:
-            nmspc['Meta'] = type('Meta', (base_schema_cls.Meta,), meta)
-        m_schema = type(name, (base_schema_cls, ), nmspc)
+        m_schema = type(name, (self.MA_BASE_SCHEMA_CLS, ), nmspc)
         # Add i18n support to the schema
         # We can't use I18nErrorDict here because __getitem__ is not called
         # when error_messages is updated with _default_error_messages.
         m_schema._default_error_messages = {
             k: _(v) for k, v in m_schema._default_error_messages.items()}
-        self._marshmallow_schemas_cache.setdefault(cache_key, []).append(
-            (cache_modifiers, m_schema))
+        self._marshmallow_schemas_cache[cache_key] = m_schema
         return m_schema
 
 
@@ -214,18 +197,14 @@ class BaseField(ma_fields.Field):
         params.update(self.metadata)
         return params
 
-    def as_marshmallow_field(self, params=None, mongo_world=False, **kwargs):
+    def as_marshmallow_field(self, *, mongo_world=False, **kwargs):
         """
         Return a pure-marshmallow version of this field.
 
-        :param params: Additional parameters passed to the marshmallow field
-            class constructor.
         :param mongo_world: If True the field will work against the mongo world
             instead of the OO world (default: False)
         """
         field_kwargs = self._extract_marshmallow_field_params(mongo_world)
-        if params:
-            field_kwargs.update(params)
         # Retrieve the marshmallow class we inherit from
         for m_class in type(self).mro():
             if (not issubclass(m_class, BaseField) and

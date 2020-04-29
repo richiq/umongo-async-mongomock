@@ -1,3 +1,5 @@
+import marshmallow as ma
+
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
 from .data_proxy import missing
@@ -21,6 +23,7 @@ class EmbeddedDocumentTemplate(Template):
         :class:`umongo.instance.BaseInstance` to obtain it corresponding
         :class:`umongo.embedded_document.EmbeddedDocumentImplementation`.
     """
+    MA_BASE_SCHEMA_CLS = ma.Schema
 
 
 EmbeddedDocument = EmbeddedDocumentTemplate
