@@ -6,9 +6,9 @@ from bson import ObjectId
 import marshmallow
 
 from umongo import Document, EmbeddedDocument, fields, set_gettext, validate, missing
-from umongo import marshmallow_bonus as ma_bonus_fields
-from umongo.abstract import BaseField, BaseSchema
-from umongo.marshmallow_bonus import schema_from_umongo_get_attribute, SchemaFromUmongo
+from umongo import marshmallow_bonus as ma_bonus_fields, Schema
+from umongo.abstract import BaseField
+from umongo.schema import schema_from_umongo_get_attribute, SchemaFromUmongo
 
 from .common import BaseTest
 
@@ -39,7 +39,7 @@ class TestMarshmallow(BaseTest):
     def test_by_schema(self):
         ma_schema_cls = self.User.schema.as_marshmallow_schema()
         assert issubclass(ma_schema_cls, marshmallow.Schema)
-        assert not issubclass(ma_schema_cls, BaseSchema)
+        assert not issubclass(ma_schema_cls, Schema)
 
     def test_custom_ma_base_schema_cls(self):
 

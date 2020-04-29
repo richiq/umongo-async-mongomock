@@ -5,7 +5,7 @@ import pytest
 
 from bson import ObjectId, DBRef
 
-from umongo import (Document, EmbeddedDocument, BaseSchema, fields, exceptions,
+from umongo import (Document, EmbeddedDocument, Schema, fields, exceptions,
                     post_dump, pre_load, validates_schema)
 
 from .common import BaseTest
@@ -451,7 +451,7 @@ class TestConfig(BaseTest):
             pass
 
         d = Doc()
-        assert isinstance(d.schema, BaseSchema)
+        assert isinstance(d.schema, Schema)
 
     def test_base_config(self):
 

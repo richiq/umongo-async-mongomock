@@ -16,7 +16,7 @@ from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
 from .embedded_document import (
     EmbeddedDocumentTemplate, EmbeddedDocumentOpts, EmbeddedDocumentImplementation)
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
-from .abstract import BaseSchema
+from .schema import Schema
 from .indexes import parse_index
 from . import fields
 
@@ -281,7 +281,7 @@ class BaseBuilder:
         schema_bases = tuple([base.Schema for base in bases
                               if hasattr(base, 'Schema')])
         if not schema_bases:
-            schema_bases = (BaseSchema, )
+            schema_bases = (Schema, )
         nmspc['pk_field'] = _on_need_add_id_field(schema_bases, schema_fields)
         # If Document is a child, _cls field must be added to the schema
         if opts.is_child:
@@ -329,7 +329,7 @@ class BaseBuilder:
         schema_bases = tuple([base.Schema for base in bases
                               if hasattr(base, 'Schema')])
         if not schema_bases:
-            schema_bases = (BaseSchema, )
+            schema_bases = (Schema, )
         schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
