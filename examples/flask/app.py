@@ -6,7 +6,7 @@ from bson import ObjectId
 from pymongo import MongoClient
 
 from umongo import Instance, Document, fields, ValidationError, set_gettext
-from umongo.marshmallow_bonus import SchemaFromUmongo
+from umongo.schema import SchemaFromUmongo
 
 
 app = Flask(__name__)

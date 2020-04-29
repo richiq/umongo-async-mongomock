@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from functools import partial
 
 from umongo import Instance, Document, fields, ValidationError, set_gettext
-from umongo.marshmallow_bonus import SchemaFromUmongo
+from umongo.schema import SchemaFromUmongo
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
