@@ -93,63 +93,6 @@ class TestMarshmallow(BaseTest):
         ma_schema = Bag.schema.as_marshmallow_schema()
         assert ma_schema().load(data) == excl_data
 
-    def test_customize_params(self):
-        ma_field = self.User.schema.fields['name'].as_marshmallow_field(params={'load_only': True})
-        assert ma_field.load_only is True
-
-        ma_schema_cls = self.User.schema.as_marshmallow_schema(
-            params={'name': {'load_only': True, 'dump_only': True}})
-        schema = ma_schema_cls()
-        ret = schema.dump({'name': "42", 'birthday': datetime(1990, 10, 23), 'dummy': False})
-        assert ret == {'birthday': '1990-10-23T00:00:00'}
-        with pytest.raises(marshmallow.ValidationError) as excinfo:
-            schema.load({'name': "42", 'birthday': '1990-10-23T00:00:00', 'dummy': False})
-        assert excinfo.value.messages == {'name': ['Unknown field.'], 'dummy': ['Unknown field.']}
-        ret = schema.load({'birthday': '1990-10-23T00:00:00'})
-        assert ret == {'birthday': datetime(1990, 10, 23)}
-
-    def test_customize_nested_and_inner_params(self):
-        @self.instance.register
-        class Accessory(EmbeddedDocument):
-            brief = fields.StrField(attribute='id', required=True)
-            value = fields.IntField()
-
-        @self.instance.register
-        class Bag(Document):
-            id = fields.EmbeddedField(Accessory, attribute='_id', required=True)
-            names = fields.ListField(fields.StringField)
-            content = fields.ListField(fields.EmbeddedField(Accessory))
-            relations = fields.DictField(fields.StringField, fields.StringField)
-            inventory = fields.DictField(fields.StringField, fields.EmbeddedField(Accessory))
-
-        ma_field = Bag.schema.fields['id'].as_marshmallow_field(params={
-            'load_only': True,
-            'params': {'value': {'dump_only': True}}})
-        assert ma_field.load_only is True
-        assert ma_field.nested._declared_fields['value'].dump_only
-        ma_field = Bag.schema.fields['names'].as_marshmallow_field(params={
-            'load_only': True,
-            'params': {'dump_only': True}})
-        assert ma_field.load_only is True
-        assert ma_field.inner.dump_only is True
-        ma_field = Bag.schema.fields['content'].as_marshmallow_field(params={
-            'load_only': True,
-            'params': {'required': True, 'params': {'value': {'dump_only': True}}}})
-        assert ma_field.load_only is True
-        assert ma_field.inner.required is True
-        assert ma_field.inner.nested._declared_fields['value'].dump_only
-        ma_field = Bag.schema.fields['relations'].as_marshmallow_field(params={
-            'load_only': True,
-            'params': {'dump_only': True}})
-        assert ma_field.load_only is True
-        assert ma_field.value_field.dump_only is True
-        ma_field = Bag.schema.fields['inventory'].as_marshmallow_field(params={
-            'load_only': True,
-            'params': {'required': True, 'params': {'value': {'dump_only': True}}}})
-        assert ma_field.load_only is True
-        assert ma_field.value_field.required is True
-        assert ma_field.value_field.nested._declared_fields['value'].dump_only
-
     def test_as_marshmallow_field_pass_params(self):
         @self.instance.register
         class MyDoc(Document):
@@ -204,10 +147,6 @@ class TestMarshmallow(BaseTest):
 
     def test_as_marshmallow_schema_cache(self):
         ma_schema_cls = self.User.schema.as_marshmallow_schema()
-
-        new_ma_schema_cls = self.User.schema.as_marshmallow_schema(
-            params={'name': {'load_only': True}})
-        assert new_ma_schema_cls != ma_schema_cls
 
         new_ma_schema_cls = self.User.schema.as_marshmallow_schema(
             mongo_world=True)

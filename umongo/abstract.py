@@ -39,27 +39,21 @@ class BaseSchema(MaSchema):
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
 
-    def as_marshmallow_schema(self, *, params=None, mongo_world=False):
+    def as_marshmallow_schema(self, *, mongo_world=False):
         """
         Return a pure-marshmallow version of this schema class.
 
-        :param params: Per-field dict to pass parameters to their field creation.
         :param mongo_world: If True the schema will work against the mongo world
             instead of the OO world (default: False).
         """
-        params = params or {}
-        # Use hashable parameters as cache dict key and dict parameters for manual comparison
+        # Use a cache to avoid generating several times the same schema
         cache_key = (self.__class__, self.MA_BASE_SCHEMA_CLS, mongo_world)
-        cache_modifiers = (params, )
         if cache_key in self._marshmallow_schemas_cache:
-            for modifiers, ma_schema in self._marshmallow_schemas_cache[cache_key]:
-                if modifiers == cache_modifiers:
-                    return ma_schema
+            return self._marshmallow_schemas_cache[cache_key]
+
+        # Create schema if not found in cache
         nmspc = {
-            name: field.as_marshmallow_field(
-                params=params.get(name),
-                mongo_world=mongo_world,
-            )
+            name: field.as_marshmallow_field(mongo_world=mongo_world)
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
@@ -73,8 +67,7 @@ class BaseSchema(MaSchema):
         # when error_messages is updated with _default_error_messages.
         m_schema._default_error_messages = {
             k: _(v) for k, v in m_schema._default_error_messages.items()}
-        self._marshmallow_schemas_cache.setdefault(cache_key, []).append(
-            (cache_modifiers, m_schema))
+        self._marshmallow_schemas_cache[cache_key] = m_schema
         return m_schema
 
 
@@ -204,18 +197,14 @@ class BaseField(ma_fields.Field):
         params.update(self.metadata)
         return params
 
-    def as_marshmallow_field(self, *, params=None, mongo_world=False, **kwargs):
+    def as_marshmallow_field(self, *, mongo_world=False, **kwargs):
         """
         Return a pure-marshmallow version of this field.
 
-        :param params: Additional parameters passed to the marshmallow field
-            class constructor.
         :param mongo_world: If True the field will work against the mongo world
             instead of the OO world (default: False)
         """
         field_kwargs = self._extract_marshmallow_field_params(mongo_world)
-        if params:
-            field_kwargs.update(params)
         # Retrieve the marshmallow class we inherit from
         for m_class in type(self).mro():
             if (not issubclass(m_class, BaseField) and
