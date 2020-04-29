@@ -90,7 +90,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     :class:`umongo.instance.BaseInstance`.
     """
 
-    __slots__ = ('_callback', '_data', '_modified')
+    __slots__ = ('_data', )
     __real_attributes = None
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate, abstract=True)
 
