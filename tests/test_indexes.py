@@ -94,27 +94,22 @@ class TestIndexes(BaseTest):
                 'Index type must be <str>, <list>, <dict> or <pymongo.IndexModel>')
 
     def test_nested_indexes(self):
+        """Test multikey indexes
 
-        @self.instance.register
-        class NestedDoc(EmbeddedDocument):
-            simple = fields.StrField()
-            listed = fields.ListField(fields.StrField())
-
+        Note: umongo does not check that indexes entered in Meta match existing fields
+        """
         @self.instance.register
         class Doc(Document):
-            nested = fields.EmbeddedField(NestedDoc)
-            listed = fields.ListField(fields.EmbeddedField(NestedDoc))
-
             class Meta:
-                indexes = ['nested', 'nested.simple', 'listed', 'listed.simple', 'listed.listed']
+                indexes = [
+                    'parent', 'parent.child', 'parent.child.grandchild',
+                ]
 
         assert_indexes(Doc.opts.indexes,
             [
-                IndexModel([('nested', ASCENDING)]),
-                IndexModel([('nested.simple', ASCENDING)]),
-                IndexModel([('listed', ASCENDING)]),
-                IndexModel([('listed.simple', ASCENDING)]),
-                IndexModel([('listed.listed', ASCENDING)]),
+                IndexModel([('parent', ASCENDING)]),
+                IndexModel([('parent.child', ASCENDING)]),
+                IndexModel([('parent.child.grandchild', ASCENDING)]),
             ])
 
     @pytest.mark.parametrize("unique_field", ("nested", "list"))
