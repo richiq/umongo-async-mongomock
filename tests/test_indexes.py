@@ -116,3 +116,27 @@ class TestIndexes(BaseTest):
                 IndexModel([('listed.simple', ASCENDING)]),
                 IndexModel([('listed.listed', ASCENDING)]),
             ])
+
+    @pytest.mark.parametrize("unique_field", ("nested", "list"))
+    def test_unique_indexes(self, unique_field):
+
+        @self.instance.register
+        class NestedDoc(EmbeddedDocument):
+            simple = fields.StrField(unique=True)
+
+        u_field, index = {
+            "nested": (
+                fields.EmbeddedField(NestedDoc),
+                IndexModel([('field.simple', ASCENDING)], unique=True, sparse=True),
+            ),
+            "list": (
+                fields.ListField(fields.EmbeddedField(NestedDoc)),
+                IndexModel([('field.simple', ASCENDING)], unique=True, sparse=True),
+            ),
+        }[unique_field]
+
+        @self.instance.register
+        class Doc(Document):
+            field = u_field
+
+        assert_indexes(Doc.opts.indexes, [index])
