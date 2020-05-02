@@ -5,7 +5,6 @@ from .frameworks import (
     PyMongoInstance,
     TxMongoInstance,
     MotorAsyncIOInstance,
-    MotorTornadoInstance,
     MongoMockInstance
 )
 from .document import (
@@ -42,7 +41,6 @@ __all__ = (
     'PyMongoInstance',
     'TxMongoInstance',
     'MotorAsyncIOInstance',
-    'MotorTornadoInstance',
     'MongoMockInstance',
 
     'Document',
