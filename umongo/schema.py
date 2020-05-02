@@ -1,5 +1,5 @@
 """Schema used in Document"""
-from marshmallow import Schema as MaSchema, missing
+import marshmallow as ma
 
 from .abstract import BaseSchema
 from .i18n import gettext as _
@@ -26,14 +26,14 @@ def schema_from_umongo_get_attribute(self, obj, attr, default):
             ...
 
     """
-    ret = MaSchema.get_attribute(self, obj, attr, default)
+    ret = ma.Schema.get_attribute(self, obj, attr, default)
     if ret is None and ret is not default and attr in obj.schema.fields:
         raw_ret = obj._data.get(attr)
-        return default if raw_ret is missing else raw_ret
+        return default if raw_ret is ma.missing else raw_ret
     return ret
 
 
-class SchemaFromUmongo(MaSchema):
+class SchemaFromUmongo(ma.Schema):
     """
     Custom :class:`marshmallow.Schema` subclass providing unknown fields
     checking and custom get_attribute for umongo documents.

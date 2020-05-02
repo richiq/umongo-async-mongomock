@@ -1,6 +1,6 @@
 """Pure marshmallow fields used in umongo"""
 import bson
-from marshmallow import ValidationError, fields as ma_fields
+import marshmallow as ma
 
 from .i18n import gettext as _
 
@@ -12,7 +12,7 @@ __all__ = (
 )
 
 
-class ObjectId(ma_fields.Field):
+class ObjectId(ma.fields.Field):
     """
     Marshmallow field for :class:`bson.ObjectId`
     """
@@ -26,7 +26,7 @@ class ObjectId(ma_fields.Field):
         try:
             return bson.ObjectId(value)
         except (TypeError, bson.errors.InvalidId):
-            raise ValidationError(_('Invalid ObjectId.'))
+            raise ma.ValidationError(_('Invalid ObjectId.'))
 
 
 class Reference(ObjectId):
@@ -51,7 +51,7 @@ class Reference(ObjectId):
         return str(value.pk)
 
 
-class GenericReference(ma_fields.Field):
+class GenericReference(ma.fields.Field):
     """
     Marshmallow field for :class:`umongo.fields.GenericReferenceField`
     """
@@ -74,13 +74,13 @@ class GenericReference(ma_fields.Field):
 
     def _deserialize(self, value, attr, data, **kwargs):
         if not isinstance(value, dict):
-            raise ValidationError(_("Invalid value for generic reference field."))
+            raise ma.ValidationError(_("Invalid value for generic reference field."))
         if value.keys() != {'cls', 'id'}:
-            raise ValidationError(_("Generic reference must have `id` and `cls` fields."))
+            raise ma.ValidationError(_("Generic reference must have `id` and `cls` fields."))
         try:
             _id = bson.ObjectId(value['id'])
         except ValueError:
-            raise ValidationError(_("Invalid `id` field."))
+            raise ma.ValidationError(_("Invalid `id` field."))
         if self.mongo_world:
             return {'_cls': value['cls'], '_id': _id}
         return {'cls': value['cls'], 'id': _id}

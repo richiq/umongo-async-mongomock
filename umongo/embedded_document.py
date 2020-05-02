@@ -1,8 +1,8 @@
+"""umongo EmbeddedDocument"""
 import marshmallow as ma
 
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
-from .data_proxy import missing
 from .exceptions import DocumentDefinitionError, AbstractDocumentError
 
 
@@ -161,7 +161,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
 
     def __getitem__(self, name):
         value = self._data.get(name)
-        return value if value is not missing else None
+        return value if value is not ma.missing else None
 
     def __delitem__(self, name):
         self._data.delete(name)
@@ -184,7 +184,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         if name[:2] == name[-2:] == '__':
             raise AttributeError(name)
         value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not missing else None
+        return value if value is not ma.missing else None
 
     def __delattr__(self, name):
         if not self.__real_attributes:

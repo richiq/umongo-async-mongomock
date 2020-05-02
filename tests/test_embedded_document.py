@@ -2,7 +2,7 @@ from copy import copy, deepcopy
 
 import pytest
 
-from marshmallow import ValidationError, missing
+import marshmallow as ma
 
 from umongo.data_proxy import data_proxy_factory
 from umongo import Document, EmbeddedDocument, fields, exceptions
@@ -100,7 +100,7 @@ class TestEmbeddedDocument(BaseTest):
         assert embedded_doc.a == 1
         assert embedded_doc.b == 42
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ma.ValidationError):
             MyEmbeddedDocument(in_mongo_a=1, b=2)
 
         embedded_doc['a'] = 1
@@ -147,31 +147,31 @@ class TestEmbeddedDocument(BaseTest):
             l = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
             b = fields.IntField(required=True)
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(l={})
         assert exc.value.args[0] == {'l': ['Not a valid list.']}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(l=True)
         assert exc.value.args[0] == {'l': ['Not a valid list.']}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(l="string is not a list")
         assert exc.value.args[0] == {'l': ['Not a valid list.']}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(l=[42])
         assert exc.value.args[0] == {'l': {0: {'_schema': ['Invalid input type.']}}}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(l=[{}, 42])
         assert exc.value.args[0] == {'l': {1: {'_schema': ['Invalid input type.']}}}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(b=[{}])
         assert exc.value.args[0] == {'b': ['Not a valid integer.']}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(e=[{}])
         assert exc.value.args[0] == {'e': {'_schema': ['Invalid input type.']}}
 
@@ -212,10 +212,10 @@ class TestEmbeddedDocument(BaseTest):
         assert child.to_mongo() == {'in_mongo_a_child': 1, 'b': 2, 'c': 3, '_cls': 'EmbeddedChild'}
         assert grandchild.to_mongo() == {'d': 4, '_cls': 'GrandChild'}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(parent=OtherEmbedded())
         assert exc.value.args[0] == {'parent': {'_schema': ['Invalid input type.']}}
-        with pytest.raises(ValidationError):
+        with pytest.raises(ma.ValidationError):
             MyDoc(child=parent)
         doc = MyDoc(parent=child, child=child)
         assert doc.child == doc.parent
@@ -225,12 +225,12 @@ class TestEmbeddedDocument(BaseTest):
         assert doc.child.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'GrandChild'}
         assert doc.parent.to_mongo() == {'in_mongo_a_child': 1, '_cls': 'EmbeddedChild'}
 
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(child={'a': 1, '_cls': 'GrandChild'})
         assert exc.value.messages == {'child': {'_cls': ['Unknown field.']}}
 
         # Try to build a non-child document
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDoc(child={'cls': 'OtherEmbedded'})
         assert exc.value.messages == {'child': ['Unknown document `OtherEmbedded`.']}
 
@@ -376,9 +376,9 @@ class TestEmbeddedDocument(BaseTest):
         assert emb_1 != emb_3
         assert emb_1 != emb_4
         assert emb_1 != None  # noqa: E711 (None comparison)
-        assert emb_1 != missing
+        assert emb_1 != ma.missing
         assert None != emb_1  # noqa: E711 (None comparison)
-        assert missing != emb_1
+        assert ma.missing != emb_1
 
     def test_strict_embedded_document(self):
         @self.instance.register
@@ -400,7 +400,7 @@ class TestEmbeddedDocument(BaseTest):
         assert non_strict_doc.to_mongo() == data_with_bonus
         non_strict_doc.dump() == {'a': 42}
 
-        with pytest.raises(exceptions.ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             NonStrictEmbeddedDoc(a=42, b='foo')
         assert exc.value.messages == {'b': ['Unknown field.']}
 

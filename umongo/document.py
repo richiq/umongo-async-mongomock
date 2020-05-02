@@ -1,15 +1,17 @@
+"""umongo Document"""
 from copy import deepcopy
 
 from bson import DBRef
+import marshmallow as ma
 from marshmallow import (
     pre_load, post_load, pre_dump, post_dump, validates_schema,  # republishing
-    Schema as MaSchema
 )
 
 from .abstract import BaseDataObject
-from .data_proxy import missing
-from .exceptions import (AlreadyCreatedError, NotCreatedError, NoDBDefinedError,
-                         AbstractDocumentError, DocumentDefinitionError)
+from .exceptions import (
+    AlreadyCreatedError, NotCreatedError, NoDBDefinedError,
+    AbstractDocumentError, DocumentDefinitionError,
+)
 from .template import Implementation, Template, MetaImplementation
 from .data_objects import Reference
 
@@ -41,7 +43,7 @@ class DocumentTemplate(Template):
         or `marshmallow.post_dump`) to this class that will be passed
         to the marshmallow schema internally used for this document.
     """
-    MA_BASE_SCHEMA_CLS = MaSchema
+    MA_BASE_SCHEMA_CLS = ma.Schema
 
 
 Document = DocumentTemplate
@@ -192,7 +194,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
                      field could be generated before insertion
         """
         value = self._data.get(self.pk_field)
-        return value if value is not missing else None
+        return value if value is not ma.missing else None
 
     @property
     def dbref(self):
@@ -274,7 +276,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     def __getitem__(self, name):
         value = self._data.get(name)
-        return value if value is not missing else None
+        return value if value is not ma.missing else None
 
     def __setitem__(self, name, value):
         if self.is_created and name == self.pk_field:
@@ -290,7 +292,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         if name[:2] == name[-2:] == '__':
             raise AttributeError(name)
         value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not missing else None
+        return value if value is not ma.missing else None
 
     def __setattr__(self, name, value):
         # Try to retrieve name among class's attributes and __slots__

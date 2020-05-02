@@ -1,4 +1,5 @@
-from marshmallow import missing
+from marshmallow import ValidationError, missing  # noqa, republishing
+
 from .instance import Instance
 from .frameworks import (
     PyMongoInstance,
@@ -17,7 +18,6 @@ from .document import (
 )
 from .exceptions import (
     UMongoError,
-    ValidationError,
     UpdateError,
     DeleteError,
     AlreadyCreatedError,

@@ -3,14 +3,12 @@ from twisted.internet.defer import (
 from txmongo import filter as qf
 from txmongo.database import Database
 from pymongo.errors import DuplicateKeyError
+import marshmallow as ma
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
-from ..data_proxy import missing
 from ..data_objects import Reference
-from ..exceptions import (
-    NotCreatedError, UpdateError, DeleteError, ValidationError, NoneReferenceError
-)
+from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
 from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
@@ -94,11 +92,11 @@ class TxMongoDocument(DocumentImplementation):
                     keys = index.document['key'].keys()
                     if len(keys) == 1:
                         msg = self.schema.fields[keys[0]].error_messages['unique']
-                        raise ValidationError({keys[0]: msg})
+                        raise ma.ValidationError({keys[0]: msg})
                     fields = self.schema.fields
                     # Compound index (sort value to make testing easier)
                     keys = sorted(keys)
-                    raise ValidationError(
+                    raise ma.ValidationError(
                         {
                             k: fields[k].error_messages['unique_compound'].format(fields=keys)
                             for k in keys
@@ -217,7 +215,7 @@ class TxMongoDocument(DocumentImplementation):
 def _errback_factory(errors, field=None):
 
     def errback(err):
-        if isinstance(err.value, ValidationError):
+        if isinstance(err.value, ma.ValidationError):
             if field is not None:
                 errors[field] = err.value.messages
             else:
@@ -236,7 +234,7 @@ def _run_validators(validators, field, value):
     for validator in validators:
         try:
             defer = validator(field, value)
-        except ValidationError as exc:
+        except ma.ValidationError as exc:
             errors.extend(exc.messages)
         else:
             assert isinstance(defer, Deferred), 'io_validate functions must return a Deferred'
@@ -244,7 +242,7 @@ def _run_validators(validators, field, value):
             defers.append(defer)
     yield DeferredList(defers)
     if errors:
-        raise ValidationError(errors)
+        raise ma.ValidationError(errors)
 
 
 @inlineCallbacks
@@ -256,7 +254,7 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
             continue
         data_name = field.attribute or name
         value = data_proxy._data[data_name]
-        if value is missing:
+        if value is ma.missing:
             continue
         try:
             if field.io_validate_recursive:
@@ -265,11 +263,11 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
                 defer = _run_validators(field.io_validate, field, value)
                 defer.addErrback(_errback_factory(errors, name))
                 defers.append(defer)
-        except ValidationError as exc:
+        except ma.ValidationError as exc:
             errors[name] = exc.messages
     yield DeferredList(defers)
     if errors:
-        raise ValidationError(errors)
+        raise ma.ValidationError(errors)
 
 
 def _reference_io_validate(field, value):
@@ -289,7 +287,7 @@ def _list_io_validate(field, value):
         defers.append(defer)
     yield DeferredList(defers)
     if errors:
-        raise ValidationError(errors)
+        raise ma.ValidationError(errors)
 
 
 def _embedded_document_io_validate(field, value):
@@ -309,7 +307,7 @@ class TxMongoReference(Reference):
                 raise NoneReferenceError('Cannot retrieve a None Reference')
             self._document = yield self.document_cls.find_one(self.pk)
             if not self._document:
-                raise ValidationError(self.error_messages['not_found'].format(
+                raise ma.ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
         returnValue(self._document)
 

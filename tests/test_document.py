@@ -4,6 +4,7 @@ from datetime import datetime
 import pytest
 
 from bson import ObjectId, DBRef
+import marshmallow as ma
 
 from umongo import (Document, EmbeddedDocument, Schema, fields, exceptions,
                     post_dump, pre_load, validates_schema)
@@ -201,11 +202,11 @@ class TestDocument(BaseTest):
     def test_required_fields(self):
         # Should be able to instanciate document without their required fields
         student = self.Student()
-        with pytest.raises(exceptions.ValidationError):
+        with pytest.raises(ma.ValidationError):
             student.required_validate()
 
         student = self.Student(gpa=2.8)
-        with pytest.raises(exceptions.ValidationError):
+        with pytest.raises(ma.ValidationError):
             student.required_validate()
 
         student = self.Student(gpa=2.8, name='Marty')
@@ -223,7 +224,7 @@ class TestDocument(BaseTest):
         assert 'id' in AutoId.schema.fields
 
         # default id field is only dumpable
-        with pytest.raises(exceptions.ValidationError):
+        with pytest.raises(ma.ValidationError):
             AutoId(id=my_id)
 
         autoid = AutoId.build_from_mongo({'_id': my_id})
@@ -248,10 +249,10 @@ class TestDocument(BaseTest):
                 allow_inheritance = True
 
         assert 'id' not in CustomId.schema.fields
-        with pytest.raises(exceptions.ValidationError):
+        with pytest.raises(ma.ValidationError):
             CustomId(id=my_id)
         customid = CustomId(int_id=42)
-        with pytest.raises(exceptions.ValidationError):
+        with pytest.raises(ma.ValidationError):
             customid.int_id = my_id
         assert customid.int_id == 42
         assert customid.pk == customid.int_id
@@ -537,7 +538,7 @@ class TestConfig(BaseTest):
             @validates_schema(pass_original=True)
             def custom_validate(self, data, original_data, **kwargs):
                 if original_data['name'] != 'Donald':
-                    raise exceptions.ValidationError('Not suitable name for duck !', 'name')
+                    raise ma.ValidationError('Not suitable name for duck !', 'name')
 
         duck = Duck(name='Donald')
         dog = Dog(name='Pluto')
@@ -547,7 +548,7 @@ class TestConfig(BaseTest):
         assert dog.dump() == {'name': 'Pluto', 'cls': 'Dog'}
         assert Duck(name='Donald', race='Duck')._data == duck._data
 
-        with pytest.raises(exceptions.ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             Duck(name='Roger')
         exc.value.args[0] == {'name': 'Not suitable name for duck !'}
 
@@ -633,6 +634,6 @@ class TestConfig(BaseTest):
         assert non_strict_doc.to_mongo() == data_with_bonus
         non_strict_doc.dump() == {'a': 42}
 
-        with pytest.raises(exceptions.ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             NonStrictDoc(a=42, b='foo')
         assert exc.value.messages == {'b': ['Unknown field.']}

@@ -8,7 +8,7 @@ import re
 import inspect
 from copy import copy
 
-from marshmallow import fields as ma_fields
+import marshmallow as ma
 
 from .template import Template, Implementation
 from .data_proxy import data_proxy_factory
@@ -50,7 +50,7 @@ def _on_need_add_id_field(bases, fields_dict):
     def find_id_field(fields_dict):
         for name, field in fields_dict.items():
             # Skip fake fields present in schema (e.g. `post_load` decorated function)
-            if not isinstance(field, ma_fields.Field):
+            if not isinstance(field, ma.fields.Field):
                 continue
             if (name == '_id' and not field.attribute) or field.attribute == '_id':
                 return name
@@ -89,7 +89,7 @@ def _collect_schema_attrs(nmspc):
         if hasattr(item, '__marshmallow_hook__'):
             # Decorated special functions (e.g. `post_load`)
             schema_non_fields[key] = item
-        elif isinstance(item, ma_fields.Field):
+        elif isinstance(item, ma.fields.Field):
             # Given the fields provided by the template are going to be
             # customized in the implementation, we copy them to avoid
             # overwriting if two implementations are created

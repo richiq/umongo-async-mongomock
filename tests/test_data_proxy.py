@@ -1,7 +1,7 @@
 import pytest
 
 from bson import ObjectId
-from marshmallow import ValidationError, missing
+import marshmallow as ma
 
 from umongo.data_proxy import data_proxy_factory, BaseDataProxy, BaseNonStrictDataProxy
 from umongo import Schema, fields, EmbeddedDocument, validate, exceptions
@@ -40,7 +40,7 @@ class TestDataProxy(BaseTest):
         assert d._data == {'a': 1, 'b': 3}
         assert d.dump() == {'a': 1, 'b': 3}
         d.delete('b')
-        assert d._data == {'a': 1, 'b': missing}
+        assert d._data == {'a': 1, 'b': ma.missing}
         assert d.dump() == {'a': 1}
 
     def test_load(self):
@@ -181,9 +181,9 @@ class TestDataProxy(BaseTest):
         d.from_mongo({})
         d.set('c', None)
         assert d.to_mongo() == {'c': None}
-        with pytest.raises(ValidationError):
+        with pytest.raises(ma.ValidationError):
             d.set('c', '123456')
-        with pytest.raises(ValidationError):
+        with pytest.raises(ma.ValidationError):
             d.set('d', None)
 
     def test_del(self):
@@ -211,7 +211,7 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy()
-        with pytest.raises(ValidationError):
+        with pytest.raises(ma.ValidationError):
             d.load({'in_mongo': 42})
         d.load({'in_front': 42})
         with pytest.raises(KeyError):
@@ -251,9 +251,9 @@ class TestDataProxy(BaseTest):
         assert d1 == d2
 
         assert d1 != None  # noqa: E711 (None comparison)
-        assert d1 != missing
+        assert d1 != ma.missing
         assert None != d1  # noqa: E711 (None comparison)
-        assert missing != d1
+        assert ma.missing != d1
 
     def test_share_ressources(self):
 
@@ -278,14 +278,14 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy(data={'a': 1})
-        assert d.get('b') is missing
-        assert d._data['in_mongo_b'] is missing
+        assert d.get('b') is ma.missing
+        assert d._data['in_mongo_b'] is ma.missing
         d.set('b', 2)
         assert d.get('b') == 2
         d.delete('b')
         # Can do it two time in a row without error
         d.delete('b')
-        assert d._data['in_mongo_b'] is missing
+        assert d._data['in_mongo_b'] is ma.missing
 
     def test_default(self):
         default_value = ObjectId('507f1f77bcf86cd799439011')
@@ -298,10 +298,10 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy(data={})
-        assert d._data['no_default'] is missing
+        assert d._data['no_default'] is ma.missing
         assert d._data['with_default'] == default_value
         assert d._data['with_callable_default'] == default_callable()
-        assert d.get('no_default') is missing
+        assert d.get('no_default') is ma.missing
         assert d.get('with_default') == default_value
         assert d.get('with_callable_default') == default_callable()
         assert d.to_mongo() == {
@@ -327,10 +327,10 @@ class TestDataProxy(BaseTest):
 
         MyDataProxy = data_proxy_factory('My', MySchema())
         d = MyDataProxy(data={})
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             MyDataProxy(data={'with_max': 100})
         assert exc.value.args[0] == {'with_max': ['Must be less than or equal to 99.']}
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             d.set('with_max', 100)
         assert exc.value.args[0] == ['Must be less than or equal to 99.']
 
@@ -363,7 +363,7 @@ class TestDataProxy(BaseTest):
         d.required_validate()
 
         d.load({'embedded': {'required': 42}})
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {'required': ['Missing data for required field.']}
 
@@ -372,12 +372,12 @@ class TestDataProxy(BaseTest):
         d.required_validate()
         # Required fields in the embedded document are only checked if the document is not missing
         d.load({'embedded': {}, 'required': 42})
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {'embedded': {'required': ['Missing data for required field.']}}
 
         d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{}], 'dicted': {'a': {}}})
-        with pytest.raises(ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             d.required_validate()
         assert exc.value.messages == {
             'listed': {0: {'required': ['Missing data for required field.']}},
@@ -431,7 +431,7 @@ class TestNonStrictDataProxy(BaseTest):
             field_a = fields.IntField(attribute='mongo_field_a')
 
         NonStrictDataProxy = data_proxy_factory('My', MySchema(), strict=False)
-        with pytest.raises(exceptions.ValidationError) as exc:
+        with pytest.raises(ma.ValidationError) as exc:
             NonStrictDataProxy({'field_a': 42, 'xxx': 'foo'})
         assert exc.value.messages == {'xxx': ['Unknown field.']}
         d = NonStrictDataProxy()

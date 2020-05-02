@@ -1,5 +1,4 @@
-from marshmallow import (Schema as MaSchema, fields as ma_fields,
-                         validate as ma_validate, missing)
+import marshmallow as ma
 
 from .i18n import gettext as _, N_
 
@@ -13,11 +12,11 @@ class I18nErrorDict(dict):
         return _(raw_msg)
 
 
-class BaseSchema(MaSchema):
+class BaseSchema(ma.Schema):
     """
     All schema used in umongo should inherit from this base schema
     """
-    MA_BASE_SCHEMA_CLS = MaSchema
+    MA_BASE_SCHEMA_CLS = ma.Schema
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,7 +36,7 @@ class BaseSchema(MaSchema):
                 field.map_to_field(mongo_path, name, func)
 
 
-class BaseField(ma_fields.Field):
+class BaseField(ma.fields.Field):
     """
     All fields used in umongo should inherit from this base field.
 
@@ -128,8 +127,8 @@ class BaseField(ma_fields.Field):
     def serialize_to_mongo(self, obj):
         if obj is None and getattr(self, 'allow_none', False) is True:
             return None
-        if obj is missing:
-            return missing
+        if obj is ma.missing:
+            return ma.missing
         return self._serialize_to_mongo(obj)
 
     # def serialize_to_mongo_update(self, path, obj):
@@ -174,7 +173,7 @@ class BaseField(ma_fields.Field):
         # Retrieve the marshmallow class we inherit from
         for m_class in type(self).mro():
             if (not issubclass(m_class, BaseField) and
-                    issubclass(m_class, ma_fields.Field)):
+                    issubclass(m_class, ma.fields.Field)):
                 m_field = m_class(**field_kwargs)
                 # Add i18n support to the field
                 m_field.error_messages = I18nErrorDict(m_field.error_messages)
@@ -182,7 +181,7 @@ class BaseField(ma_fields.Field):
         # Cannot escape the loop given BaseField itself inherits marshmallow's Field
 
 
-class BaseValidator(ma_validate.Validator):
+class BaseValidator(ma.validate.Validator):
     """
     All validators in umongo should inherit from this base validator.
     """
