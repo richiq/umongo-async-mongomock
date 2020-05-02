@@ -1,7 +1,7 @@
 """umongo EmbeddedDocument"""
 import marshmallow as ma
 
-from .document import Implementation, Template
+from .template import Implementation, Template
 from .data_objects import BaseDataObject
 from .exceptions import AbstractDocumentError
 
@@ -110,6 +110,9 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         return self._data.is_modified()
 
     def clear_modified(self):
+        """
+        Reset the list of document's modified items.
+        """
         self._data.clear_modified()
 
     def required_validate(self):

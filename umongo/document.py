@@ -7,10 +7,11 @@ from marshmallow import (
     pre_load, post_load, pre_dump, post_dump, validates_schema,  # republishing
 )
 
-from .abstract import BaseDataObject
 from .exceptions import (
-    AlreadyCreatedError, NotCreatedError, NoDBDefinedError, AbstractDocumentError)
-from .template import Implementation, Template, MetaImplementation
+    AlreadyCreatedError, NotCreatedError, NoDBDefinedError, AbstractDocumentError
+)
+from .template import Template, MetaImplementation
+from .embedded_document import EmbeddedDocumentImplementation
 from .data_objects import Reference
 
 
@@ -118,7 +119,10 @@ class MetaDocumentImplementation(MetaImplementation):
         return cls.opts.instance.db[cls.opts.collection_name]
 
 
-class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocumentImplementation):
+class DocumentImplementation(
+    EmbeddedDocumentImplementation,
+    metaclass=MetaDocumentImplementation
+):
     """
     Represent a document once it has been implemented inside a
     :class:`umongo.instance.BaseInstance`.
@@ -132,12 +136,11 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
     opts = DocumentOpts(None, DocumentTemplate, abstract=True)
 
     def __init__(self, **kwargs):
-        super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
         "Return True if the document has been commited to database"  # is_created's docstring
-        self._data = self.DataProxy(kwargs)
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
@@ -246,45 +249,23 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         """
         return self._data.dump()
 
-    def clear_modified(self):
-        """
-        Reset the list of document's modified items.
-        """
-        self._data.clear_modified()
-
     def is_modified(self):
         """
         Returns True if and only if the document was modified since last commit.
         """
         return not self.is_created or self._data.is_modified()
 
-    def required_validate(self):
-        self._data.required_validate()
-
-    def items(self):
-        return self._data.items()
-
     # Data-proxy accessor shortcuts
-
-    def __getitem__(self, name):
-        value = self._data.get(name)
-        return value if value is not ma.missing else None
 
     def __setitem__(self, name, value):
         if self.is_created and name == self.pk_field:
             raise AlreadyCreatedError("Can't modify id of a created document")
-        self._data.set(name, value)
+        super().__setitem__(name, value)
 
     def __delitem__(self, name):
         if self.is_created and name == self.pk_field:
             raise AlreadyCreatedError("Can't modify id of a created document")
-        self._data.delete(name)
-
-    def __getattr__(self, name):
-        if name[:2] == name[-2:] == '__':
-            raise AttributeError(name)
-        value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not ma.missing else None
+        super().__delitem__(name)
 
     def __setattr__(self, name, value):
         # Try to retrieve name among class's attributes and __slots__
