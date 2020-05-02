@@ -258,25 +258,32 @@ class BaseBuilder:
         schema_nmspc['MA_BASE_SCHEMA_CLS'] = template.MA_BASE_SCHEMA_CLS
         return type('%sSchema' % template.__name__, schema_bases, schema_nmspc)
 
-    def build_document_from_template(self, template):
+    def build_from_template(self, template):
         """
         Generate a :class:`umongo.document.DocumentImplementation` for this
         instance from the given :class:`umongo.document.DocumentTemplate`.
         """
-        assert issubclass(template, DocumentTemplate)
+        embedded = not issubclass(template, DocumentTemplate)
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
-        opts = _build_document_opts(self.instance, template, name, template.__dict__, bases)
+        if embedded:
+            opts = _build_embedded_document_opts(
+                self.instance, template, name, template.__dict__, bases
+            )
+        else:
+            opts = _build_document_opts(
+                self.instance, template, name, template.__dict__, bases
+            )
         nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template)
         nmspc['opts'] = opts
 
         # Create schema by retrieving inherited schema classes
-        schema_bases = tuple([base.Schema for base in bases
-                              if hasattr(base, 'Schema')])
+        schema_bases = tuple([base.Schema for base in bases if hasattr(base, 'Schema')])
         if not schema_bases:
             schema_bases = (Schema, )
-        nmspc['pk_field'] = _on_need_add_id_field(schema_bases, schema_fields)
-        # If Document is a child, _cls field must be added to the schema
+        if not embedded:
+            nmspc['pk_field'] = _on_need_add_id_field(schema_bases, schema_fields)
+
         if opts.is_child:
             _add_child_field(name, schema_fields)
         schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
@@ -285,57 +292,17 @@ class BaseBuilder:
         nmspc['schema'] = schema
         nmspc['DataProxy'] = data_proxy_factory(name, schema, strict=opts.strict)
 
-        # _build_document_opts cannot determine the indexes given we need to
-        # visit the document's fields which weren't defined at this time
-        opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases)
+        if not embedded:
+            # _build_document_opts cannot determine the indexes given we need to
+            # visit the document's fields which weren't defined at this time
+            opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
         # Notify the parent & grand parents of the newborn !
+        base_impl_cls = EmbeddedDocumentImplementation if embedded else DocumentImplementation
         for base in bases:
             for parent in inspect.getmro(base):
-                if (not issubclass(parent, DocumentImplementation) or
-                        parent is DocumentImplementation):
-                    continue
-                parent.opts.offspring.add(implementation)
-        return implementation
-
-    def build_embedded_document_from_template(self, template):
-        """
-        Generate a :class:`umongo.document.EmbeddedDocumentImplementation` for this
-        instance from the given :class:`umongo.document.EmbeddedDocumentTemplate`.
-        """
-        assert issubclass(template, EmbeddedDocumentTemplate)
-        name = template.__name__
-        bases = self._convert_bases(template.__bases__)
-        opts = _build_embedded_document_opts(
-            self.instance, template, name, template.__dict__, bases)
-
-        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template)
-        nmspc['opts'] = opts
-
-        # If EmbeddedDocument is a child, _cls field must be added to the schema
-        if opts.is_child:
-            _add_child_field(name, schema_fields)
-
-        # Create schema by retrieving inherited schema classes
-        schema_bases = tuple([base.Schema for base in bases
-                              if hasattr(base, 'Schema')])
-        if not schema_bases:
-            schema_bases = (Schema, )
-        schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
-        nmspc['Schema'] = schema_cls
-        schema = schema_cls()
-        nmspc['schema'] = schema
-        nmspc['DataProxy'] = data_proxy_factory(name, schema, strict=opts.strict)
-
-        implementation = type(name, bases, nmspc)
-        self._templates_lookup[template] = implementation
-        # Notify the parent & grand parents of the newborn !
-        for base in bases:
-            for parent in inspect.getmro(base):
-                if (not issubclass(parent, EmbeddedDocumentImplementation) or
-                        parent is EmbeddedDocumentImplementation):
-                    continue
-                parent.opts.offspring.add(implementation)
+                if issubclass(parent, base_impl_cls) and parent is not base_impl_cls:
+                    parent.opts.offspring.add(implementation)
         return implementation
