@@ -245,8 +245,7 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
     for name, field in schema.fields.items():
         if partial and name not in partial:
             continue
-        data_name = field.attribute or name
-        value = data_proxy._data[data_name]
+        value = data_proxy.get(name)
         if value is ma.missing:
             continue
         try:
