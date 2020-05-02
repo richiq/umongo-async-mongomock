@@ -520,26 +520,13 @@ by subclassing it:
     >>> ret
     {'name': 'Scruffy'}
 
-Finally we can integrated the validated data into OO world:
+Finally we can integrate the validated data into OO world:
 
 .. code-block:: python
 
     >>> my_dog.update(ret)
     >>> my_dog.name
     'Scruffy'
-
-.. note:: When instantiating a custom marshmallow schema, you can use`strict=True`
-    to make the schema raise a `ValidationError` instead of returning an error dict.
-    This allow a better integration in umongo own error handling:
-
-    .. code-block:: python
-
-        try:
-            data, _ = patch_dog_schema.load(payload)
-            my_dog.update(data)
-            my_dog.commit()
-        except (ValidationError, UMongoError) as e:
-            # error handling
 
 This works great when you want to add special behavior depending of the situation.
 For more simple usecases we could use the
