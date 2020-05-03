@@ -84,17 +84,23 @@ def _collect_schema_attrs(template):
     schema_fields = {}
     schema_non_fields = {}
     nmspc = {}
-    for key, item in template.__dict__.items():
-        if hasattr(item, '__marshmallow_hook__'):
-            # Decorated special functions (e.g. `post_load`)
-            schema_non_fields[key] = item
-        elif isinstance(item, ma.fields.Field):
-            # Given the fields provided by the template are going to be
-            # customized in the implementation, we copy them to avoid
-            # overwriting if two implementations are created
-            schema_fields[key] = copy(item)
-        else:
-            nmspc[key] = item
+    # Collect schema attributes up the MRO to get attributes from Mixins
+    for tmpl in inspect.getmro(template):
+        # Stop when reaching Doc or EmbeddedDoc template as this is already
+        # covered by document inheritance
+        if tmpl != template and issubclass(tmpl, Template):
+            break
+        for key, item in tmpl.__dict__.items():
+            if hasattr(item, '__marshmallow_hook__'):
+                # Decorated special functions (e.g. `post_load`)
+                schema_non_fields.setdefault(key, item)
+            elif isinstance(item, ma.fields.Field):
+                # Given the fields provided by the template are going to be
+                # customized in the implementation, we copy them to avoid
+                # overwriting if two implementations are created
+                schema_fields.setdefault(key, copy(item))
+            else:
+                nmspc.setdefault(key, item)
     return nmspc, schema_fields, schema_non_fields
 
 
