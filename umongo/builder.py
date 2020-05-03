@@ -77,15 +77,15 @@ def _add_child_field(name, fields_dict):
     fields_dict['cls'] = fields.StringField(attribute='_cls', default=name, dump_only=True)
 
 
-def _collect_schema_attrs(nmspc):
+def _collect_schema_attrs(template):
     """
     Split dict between schema fields and non-fields elements and retrieve
     marshmallow tags if any.
     """
     schema_fields = {}
     schema_non_fields = {}
-    doc_nmspc = {}
-    for key, item in nmspc.items():
+    nmspc = {}
+    for key, item in template.__dict__.items():
         if hasattr(item, '__marshmallow_hook__'):
             # Decorated special functions (e.g. `post_load`)
             schema_non_fields[key] = item
@@ -95,8 +95,8 @@ def _collect_schema_attrs(nmspc):
             # overwriting if two implementations are created
             schema_fields[key] = copy(item)
         else:
-            doc_nmspc[key] = item
-    return doc_nmspc, schema_fields, schema_non_fields
+            nmspc[key] = item
+    return nmspc, schema_fields, schema_non_fields
 
 
 def _collect_indexes(meta, schema_nmspc, bases):
@@ -274,7 +274,7 @@ class BaseBuilder:
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
         opts = _build_document_opts(self.instance, template, name, template.__dict__, bases)
-        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template.__dict__)
+        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template)
         nmspc['opts'] = opts
 
         # Create schema by retrieving inherited schema classes
@@ -318,7 +318,7 @@ class BaseBuilder:
         opts = _build_embedded_document_opts(
             self.instance, template, name, template.__dict__, bases)
 
-        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template.__dict__)
+        nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template)
         nmspc['opts'] = opts
 
         # If EmbeddedDocument is a child, _cls field must be added to the schema
