@@ -332,8 +332,6 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         else:
             self.document = document
         self._document_cls = None
-        # Avoid importing multiple times
-        from .document import DocumentImplementation
         self._document_implementation_cls = DocumentImplementation
 
     @property
