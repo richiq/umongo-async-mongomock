@@ -2,6 +2,27 @@
 History
 =======
 
+3.0.0b6 (2020-05-04)
+--------------------
+
+Features:
+
+* *Backwards-incompatible*: ``abstract`` in ``EmbeddedDocument`` behaves
+  consistently with ``Document``. The ``_cls`` / ``cls`` field is only added
+  on concrete embedded documents subclassing concrete embedded documents. And
+  ``EmbeddedField`` only accepts concrete embedded documents. (see #86)
+
+* ``Document`` and ``EmbeddedDocument`` may inherits from mixin classes. The
+  mixin class should appear first (leftmost) in the bases:
+  ``class MyDocument(MyMixin, Document)``. (see #188)
+
+Other changes:
+
+* *Backwards-incompatible*: marshmallow imports throughout the code are done as
+  ``import marshmallow as ma``. For convenience, ``missing`` and
+  ``ValidationError`` can still be imported as ``umongo.missing`` and
+  ``umongo.ValidationError``.
+
 3.0.0b5 (2020-04-30)
 --------------------
 
@@ -20,7 +41,6 @@ Features:
 Other changes:
 
 * *Backwards-incompatible*: Require txmongo>=19.2.0 (see #259).
-
 
 3.0.0b4 (2020-04-27)
 --------------------
