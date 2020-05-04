@@ -351,7 +351,7 @@ class TestDocument(BaseTest):
         assert Child.opts.offspring == set()
         assert Cousin.opts.offspring == set()
 
-    def test_instanciate_template(self):
+    def test_instantiate_template(self):
 
         class Doc(Document):
             pass
@@ -440,6 +440,68 @@ class TestDocument(BaseTest):
             del john['primary_key']
         with pytest.raises(exceptions.AlreadyCreatedError):
             john.update({'primary_key': ObjectId()})
+
+    def test_mixin(self):
+
+        class PMixin:
+            pm = fields.IntField()
+
+        class CMixin:
+            cm = fields.IntField()
+
+        @self.instance.register
+        class Parent(PMixin, Document):
+            p = fields.StrField()
+
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class Child(CMixin, Parent):
+            c = fields.StrField()
+
+        assert set(Parent.schema.fields.keys()) == {'id', 'p', 'pm'}
+        assert set(Child.schema.fields.keys()) == {'id', 'cls', 'p', 'pm', 'c', 'cm'}
+
+        parent_data = {'p': 'parent', 'pm': 42}
+        child_data = {'c': 'Child', 'cm': 12, **parent_data}
+
+        assert Parent(**parent_data).dump() == parent_data
+        assert Child(**child_data).dump() == {**child_data, 'cls': 'Child'}
+
+    def test_mixin_override(self):
+
+        class PMixin:
+            pm = fields.IntField()
+
+        class CMixin:
+            cm = fields.IntField()
+
+        @self.instance.register
+        class Parent(PMixin, Document):
+            p = fields.StrField()
+            pm = fields.IntField(validate=ma.validate.Range(0, 5))
+
+            class Meta:
+                allow_inheritance = True
+
+        @self.instance.register
+        class Child(CMixin, Parent):
+            c = fields.StrField()
+            cm = fields.IntField(validate=ma.validate.Range(0, 5))
+
+        assert set(Parent.schema.fields.keys()) == {'id', 'p', 'pm'}
+        assert set(Child.schema.fields.keys()) == {'id', 'cls', 'p', 'pm', 'c', 'cm'}
+
+        parent_data = {'p': 'parent', 'pm': 42}
+        child_data = {'c': 'Child', 'cm': 12, **parent_data}
+
+        with pytest.raises(ma.ValidationError) as exc:
+            Parent(**parent_data)
+        assert set(exc.value.messages.keys()) == {'pm'}
+        with pytest.raises(ma.ValidationError) as exc:
+            Child(**child_data)
+        assert set(exc.value.messages.keys()) == {'pm', 'cm'}
 
 
 class TestConfig(BaseTest):
