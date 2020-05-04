@@ -33,7 +33,7 @@ from .i18n import set_gettext
 
 __author__ = 'Emmanuel Leblond'
 __email__ = 'emmanuel.leblond@gmail.com'
-__version__ = '3.0.0b5'
+__version__ = '3.0.0b6'
 __all__ = (
     'missing',
 
