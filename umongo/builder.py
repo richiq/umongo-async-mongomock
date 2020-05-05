@@ -26,18 +26,27 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', tmp_str).lower()
 
 
-def _is_child(bases):
+def _is_child(template):
     """Find if the given inheritance leeds to a child document (i.e.
     a document that shares the same collection with a parent)
     """
-    return any(b for b in bases if issubclass(b, DocumentImplementation) and not b.opts.abstract)
+    return any(
+        b for b in template.__bases__
+        if issubclass(b, DocumentTemplate) and
+        b is not DocumentTemplate and
+        ('Meta' not in b.__dict__ or not getattr(b.Meta, 'abstract', False))
+    )
 
 
-def _is_child_embedded_document(bases):
+def _is_child_embedded_document(template):
     """Same thing than _is_child, but for EmbeddedDocument...
     """
-    return any(b for b in bases if issubclass(b, EmbeddedDocumentImplementation) and
-               not b.opts.abstract)
+    return any(
+        b for b in template.__bases__
+        if issubclass(b, EmbeddedDocumentTemplate) and
+        b is not EmbeddedDocumentTemplate and
+        ('Meta' not in b.__dict__ or not getattr(b.Meta, 'abstract', False))
+    )
 
 
 def _on_need_add_id_field(bases, fields_dict):
@@ -98,13 +107,12 @@ def _collect_schema_attrs(template):
     return nmspc, schema_fields, schema_non_fields
 
 
-def _collect_indexes(meta, schema_nmspc, bases):
+def _collect_indexes(meta, schema_nmspc, bases, is_child):
     """
     Retrieve all indexes (custom defined in meta class, by inheritances
     and unique attribut in fields)
     """
     indexes = []
-    is_child = _is_child(bases)
 
     # First collect parent indexes (including inherited field's unique indexes)
     for base in bases:
@@ -142,14 +150,14 @@ def _collect_indexes(meta, schema_nmspc, bases):
     return indexes
 
 
-def _build_document_opts(instance, template, name, nmspc, bases):
+def _build_document_opts(instance, template, name, nmspc, bases, is_child):
     kwargs = {}
     meta = nmspc.get('Meta')
     collection_name = getattr(meta, 'collection_name', None)
     kwargs['instance'] = instance
     kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
-    kwargs['is_child'] = _is_child(bases)
+    kwargs['is_child'] = is_child
     kwargs['strict'] = getattr(meta, 'strict', True)
 
     # Handle option inheritance and integrity checks
@@ -177,13 +185,13 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     return DocumentOpts(collection_name=collection_name, **kwargs)
 
 
-def _build_embedded_document_opts(instance, template, name, nmspc, bases):
+def _build_embedded_document_opts(instance, template, name, nmspc, bases, is_child):
     kwargs = {}
     meta = nmspc.get('Meta')
     kwargs['instance'] = instance
     kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
-    kwargs['is_child'] = _is_child_embedded_document(bases)
+    kwargs['is_child'] = is_child
     kwargs['strict'] = getattr(meta, 'strict', True)
 
     # Handle option inheritance and integrity checks
@@ -267,12 +275,14 @@ class BaseBuilder:
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
         if embedded:
+            is_child = _is_child_embedded_document(template)
             opts = _build_embedded_document_opts(
-                self.instance, template, name, template.__dict__, bases
+                self.instance, template, name, template.__dict__, bases, is_child
             )
         else:
+            is_child = _is_child(template)
             opts = _build_document_opts(
-                self.instance, template, name, template.__dict__, bases
+                self.instance, template, name, template.__dict__, bases, is_child
             )
         nmspc, schema_fields, schema_non_fields = _collect_schema_attrs(template)
         nmspc['opts'] = opts
@@ -284,7 +294,7 @@ class BaseBuilder:
         if not embedded:
             nmspc['pk_field'] = _on_need_add_id_field(schema_bases, schema_fields)
 
-        if opts.is_child:
+        if is_child:
             _add_child_field(name, schema_fields)
         schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
         nmspc['Schema'] = schema_cls
@@ -295,7 +305,7 @@ class BaseBuilder:
         if not embedded:
             # _build_document_opts cannot determine the indexes given we need to
             # visit the document's fields which weren't defined at this time
-            opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases)
+            opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases, is_child)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
