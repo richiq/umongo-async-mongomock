@@ -26,25 +26,12 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', tmp_str).lower()
 
 
-def _is_child(template):
-    """Find if the given inheritance leeds to a child document (i.e.
-    a document that shares the same collection with a parent)
-    """
+def _is_child(template, base_tmpl_cls):
+    """Return true if the (embedded) document has a concrete parent"""
     return any(
         b for b in template.__bases__
-        if issubclass(b, DocumentTemplate) and
-        b is not DocumentTemplate and
-        ('Meta' not in b.__dict__ or not getattr(b.Meta, 'abstract', False))
-    )
-
-
-def _is_child_embedded_document(template):
-    """Same thing than _is_child, but for EmbeddedDocument...
-    """
-    return any(
-        b for b in template.__bases__
-        if issubclass(b, EmbeddedDocumentTemplate) and
-        b is not EmbeddedDocumentTemplate and
+        if issubclass(b, base_tmpl_cls) and
+        b is not base_tmpl_cls and
         ('Meta' not in b.__dict__ or not getattr(b.Meta, 'abstract', False))
     )
 
@@ -272,15 +259,16 @@ class BaseBuilder:
         instance from the given :class:`umongo.document.DocumentTemplate`.
         """
         embedded = not issubclass(template, DocumentTemplate)
+        base_tmpl_cls = EmbeddedDocumentTemplate if embedded else DocumentTemplate
+        base_impl_cls = EmbeddedDocumentImplementation if embedded else DocumentImplementation
+        is_child = _is_child(template, base_tmpl_cls)
         name = template.__name__
         bases = self._convert_bases(template.__bases__)
         if embedded:
-            is_child = _is_child_embedded_document(template)
             opts = _build_embedded_document_opts(
                 self.instance, template, name, template.__dict__, bases, is_child
             )
         else:
-            is_child = _is_child(template)
             opts = _build_document_opts(
                 self.instance, template, name, template.__dict__, bases, is_child
             )
@@ -310,7 +298,6 @@ class BaseBuilder:
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
         # Notify the parent & grand parents of the newborn !
-        base_impl_cls = EmbeddedDocumentImplementation if embedded else DocumentImplementation
         for base in bases:
             for parent in inspect.getmro(base):
                 if issubclass(parent, base_impl_cls) and parent is not base_impl_cls:
