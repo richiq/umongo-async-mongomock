@@ -217,9 +217,7 @@ class TestDocument(BaseTest):
 
         @self.instance.register
         class AutoId(Document):
-
-            class Meta:
-                allow_inheritance = True
+            pass
 
         assert 'id' in AutoId.schema.fields
 
@@ -244,9 +242,6 @@ class TestDocument(BaseTest):
         @self.instance.register
         class CustomId(Document):
             int_id = fields.IntField(attribute='_id')
-
-            class Meta:
-                allow_inheritance = True
 
         assert 'id' not in CustomId.schema.fields
         with pytest.raises(ma.ValidationError):
@@ -310,8 +305,7 @@ class TestDocument(BaseTest):
         # a template instead of from an implementation
 
         class ParentAsTemplate(Document):
-            class Meta:
-                allow_inheritance = True
+            pass
 
         Parent = self.instance.register(ParentAsTemplate)
 
@@ -324,18 +318,15 @@ class TestDocument(BaseTest):
     def test_grand_child_inheritance(self):
         @self.instance.register
         class GrandParent(Document):
-            class Meta:
-                allow_inheritance = True
+            pass
 
         @self.instance.register
         class Parent(GrandParent):
-            class Meta:
-                allow_inheritance = True
+            pass
 
         @self.instance.register
         class Uncle(GrandParent):
-            class Meta:
-                allow_inheritance = True
+            pass
 
         @self.instance.register
         class Child(Parent):
@@ -462,7 +453,6 @@ class TestConfig(BaseTest):
 
         assert Doc.opts.collection_name == 'doc'
         assert Doc.opts.abstract is False
-        assert Doc.opts.allow_inheritance is False
         assert Doc.opts.instance is self.instance
         assert Doc.opts.is_child is False
         assert Doc.opts.indexes == []
@@ -480,7 +470,6 @@ class TestConfig(BaseTest):
         class DocChild1(AbsDoc):
 
             class Meta:
-                allow_inheritance = True
                 collection_name = 'col1'
 
         @self.instance.register
@@ -495,7 +484,6 @@ class TestConfig(BaseTest):
 
         assert DocChild1.opts.collection_name is 'col1'
         assert DocChild1Child.opts.collection_name is 'col1'
-        assert DocChild1Child.opts.allow_inheritance is False
         assert DocChild2.opts.collection_name == 'col2'
 
     def test_marshmallow_tags_build(self):
@@ -515,9 +503,6 @@ class TestConfig(BaseTest):
         @self.instance.register
         class Animal(Document):
             name = fields.StrField(attribute='_id')  # Overwrite automatic pk
-
-            class Meta:
-                allow_inheritance = True
 
         @self.instance.register
         class Dog(Animal):
@@ -553,32 +538,9 @@ class TestConfig(BaseTest):
         exc.value.args[0] == {'name': 'Not suitable name for duck !'}
 
     def test_bad_inheritance(self):
-        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class BadAbstractDoc(Document):
-                class Meta:
-                    allow_inheritance = False
-                    abstract = True
-        assert exc.value.args[0] == "Abstract document cannot disable inheritance"
-
-        @self.instance.register
-        class NotParent(Document):
-            pass
-
-        assert not NotParent.opts.allow_inheritance
-
-        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class ImpossibleChildDoc1(NotParent):
-                pass
-        assert exc.value.args[0] == ("Document"
-            " <Implementation class 'tests.test_document.NotParent'>"
-            " doesn't allow inheritance")
-
         @self.instance.register
         class NotAbstractParent(Document):
-            class Meta:
-                allow_inheritance = True
+            pass
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
@@ -590,13 +552,11 @@ class TestConfig(BaseTest):
         @self.instance.register
         class ParentWithCol1(Document):
             class Meta:
-                allow_inheritance = True
                 collection_name = 'col1'
 
         @self.instance.register
         class ParentWithCol2(Document):
             class Meta:
-                allow_inheritance = True
                 collection_name = 'col2'
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:

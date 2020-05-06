@@ -27,9 +27,6 @@ class TestMarshmallow(BaseTest):
             name = fields.StrField()
             birthday = fields.DateTimeField()
 
-            class Meta:
-                allow_inheritance = True
-
         self.User = self.instance.register(User)
 
     def test_by_field(self):
@@ -55,15 +52,9 @@ class TestMarshmallow(BaseTest):
         class MyDocument(Document):
             MA_BASE_SCHEMA_CLS = ExcludeBaseSchema
 
-            class Meta:
-                allow_inheritance = True
-
         @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             MA_BASE_SCHEMA_CLS = ExcludeBaseSchema
-
-            class Meta:
-                allow_inheritance = True
 
         # Now, all our objects will generate "exclude" marshmallow schemas
         @self.instance.register

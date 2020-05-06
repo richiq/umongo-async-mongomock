@@ -273,9 +273,6 @@ class TestEmbeddedDocument(BaseTest):
         class ConcreteChild(AbstractParent, AlienClass):
             c = fields.IntField()
 
-            class Meta:
-                allow_inheritance = True
-
         @self.instance.register
         class ConcreteGrandChild(AbstractChild):
             d = fields.IntField()
@@ -317,34 +314,9 @@ class TestEmbeddedDocument(BaseTest):
 
 
     def test_bad_inheritance(self):
-        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class BadAbstract(EmbeddedDocument):
-                class Meta:
-                    allow_inheritance = False
-                    abstract = True
-        assert exc.value.args[0] == "Abstract embedded document cannot disable inheritance"
-
-        @self.instance.register
-        class NotParent(EmbeddedDocument):
-            class Meta:
-                allow_inheritance = False
-
-        with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class ImpossibleChild1(NotParent):
-                pass
-        assert exc.value.args[0] == ("EmbeddedDocument"
-            " <Implementation class 'tests.test_embedded_document.NotParent'>"
-            " doesn't allow inheritance")
-
         @self.instance.register
         class NotAbstractParent(EmbeddedDocument):
-            class Meta:
-                allow_inheritance = True
-
-        # Unlike Document, EmbeddedDocument should allow inheritance by default
-        assert NotAbstractParent.opts.allow_inheritance
+            pass
 
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register

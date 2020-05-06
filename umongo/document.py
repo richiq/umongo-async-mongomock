@@ -9,9 +9,7 @@ from marshmallow import (
 
 from .abstract import BaseDataObject
 from .exceptions import (
-    AlreadyCreatedError, NotCreatedError, NoDBDefinedError,
-    AbstractDocumentError, DocumentDefinitionError,
-)
+    AlreadyCreatedError, NotCreatedError, NoDBDefinedError, AbstractDocumentError)
 from .template import Implementation, Template, MetaImplementation
 from .data_objects import Reference
 
@@ -73,7 +71,6 @@ class DocumentOpts:
     instance             no                     Implementation's instance
     abstract             yes                    Document has no collection
                                                 and can only be inherited
-    allow_inheritance    yes                    Allow the document to be subclassed
     collection_name      yes                    Name of the collection to store
                                                 the document into
     is_child             no                     Document inherit of a non-abstract document
@@ -88,7 +85,6 @@ class DocumentOpts:
                 'instance={self.instance}, '
                 'template={self.template}, '
                 'abstract={self.abstract}, '
-                'allow_inheritance={self.allow_inheritance}, '
                 'collection_name={self.collection_name}, '
                 'is_child={self.is_child}, '
                 'strict={self.strict}, '
@@ -97,19 +93,15 @@ class DocumentOpts:
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def __init__(self, instance, template, collection_name=None, abstract=False,
-                 allow_inheritance=None, indexes=None, is_child=True, strict=True,
-                 offspring=None):
+                 indexes=None, is_child=True, strict=True, offspring=None):
         self.instance = instance
         self.template = template
         self.collection_name = collection_name if not abstract else None
         self.abstract = abstract
-        self.allow_inheritance = abstract if allow_inheritance is None else allow_inheritance
         self.indexes = indexes or []
         self.is_child = is_child
         self.strict = strict
         self.offspring = set(offspring) if offspring else set()
-        if self.abstract and not self.allow_inheritance:
-            raise DocumentDefinitionError("Abstract document cannot disable inheritance")
 
 
 class MetaDocumentImplementation(MetaImplementation):
