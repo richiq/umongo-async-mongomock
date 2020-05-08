@@ -154,7 +154,9 @@ class MotorAsyncIODocument(DocumentImplementation):
                 else:
                     ret = None
             elif conditions:
-                raise RuntimeError('Document must already exist in database to use `conditions`.')
+                raise NotCreatedError(
+                    'Document must already exist in database to use `conditions`.'
+                )
             else:
                 await self.__coroutined_pre_insert()
                 self.required_validate()

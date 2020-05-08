@@ -1,5 +1,6 @@
 import marshmallow as ma
 
+from .exceptions import DocumentDefinitionError
 from .i18n import gettext as _, N_
 
 
@@ -66,7 +67,7 @@ class BaseField(ma.fields.Field):
 
     def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
         if 'missing' in kwargs:
-            raise RuntimeError(
+            raise DocumentDefinitionError(
                 "uMongo doesn't use `missing` argument, use `default` "
                 "instead and `marshmallow_missing`/`marshmallow_default` "
                 "to tell `as_marshmallow_field` to use a custom value when "
