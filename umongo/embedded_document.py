@@ -3,7 +3,7 @@ import marshmallow as ma
 
 from .document import Implementation, Template
 from .data_objects import BaseDataObject
-from .exceptions import DocumentDefinitionError, AbstractDocumentError
+from .exceptions import AbstractDocumentError
 
 
 __all__ = (
@@ -52,7 +52,6 @@ class EmbeddedDocumentOpts:
     template             no                     Origin template of the embedded document
     instance             no                     Implementation's instance
     abstract             yes                    Embedded document can only be inherited
-    allow_inheritance    yes                    Allow the embedded document to be subclassed
     is_child             no                     Embedded document inherit of a non-abstract
                                                 embedded document
     strict               yes                    Don't accept unknown fields from mongo
@@ -65,23 +64,19 @@ class EmbeddedDocumentOpts:
                 'instance={self.instance}, '
                 'template={self.template}, '
                 'abstract={self.abstract}, '
-                'allow_inheritance={self.allow_inheritance}, '
                 'is_child={self.is_child}, '
                 'strict={self.strict}, '
                 'offspring={self.offspring})>'
                 .format(ClassName=self.__class__.__name__, self=self))
 
-    def __init__(self, instance, template, abstract=False, allow_inheritance=True,
+    def __init__(self, instance, template, abstract=False,
                  is_child=False, strict=True, offspring=None):
         self.instance = instance
         self.template = template
         self.abstract = abstract
-        self.allow_inheritance = allow_inheritance
         self.is_child = is_child
         self.strict = strict
         self.offspring = set(offspring) if offspring else set()
-        if self.abstract and not self.allow_inheritance:
-            raise DocumentDefinitionError("Abstract embedded document cannot disable inheritance")
 
 
 class EmbeddedDocumentImplementation(Implementation, BaseDataObject):

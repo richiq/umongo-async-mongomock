@@ -68,7 +68,6 @@ class TestIndexes(BaseTest):
             last_name = fields.StrField()
 
             class Meta:
-                allow_inheritance = True
                 indexes = ['last_name']
 
         @self.instance.register

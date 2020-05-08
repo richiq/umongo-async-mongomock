@@ -149,7 +149,6 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs['instance'] = instance
     kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
-    kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
     kwargs['is_child'] = _is_child(bases)
     kwargs['strict'] = getattr(meta, 'strict', True)
 
@@ -158,8 +157,6 @@ def _build_document_opts(instance, template, name, nmspc, bases):
         if not issubclass(base, DocumentImplementation):
             continue
         popts = base.opts
-        if not popts.allow_inheritance:
-            raise DocumentDefinitionError("Document %r doesn't allow inheritance" % base)
         if kwargs['abstract'] and not popts.abstract:
             raise DocumentDefinitionError(
                 "Abstract document should have all it parents abstract")
@@ -186,7 +183,6 @@ def _build_embedded_document_opts(instance, template, name, nmspc, bases):
     kwargs['instance'] = instance
     kwargs['template'] = template
     kwargs['abstract'] = getattr(meta, 'abstract', False)
-    kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', True)
     kwargs['is_child'] = _is_child_embedded_document(bases)
     kwargs['strict'] = getattr(meta, 'strict', True)
 
@@ -195,8 +191,6 @@ def _build_embedded_document_opts(instance, template, name, nmspc, bases):
         if not issubclass(base, EmbeddedDocumentImplementation):
             continue
         popts = base.opts
-        if not popts.allow_inheritance:
-            raise DocumentDefinitionError("EmbeddedDocument %r doesn't allow inheritance" % base)
         if kwargs['abstract'] and not popts.abstract:
             raise DocumentDefinitionError(
                 "Abstract embedded document should have all it parents abstract")

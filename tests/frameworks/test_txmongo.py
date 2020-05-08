@@ -589,9 +589,6 @@ class TestTxMongo(BaseDBTest):
             not_unique = fields.StrField(unique=False)
             unique = fields.IntField(unique=True)
 
-            class Meta:
-                allow_inheritance = True
-
         @instance.register
         class UniqueIndexChildDoc(UniqueIndexParentDoc):
             child_not_unique = fields.StrField(unique=False)
@@ -655,15 +652,9 @@ class TestTxMongo(BaseDBTest):
         class InheritanceSearchParent(Document):
             pf = fields.IntField()
 
-            class Meta:
-                allow_inheritance = True
-
         @instance.register
         class InheritanceSearchChild1(InheritanceSearchParent):
             c1f = fields.IntField()
-
-            class Meta:
-                allow_inheritance = True
 
         @instance.register
         class InheritanceSearchChild1Child(InheritanceSearchChild1):

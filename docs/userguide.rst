@@ -105,7 +105,6 @@ Object orientation means inheritance, of course you can do that
         birthday = fields.DateTimeField()
 
         class Meta:
-            allow_inheritance = True
             abstract = True
 
     @instance.register
@@ -125,9 +124,9 @@ Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
 .. code-block:: python
 
     >>> Animal.opts
-    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Animal'>, abstract=True, allow_inheritance=True, collection_name=None, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], offspring={<Implementation class '__main__.Duck'>, <Implementation class '__main__.Dog'>})>
+    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Animal'>, abstract=True, collection_name=None, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], offspring={<Implementation class '__main__.Duck'>, <Implementation class '__main__.Dog'>})>
     >>> Dog.opts
-    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Dog'>, abstract=False, allow_inheritance=False, collection_name=dog, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], offspring=set())>
+    <DocumentOpts(instance=<umongo.frameworks.PyMongoInstance object at 0x7efe7daa9320>, template=<Document template class '__main__.Dog'>, abstract=False, collection_name=dog, is_child=False, base_schema_cls=<class 'umongo.schema.Schema'>, indexes=[], offspring=set())>
     >>> class NotAllowedSubDog(Dog): pass
     [...]
     DocumentDefinitionError: Document <class '__main__.Dog'> doesn't allow inheritance
@@ -349,8 +348,6 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
     >>> @instance.register
     ... class Parent(Document):
     ...     unique_in_parent = fields.IntField(unique=True)
-    ...     class Meta:
-    ...         allow_inheritance = True
     >>> @instance.register
     ... class Child(Parent):
     ...     unique_in_child = fields.StrField(unique=True)
@@ -435,8 +432,6 @@ compounded with the ``_cls``
       >>> @instance.register
       ... class Parent(Document):
       ...     unique_in_parent = fields.IntField(unique=True)
-      ...     class Meta:
-      ...         allow_inheritance = True
       >>> @instance.register
       ... class Child(Parent):
       ...     unique_in_child = fields.StrField(unique=True)
