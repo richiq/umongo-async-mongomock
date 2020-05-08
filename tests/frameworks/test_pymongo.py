@@ -77,7 +77,7 @@ class TestPymongo(BaseDBTest):
         john.reload()
         assert john.name == 'Zorro Doe'
         # Cannot use conditions when creating document
-        with pytest.raises(RuntimeError):
+        with pytest.raises(exceptions.NotCreatedError):
             Student(name='Joe').commit(conditions={'name': 'dummy'})
 
     def test_delete(self, classroom_model):

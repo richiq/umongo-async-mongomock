@@ -102,7 +102,7 @@ class TestMotorAsyncio(BaseDBTest):
             await john.reload()
             assert john.name == 'Zorro Doe'
             # Cannot use conditions when creating document
-            with pytest.raises(RuntimeError):
+            with pytest.raises(exceptions.NotCreatedError):
                 await Student(name='Joe').commit(conditions={'name': 'dummy'})
 
         loop.run_until_complete(do_test())

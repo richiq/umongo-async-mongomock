@@ -72,7 +72,9 @@ class TxMongoDocument(DocumentImplementation):
                 else:
                     ret = None
             elif conditions:
-                raise RuntimeError('Document must already exist in database to use `conditions`.')
+                raise NotCreatedError(
+                    'Document must already exist in database to use `conditions`.'
+                )
             else:
                 yield maybeDeferred(self.pre_insert)
                 self.required_validate()

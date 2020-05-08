@@ -106,7 +106,7 @@ class TestTxMongo(BaseDBTest):
         yield john.reload()
         assert john.name == 'Zorro Doe'
         # Cannot use conditions when creating document
-        with pytest.raises(RuntimeError):
+        with pytest.raises(exceptions.NotCreatedError):
             yield Student(name='Joe').commit(conditions={'name': 'dummy'})
 
     @pytest_inlineCallbacks
