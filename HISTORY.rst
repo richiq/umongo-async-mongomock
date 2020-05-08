@@ -2,6 +2,22 @@
 History
 =======
 
+3.0.0b7 (2020-05-08)
+--------------------
+
+Features:
+
+* *Backwards-incompatible*: Revert broken feature introduced in 3.0.0b6
+  allowing to get fields from mixin classes (see #273).
+
+* *Backwards-incompatible*: Remove ``allow_inheritance`` option. Any
+  ``Document`` or ``EmbeddedDocument`` may be subclassed (see #270).
+
+* *Backwards-incompatible*: ``Field`` raises ``DocumentDefinitionError`` rather
+  than ``RuntimeError`` when passed ``missing`` kwarg and ``Document.commit``
+  raises ``NotCreatedError`` when passed ``conditions`` for a document that is
+  not in database (see #275).
+
 3.0.0b6 (2020-05-04)
 --------------------
 
