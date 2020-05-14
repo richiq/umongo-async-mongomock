@@ -121,40 +121,52 @@ class TestPymongo(BaseDBTest):
         john.reload()
         assert john.name == 'William Doe'
 
-    def test_cursor(self, classroom_model):
+    def test_cursor(self, instance, classroom_model):
         Student = classroom_model.Student
-        Student.collection.drop()
+
+        @instance.register
+        class StudentWithGroup(Student):
+            group = fields.StrField(default='A')
+
+        StudentWithGroup.collection.drop()
         for i in range(10):
-            Student(name='student-%s' % i).commit()
-        assert Student.count_documents() == 10
-        assert Student.count_documents(limit=5, skip=6) == 4
+            StudentWithGroup(name='student-%s' % i, group='B').commit()
+        assert StudentWithGroup.count_documents() == 10
+        assert StudentWithGroup.count_documents(limit=5, skip=6) == 4
         names = []
-        for elem in Student.find(limit=5, skip=6):
-            assert isinstance(elem, Student)
+        for elem in StudentWithGroup.find(limit=5, skip=6):
+            assert isinstance(elem, StudentWithGroup)
             names.append(elem.name)
         assert sorted(names) == ['student-%s' % i for i in range(6, 10)]
 
-        cursor = Student.find(limit=5, skip=6)
+        cursor = StudentWithGroup.find(limit=5, skip=6)
         elem0 = cursor[0]
-        assert isinstance(elem0, Student)
+        assert isinstance(elem0, StudentWithGroup)
         assert next(cursor) == elem0
 
         # Make sure this kind of notation doesn't create new cursor
-        cursor = Student.find()
+        cursor = StudentWithGroup.find()
         cursor_limit = cursor.limit(5)
         cursor_skip = cursor.skip(6)
         assert cursor is cursor_limit is cursor_skip
 
         # Cursor slicing
-        cursor = Student.find()
+        cursor = StudentWithGroup.find()
         names = (elem.name for elem in cursor[2:5])
         assert sorted(names) == ['student-%s' % i for i in range(2, 5)]
 
         # Filter + projection
-        cursor = Student.find({'name': 'student-0'}, ['name'])
+        cursor = StudentWithGroup.find({'name': 'student-0'}, ['name'])
         students = list(cursor)
         assert len(students) == 1
         assert students[0].name == 'student-0'
+        assert students[0].group == 'A'
+
+        cursor = StudentWithGroup.find({'name': 'student-0'}, ['name', 'group'])
+        students = list(cursor)
+        assert len(students) == 1
+        assert students[0].name == 'student-0'
+        assert students[0].group == 'B'
 
     def test_classroom(self, classroom_model):
         student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
