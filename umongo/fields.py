@@ -293,6 +293,8 @@ class ListField(BaseField, ma.fields.List):
     def _required_validate(self, value):
         if value is ma.missing or not hasattr(self.inner, '_required_validate'):
             return
+        if value is None and getattr(self, 'allow_none', False) is True:
+            return None
         required_validate = self.inner._required_validate
         errors = {}
         for i, sub_value in enumerate(value):
