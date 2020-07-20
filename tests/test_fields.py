@@ -88,7 +88,7 @@ class TestRequired(BaseTest):
         doc.required_validate()
 
 
-    def test_allow_none_nested_list(self):
+    def test_required_nested_allow_none(self):
         @self.instance.register
         class MyEmbedded(EmbeddedDocument):
             field = fields.IntField()
@@ -96,9 +96,10 @@ class TestRequired(BaseTest):
         @self.instance.register
         class MyDoc(Document):
             embedded_list = fields.ListField(fields.EmbeddedField(MyEmbedded), allow_none=True)
+            embedded_dict = fields.DictField(values=fields.EmbeddedField(MyEmbedded), allow_none=True)
+            embedded = fields.EmbeddedField(MyEmbedded, allow_none=True)
 
-        # List with `allow_none` should be allowed `None`
-        MyDoc(embedded_list=None).required_validate()
+        MyDoc(embedded_list=None, embedded_dict=None, embedded=None).required_validate()
 
 
 class TestFields(BaseTest):
