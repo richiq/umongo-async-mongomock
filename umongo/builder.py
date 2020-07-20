@@ -92,10 +92,6 @@ def _on_need_add_id_field(bases, fields_dict):
     return 'id'
 
 
-def _add_child_field(name, fields_dict):
-    fields_dict['cls'] = fields.StringField(attribute='_cls', default=name, dump_only=True)
-
-
 def _collect_schema_attrs(template):
     """
     Split dict between schema fields and non-fields elements and retrieve
@@ -293,7 +289,9 @@ class BaseBuilder:
 
         if base_tmpl_cls is not MixinDocumentTemplate:
             if is_child:
-                _add_child_field(name, schema_fields)
+                schema_fields['cls'] = fields.StringField(
+                    attribute='_cls', default=name, dump_only=True
+                )
         schema_cls = self._build_schema(template, schema_bases, schema_fields, schema_non_fields)
         nmspc['Schema'] = schema_cls
         schema = schema_cls()
