@@ -106,7 +106,7 @@ class BaseInstance:
         return implementation
 
     def _register_doc(self, template):
-        implementation = self.builder.build_document_from_template(template)
+        implementation = self.builder.build_from_template(template)
         if hasattr(self, implementation.__name__):
             raise AlreadyRegisteredDocumentError(
                 'Document `%s` already registered' % implementation.__name__)
@@ -114,7 +114,7 @@ class BaseInstance:
         return implementation
 
     def _register_embedded_doc(self, template):
-        implementation = self.builder.build_embedded_document_from_template(template)
+        implementation = self.builder.build_from_template(template)
         if hasattr(self, implementation.__name__):
             raise AlreadyRegisteredDocumentError(
                 'EmbeddedDocument `%s` already registered' % implementation.__name__)

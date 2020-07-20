@@ -486,6 +486,18 @@ class TestConfig(BaseTest):
         assert DocChild1Child.opts.collection_name is 'col1'
         assert DocChild2.opts.collection_name == 'col2'
 
+    def test_inheritance_from_embedded_document(self):
+
+        @self.instance.register
+        class Parent(EmbeddedDocument):
+            last_name = fields.StrField()
+
+        @self.instance.register
+        class Child(Parent):
+            first_name = fields.StrField()
+
+        Child(first_name='John', last_name='Doe')
+
     def test_marshmallow_tags_build(self):
 
         @self.instance.register
