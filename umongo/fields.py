@@ -230,7 +230,7 @@ class DictField(BaseField, ma.fields.Dict):
         return ma.fields.Dict(self.key_field, inner_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
-        if value is ma.missing or not hasattr(self.value_field, '_required_validate'):
+        if not hasattr(self.value_field, '_required_validate'):
             return
         required_validate = self.value_field._required_validate
         errors = collections.defaultdict(dict)
@@ -291,7 +291,7 @@ class ListField(BaseField, ma.fields.List):
         return ma.fields.List(inner_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
-        if value is ma.missing or not hasattr(self.inner, '_required_validate'):
+        if not hasattr(self.inner, '_required_validate'):
             return
         required_validate = self.inner._required_validate
         errors = {}
@@ -561,5 +561,4 @@ class EmbeddedField(BaseField, ma.fields.Nested):
         return ma.fields.Nested(nested_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
-        if value is not ma.missing:
-            value.required_validate()
+        value.required_validate()

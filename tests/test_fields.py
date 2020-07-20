@@ -88,6 +88,20 @@ class TestRequired(BaseTest):
         doc.required_validate()
 
 
+    def test_required_nested_allow_none(self):
+        @self.instance.register
+        class MyEmbedded(EmbeddedDocument):
+            field = fields.IntField()
+
+        @self.instance.register
+        class MyDoc(Document):
+            embedded_list = fields.ListField(fields.EmbeddedField(MyEmbedded), allow_none=True)
+            embedded_dict = fields.DictField(values=fields.EmbeddedField(MyEmbedded), allow_none=True)
+            embedded = fields.EmbeddedField(MyEmbedded, allow_none=True)
+
+        MyDoc(embedded_list=None, embedded_dict=None, embedded=None).required_validate()
+
+
 class TestFields(BaseTest):
 
     def test_basefields(self):

@@ -169,6 +169,8 @@ class BaseDataProxy:
             value = self._data[field.attribute or name]
             if field.required and value is ma.missing:
                 errors[name] = [_("Missing data for required field.")]
+            elif value is ma.missing or value is None:
+                continue
             elif hasattr(field, '_required_validate'):
                 try:
                     field._required_validate(value)
