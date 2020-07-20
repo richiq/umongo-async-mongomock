@@ -17,7 +17,9 @@ else:
 
 from ..common import BaseDBTest, TEST_DB
 
-from umongo import Document, EmbeddedDocument, fields, exceptions, Reference
+from umongo import (
+    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
+)
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import motor_asyncio as framework  # noqa
@@ -952,5 +954,55 @@ class TestMotorAsyncio(BaseDBTest):
             with pytest.raises(exceptions.DeleteError):
                 await p_concurrent.delete()
             await p.delete()
+
+        loop.run_until_complete(do_test())
+
+    def test_mixin_pre_post_hooks(self, loop, instance):
+
+        async def do_test():
+
+            callbacks = []
+
+            @instance.register
+            class PrePostHooksMixin(MixinDocument):
+
+                def pre_insert(self):
+                    callbacks.append('pre_insert')
+
+                def pre_update(self):
+                    callbacks.append('pre_update')
+
+                def pre_delete(self):
+                    callbacks.append('pre_delete')
+
+                def post_insert(self, ret):
+                    assert isinstance(ret, InsertOneResult)
+                    callbacks.append('post_insert')
+
+                def post_update(self, ret):
+                    assert isinstance(ret, UpdateResult)
+                    callbacks.append('post_update')
+
+                def post_delete(self, ret):
+                    assert isinstance(ret, DeleteResult)
+                    callbacks.append('post_delete')
+
+            @instance.register
+            class Person(PrePostHooksMixin, Document):
+                name = fields.StrField()
+                age = fields.IntField()
+
+            p = Person(name='John', age=20)
+            await p.commit()
+            assert callbacks == ['pre_insert', 'post_insert']
+
+            callbacks.clear()
+            p.age = 22
+            await p.commit({'age': 22})
+            assert callbacks == ['pre_update', 'post_update']
+
+            callbacks.clear()
+            await p.delete()
+            assert callbacks == ['pre_delete', 'post_delete']
 
         loop.run_until_complete(do_test())

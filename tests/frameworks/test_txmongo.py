@@ -34,7 +34,9 @@ except ImportError:
 else:
     pytest_inlineCallbacks = pytest_twisted.inlineCallbacks
 
-from umongo import Document, EmbeddedDocument, fields, exceptions, Reference
+from umongo import (
+    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
+)
 
 
 if not dep_error:  # Make sure the module is valid by importing it
@@ -879,3 +881,52 @@ class TestTxMongo(BaseDBTest):
         with pytest.raises(exceptions.DeleteError):
             yield p_concurrent.delete()
         yield p.delete()
+
+    @pytest_inlineCallbacks
+    def test_mixin_pre_post_hooks(self, instance):
+
+        callbacks = []
+
+        @instance.register
+        class PrePostHooksMixin(MixinDocument):
+
+            def pre_insert(self):
+                callbacks.append('pre_insert')
+
+            def pre_update(self):
+                callbacks.append('pre_update')
+
+            def pre_delete(self):
+                callbacks.append('pre_delete')
+
+            def post_insert(self, ret):
+                assert isinstance(ret, InsertOneResult)
+                callbacks.append('post_insert')
+
+            def post_update(self, ret):
+                assert isinstance(ret, UpdateResult)
+                callbacks.append('post_update')
+
+            def post_delete(self, ret):
+                assert isinstance(ret, DeleteResult)
+                callbacks.append('post_delete')
+
+        @instance.register
+        class Person(PrePostHooksMixin, Document):
+            name = fields.StrField()
+            age = fields.IntField()
+
+        p = Person(name='John', age=20)
+        yield p.commit()
+        assert callbacks == ['pre_insert', 'post_insert']
+
+        callbacks.clear()
+        p.age = 22
+        yield p.commit({'age': 22})
+        assert callbacks == ['pre_update', 'post_update']
+
+        callbacks.clear()
+        yield p.delete()
+        assert callbacks == ['pre_delete', 'post_delete']
+
+
