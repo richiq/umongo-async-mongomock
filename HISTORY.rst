@@ -2,6 +2,14 @@
 History
 =======
 
+3.0.0b8 (unreleased)
+--------------------
+
+Bug fixes:
+
+* Fix passing ``None`` to a field with ``_required_validate`` method
+  (see #289).
+
 3.0.0b7 (2020-05-08)
 --------------------
 
