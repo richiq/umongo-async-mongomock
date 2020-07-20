@@ -1,6 +1,7 @@
 from .exceptions import (
     NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
 from .document import DocumentTemplate
+from .embedded_document import EmbeddedDocumentTemplate
 from .template import get_template
 
 
@@ -34,6 +35,7 @@ class BaseInstance:
         self.builder = self.BUILDER_CLS(self)
         self._doc_lookup = {}
         self._embedded_lookup = {}
+        self._mixin_lookup = {}
         for template in templates:
             self.register(template)
 
@@ -99,8 +101,10 @@ class BaseInstance:
         template = get_template(template)
         if issubclass(template, DocumentTemplate):
             implementation = self._register_doc(template)
-        else:  # EmbeddedDocumentTemplate
+        elif issubclass(template, EmbeddedDocumentTemplate):
             implementation = self._register_embedded_doc(template)
+        else:  # MixinDocument
+            implementation = self._register_mixin_doc(template)
         if as_attribute:
             setattr(self, implementation.__name__, implementation)
         return implementation
@@ -126,7 +130,7 @@ class BaseInstance:
         if hasattr(self, implementation.__name__):
             raise AlreadyRegisteredDocumentError(
                 'MixinDocument `%s` already registered' % implementation.__name__)
-        self._embedded_lookup[implementation.__name__] = implementation
+        self._mixin_lookup[implementation.__name__] = implementation
         return implementation
 
 
