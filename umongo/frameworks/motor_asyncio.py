@@ -22,7 +22,7 @@ class WrappedCursor(AsyncIOMotorCursor):
 
     def __init__(self, document_cls, cursor):
         # Such a cunning plan my lord !
-        # We inherit from Cursor but don't call it __init__ because
+        # We inherit from Cursor but don't call its __init__ because
         # we act as a proxy to the underlying raw_cursor
         WrappedCursor.raw_cursor.__set__(self, cursor)
         WrappedCursor.document_cls.__set__(self, document_cls)

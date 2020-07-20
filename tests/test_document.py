@@ -675,7 +675,7 @@ class TestConfig(BaseTest):
             class ImpossibleChildDoc2(NotAbstractParent):
                 class Meta:
                     abstract = True
-        assert exc.value.args[0] == "Abstract document should have all it parents abstract"
+        assert exc.value.args[0] == "Abstract document should have all its parents abstract"
 
         @self.instance.register
         class ParentWithCol1(Document):

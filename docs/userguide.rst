@@ -361,7 +361,7 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
     >>> [x.document for x in Parent.opts.indexes]
     [{'key': SON([('unique_in_parent', 1)]), 'name': 'unique_in_parent_1', 'sparse': True, 'unique': True}]
 
-.. warning:: You must ``register`` a parent before it child inside a given instance.
+.. warning:: You must ``register`` a parent before its child inside a given instance.
 
 
 Indexes
@@ -472,7 +472,7 @@ Marshmallow integration
 =======================
 
 Under the hood, μMongo heavily uses `marshmallow <http://marshmallow.readthedocs.org>`_
-for all it data validation work.
+for all its data validation work.
 
 However an ODM has some special needs (i.g. handling ``required`` fields through MongoDB's
 unique indexes) that force to extend marshmallow base types.

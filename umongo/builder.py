@@ -245,7 +245,7 @@ class BaseBuilder:
                 popts = base.opts
                 if kwargs['abstract'] and not popts.abstract:
                     raise DocumentDefinitionError(
-                        "Abstract document should have all it parents abstract")
+                        "Abstract document should have all its parents abstract")
                 if base_tmpl_cls is DocumentTemplate:
                     if popts.collection_name:
                         if collection_name:
