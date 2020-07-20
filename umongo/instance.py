@@ -69,16 +69,12 @@ class BaseInstance:
                 'Unknown embedded document class `%s`' % name_or_template)
         return self._embedded_lookup[name_or_template]
 
-    def register(self, template, as_attribute=True):
+    def register(self, template):
         """
         Generate an :class:`umongo.template.Implementation` from the given
         :class:`umongo.template.Template` for this instance.
 
         :param template: :class:`umongo.template.Template` to implement
-        :param as_attribute:
-            Make the generated :class:`umongo.template.Implementation` available
-            as this instance's attribute.
-
         :return: The :class:`umongo.template.Implementation` generated
 
         .. note::
@@ -105,13 +101,11 @@ class BaseInstance:
             implementation = self._register_embedded_doc(template)
         else:  # MixinDocument
             implementation = self._register_mixin_doc(template)
-        if as_attribute:
-            setattr(self, implementation.__name__, implementation)
         return implementation
 
     def _register_doc(self, template):
         implementation = self.builder.build_from_template(template)
-        if hasattr(self, implementation.__name__):
+        if implementation.__name__ in self._doc_lookup:
             raise AlreadyRegisteredDocumentError(
                 'Document `%s` already registered' % implementation.__name__)
         self._doc_lookup[implementation.__name__] = implementation
@@ -119,7 +113,7 @@ class BaseInstance:
 
     def _register_embedded_doc(self, template):
         implementation = self.builder.build_from_template(template)
-        if hasattr(self, implementation.__name__):
+        if implementation.__name__ in self._embedded_lookup:
             raise AlreadyRegisteredDocumentError(
                 'EmbeddedDocument `%s` already registered' % implementation.__name__)
         self._embedded_lookup[implementation.__name__] = implementation
@@ -127,7 +121,7 @@ class BaseInstance:
 
     def _register_mixin_doc(self, template):
         implementation = self.builder.build_from_template(template)
-        if hasattr(self, implementation.__name__):
+        if implementation.__name__ in self._mixin_lookup:
             raise AlreadyRegisteredDocumentError(
                 'MixinDocument `%s` already registered' % implementation.__name__)
         self._mixin_lookup[implementation.__name__] = implementation
