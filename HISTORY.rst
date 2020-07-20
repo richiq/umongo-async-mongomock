@@ -14,6 +14,10 @@ Features:
   should appear first (leftmost) in the bases:
   ``class MyDocument(MyMixin, Document)``. (see #278)
 
+* *Backwards-incompatible*: Remove ``as_attribute`` argument of
+  ``BaseInstance.register`` method. Documents can not be accessed by name as
+  instance attributes anymore. (see #290)
+
 Bug fixes:
 
 * Fix passing ``None`` to a field with ``_required_validate`` method
