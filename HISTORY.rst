@@ -5,6 +5,15 @@ History
 3.0.0b8 (unreleased)
 --------------------
 
+Features:
+
+* Let ``Document`` inherit from ``EmbeddedDocument`` (see #266).
+
+* Add ``MixinDocument`` allowing ``Document`` and ``EmbeddedDocument`` to
+  inherit fields and pre/post methods from mixin objects. The mixin class
+  should appear first (leftmost) in the bases:
+  ``class MyDocument(MyMixin, Document)``. (see #278)
+
 Bug fixes:
 
 * Fix passing ``None`` to a field with ``_required_validate`` method
