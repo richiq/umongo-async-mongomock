@@ -9,15 +9,15 @@ from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
 from ..common import BaseDBTest, TEST_DB, con
 
+DEP_ERROR = 'Missing txmongo or pytest_twisted'
 
 # Check if the required dependencies are met to run this driver's tests
-dep_error = None
 try:
     import pytest_twisted
     from txmongo import MongoConnection
     from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 except ImportError:
-    dep_error = 'Missing txmongo or pytest_twisted'
+    dep_error = True
 
     # Given the test function are generator, we must wrap them into a dummy
     # function that pytest can skip
@@ -32,6 +32,7 @@ except ImportError:
     pytest_inlineCallbacks = skip_wrapper
 else:
     pytest_inlineCallbacks = pytest_twisted.inlineCallbacks
+    dep_error = False
 
 from umongo import Document, EmbeddedDocument, fields, exceptions, Reference
 
@@ -61,7 +62,7 @@ def db():
     return make_db()
 
 
-@pytest.mark.skipif(dep_error is not None, reason=dep_error)
+@pytest.mark.skipif(dep_error, reason=DEP_ERROR)
 class TestTxMongo(BaseDBTest):
 
     @pytest_inlineCallbacks
