@@ -18,3 +18,4 @@ Contributors
 * Élysson MR `@elyssonmr <https://github.com/elyssonmr>`_
 * Mandar Upadhye `@mandarup <https://github.com/mandarup>`_
 * Pavel Kulyov `@pkulev <https://github.com/pkulev>`_
+* Attila Kóbor `@atti92 <https://github.com/atti92>`_
