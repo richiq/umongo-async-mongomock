@@ -240,6 +240,9 @@ class TestMotorAsyncio(BaseDBTest):
             assert len(students) == 1
             assert students[0].name == 'student-0'
 
+            async for student in Student.find({'name': 'student-0'}, ['name']):
+                assert isinstance(student, Student)
+
         loop.run_until_complete(do_test())
 
     def test_classroom(self, loop, classroom_model):

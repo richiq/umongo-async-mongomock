@@ -2,6 +2,13 @@
 History
 =======
 
+3.0.0b9 (unreleased)
+--------------------
+
+Features:
+
+* Add support for motor 2.2 (see #294). (Picked from 2.3.0.)
+
 3.0.0b8 (2020-07-22)
 --------------------
 
@@ -137,6 +144,13 @@ Other changes:
   now provides ``NaiveDateTimeField`` and ``AwareDateTimeField``. (see #154)
 * *Backwards-incompatible*: ``default`` shall now be provided in deserialized
   form. (see #154)
+
+2.3.0 (2020-09-06)
+------------------
+
+Features:
+
+* Add support for motor 2.2 (see #294).
 
 2.2.0 (2019-12-18)
 ------------------
