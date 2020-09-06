@@ -2,6 +2,13 @@
 History
 =======
 
+2.3.0 (unreleased)
+------------------
+
+Features:
+
+* Add support for motor 2.2 (see #294).
+
 2.2.0 (2019-12-18)
 ------------------
 
