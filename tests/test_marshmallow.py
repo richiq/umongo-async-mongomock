@@ -52,9 +52,15 @@ class TestMarshmallow(BaseTest):
         class MyDocument(Document):
             MA_BASE_SCHEMA_CLS = ExcludeBaseSchema
 
+            class Meta:
+                abstract = True
+
         @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             MA_BASE_SCHEMA_CLS = ExcludeBaseSchema
+
+            class Meta:
+                abstract = True
 
         # Now, all our objects will generate "exclude" marshmallow schemas
         @self.instance.register
@@ -413,14 +419,14 @@ class TestMarshmallow(BaseTest):
             MA_BASE_SCHEMA_CLS = base_schema
 
             class Meta:
-                allow_inheritance = True
+                abstract = True
 
         @self.instance.register
         class MyEmbeddedDocument(EmbeddedDocument):
             MA_BASE_SCHEMA_CLS = base_schema
 
             class Meta:
-                allow_inheritance = True
+                abstract = True
 
         @self.instance.register
         class Accessory(MyEmbeddedDocument):
@@ -440,19 +446,17 @@ class TestMarshmallow(BaseTest):
         }
         dump = {
             'id': None,
-            'cls': 'Bag',
             'content': [
-                {'brief': 'cellphone', 'cls': 'Accessory', 'value': None},
-                {'brief': 'lighter', 'cls': 'Accessory', 'value': None}
+                {'brief': 'cellphone', 'value': None},
+                {'brief': 'lighter', 'value': None}
             ],
-            'item': {'brief': 'sportbag', 'cls': 'Accessory', 'value': None}
+            'item': {'brief': 'sportbag', 'value': None}
         }
         remove_missing_dump = {
-            'cls': 'Bag',
-            'item': {'cls': 'Accessory', 'brief': 'sportbag'},
+            'item': {'brief': 'sportbag'},
             'content': [
-                {'cls': 'Accessory', 'brief': 'cellphone'},
-                {'cls': 'Accessory', 'brief': 'lighter'}
+                {'brief': 'cellphone'},
+                {'brief': 'lighter'}
             ]
         }
         expected_dump = {
