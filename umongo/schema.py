@@ -26,21 +26,16 @@ class Schema(BaseSchema):
 
     _marshmallow_schemas_cache = {}
 
-    def as_marshmallow_schema(self, *, mongo_world=False):
-        """
-        Return a pure-marshmallow version of this schema class.
-
-        :param mongo_world: If True the schema will work against the mongo world
-            instead of the OO world (default: False).
-        """
+    def as_marshmallow_schema(self):
+        """Return a pure-marshmallow version of this schema class"""
         # Use a cache to avoid generating several times the same schema
-        cache_key = (self.__class__, self.MA_BASE_SCHEMA_CLS, mongo_world)
+        cache_key = (self.__class__, self.MA_BASE_SCHEMA_CLS)
         if cache_key in self._marshmallow_schemas_cache:
             return self._marshmallow_schemas_cache[cache_key]
 
         # Create schema if not found in cache
         nmspc = {
-            name: field.as_marshmallow_field(mongo_world=mongo_world)
+            name: field.as_marshmallow_field()
             for name, field in self.fields.items()
         }
         name = 'Marshmallow%s' % type(self).__name__
