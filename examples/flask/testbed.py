@@ -64,6 +64,22 @@ with Tester('Create one'):
     assert data == expected, 'data: %s, expected: %s' % (data, expected)
     test_list(8)
 
+with Tester('Update'):
+    payload = {
+        'birthday': '2019-05-18T11:40:32+00:00',
+    }
+    r = requests.patch('http://localhost:5000/users/%s' % new_user_id,
+                       json=payload)
+    assert r.status_code == 200, r.status_code
+    data = r.json()
+    del data['id']
+    expected = {
+        'nick': 'n00b',
+        'birthday': '2019-05-18T11:40:32+00:00',
+    }
+    assert data == expected, 'data: %s, expected: %s' % (data, expected)
+    test_list(8)
+
 with Tester('Change password'):
     r = requests.put('http://localhost:5000/users/%s/password' % new_user_id,
                      json={'password': 'abcdef'})
@@ -77,7 +93,7 @@ with Tester('Bad change password'):
                      json={'password': 'abcdef', 'dummy': 42})
     assert r.status_code == 400, r.status_code
     data = r.json()
-    expected = {'message': {'_schema': ['Unknown field name dummy.']}}
+    expected = {'message': {'dummy': ['Unknown field.']}}
     assert data == expected, 'data: %s, expected: %s' % (data, expected)
 
 with Tester('404 on change password'):
