@@ -8,9 +8,8 @@ import marshmallow as ma
 
 from umongo import (
     Document, EmbeddedDocument, MixinDocument,
-    Schema, fields, exceptions, post_dump, pre_load, validates_schema
+    Schema, fields, exceptions, post_dump, pre_load, validates_schema, ExposeMissing
 )
-
 from .common import BaseTest
 
 
@@ -433,6 +432,14 @@ class TestDocument(BaseTest):
             del john['primary_key']
         with pytest.raises(exceptions.AlreadyCreatedError):
             john.update({'primary_key': ObjectId()})
+
+    def test_expose_missing(self):
+        john = self.Student(name='John Doe')
+        assert john.name == 'John Doe'
+        assert john.birthday is None
+        with ExposeMissing():
+            assert john.name == 'John Doe'
+            assert john.birthday is ma.missing
 
     def test_mixin(self):
 
