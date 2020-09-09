@@ -569,7 +569,7 @@ from scratch... almost:
     >>> MassiveDuckSchema(marshmallow.Schema):
     ...     breeds = marshmallow.fields.List(marshmallow.fields.Nested(MassiveBreedSchema))
 
-.. note:: A custom marshmallow schema :class:`umongo.marshmallow_bonus.SchemaFromUmongo`
+.. note:: A custom marshmallow schema :class:`umongo.schema.RemoveMissingSchema`
     can be used instead of regular :class:`marshmallow.Schema` to skip missing fields
     when dumping a :class:`umongo.Document` object.
 
