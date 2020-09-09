@@ -145,11 +145,6 @@ class TestMarshmallow(BaseTest):
 
     def test_as_marshmallow_schema_cache(self):
         ma_schema_cls = self.User.schema.as_marshmallow_schema()
-
-        new_ma_schema_cls = self.User.schema.as_marshmallow_schema(
-            mongo_world=True)
-        assert new_ma_schema_cls != ma_schema_cls
-
         new_ma_schema_cls = self.User.schema.as_marshmallow_schema()
         assert new_ma_schema_cls == ma_schema_cls
 
@@ -208,15 +203,10 @@ class TestMarshmallow(BaseTest):
 
         payload = {'name': 'Scruffy', 'age': 2}
         ma_schema_cls = Dog.schema.as_marshmallow_schema()
-        ma_mongo_schema_cls = Dog.schema.as_marshmallow_schema(mongo_world=True)
 
         ret = ma_schema_cls().load(payload)
         assert ret == {'name': 'Scruffy', 'age': 2}
         assert ma_schema_cls().dump(ret) == payload
-
-        ret = ma_mongo_schema_cls().load(payload)
-        assert ret == {'_id': 'Scruffy', 'age': 2}
-        assert ma_mongo_schema_cls().dump(ret) == payload
 
     def test_i18n(self):
         # i18n support should be kept, because it's pretty cool to have this !
@@ -306,14 +296,10 @@ class TestMarshmallow(BaseTest):
         # (no ObjectId to str conversion needed for example)
 
         ma_schema = Bag.schema.as_marshmallow_schema()()
-        ma_mongo_schema = Bag.schema.as_marshmallow_schema(mongo_world=True)()
 
         bag = Bag(**data)
         assert ma_schema.dump(bag) == data
         assert ma_schema.load(data) == data
-
-        assert ma_mongo_schema.dump(bag.to_mongo()) == data
-        assert ma_mongo_schema.load(data) == bag.to_mongo()
 
     def test_marshmallow_bonus_fields(self):
         # Fields related to mongodb provided for marshmallow
@@ -343,9 +329,6 @@ class TestMarshmallow(BaseTest):
             "gen_ref": {'cls': 'Doc', 'id': "57c1a71113adf27ab96b2c4f"}
         }
         doc = Doc(**oo_data)
-        mongo_data = doc.to_mongo()
-
-        # schema to OO world
         ma_schema_cls = Doc.schema.as_marshmallow_schema()
         ma_schema = ma_schema_cls()
         # Dump uMongo object
@@ -354,16 +337,6 @@ class TestMarshmallow(BaseTest):
         assert ma_schema.dump(oo_data) == serialized
         # Load serialized data
         assert ma_schema.load(serialized) == oo_data
-
-        # schema to mongo world
-        ma_mongo_schema_cls = Doc.schema.as_marshmallow_schema(mongo_world=True)
-        ma_mongo_schema = ma_mongo_schema_cls()
-        assert ma_mongo_schema.dump(mongo_data) == serialized
-        assert ma_mongo_schema.load(serialized) == mongo_data
-        # Cannot load mongo form
-        with pytest.raises(ma.ValidationError) as excinfo:
-            ma_mongo_schema.load({"gen_ref": {'_cls': 'Doc', '_id': "57c1a71113adf27ab96b2c4f"}})
-        assert excinfo.value.messages == {'gen_ref': ['Generic reference must have `id` and `cls` fields.']}
 
     def test_marshmallow_bonus_objectid_field(self):
 

@@ -146,7 +146,7 @@ class BaseField(ma.fields.Field):
     def _deserialize_from_mongo(self, value):
         return value
 
-    def _extract_marshmallow_field_params(self, mongo_world):
+    def _extract_marshmallow_field_params(self):
         params = {
             attribute: getattr(self, attribute)
             for attribute in (
@@ -154,23 +154,14 @@ class BaseField(ma.fields.Field):
                 'load_only', 'dump_only', 'error_messages'
             )
         }
-        if mongo_world and self.attribute:
-            params['attribute'] = self.attribute
-
         # Override uMongo attributes with marshmallow_ prefixed attributes
         params.update(self._ma_kwargs)
-
         params.update(self.metadata)
         return params
 
-    def as_marshmallow_field(self, *, mongo_world=False, **kwargs):
-        """
-        Return a pure-marshmallow version of this field.
-
-        :param mongo_world: If True the field will work against the mongo world
-            instead of the OO world (default: False)
-        """
-        field_kwargs = self._extract_marshmallow_field_params(mongo_world)
+    def as_marshmallow_field(self):
+        """Return a pure-marshmallow version of this field"""
+        field_kwargs = self._extract_marshmallow_field_params()
         # Retrieve the marshmallow class we inherit from
         for m_class in type(self).mro():
             if (not issubclass(m_class, BaseField) and
