@@ -3,7 +3,7 @@ Flask application example
 
 `Flask <http://flask.pocoo.org/>`_ works great with μMongo !
 
-This application show a simple API usecase. It uses:
+This application shows a simple API usecase. It uses:
 
 - PyMongo as MongoDB driver to use with μMongo
 - Flask as web framework
@@ -44,8 +44,8 @@ Bad payload while trying to create user:
 
     {
         "message": {
-            "_schema": [
-                "Unknown field name bad."
+            "bad": [
+                "Unknown field."
             ], 
             "birthday": [
                 "Not a valid datetime."
@@ -66,8 +66,8 @@ Same thing but with a ``accept-language`` header to specify French as prefered l
 
     {
         "message": {
-            "_schema": [
-                "Champ bad unconnu."
+            "bad": [
+                "Champ inconnu."
             ], 
             "birthday": [
                 "Pas une datetime valide."
