@@ -1,5 +1,6 @@
+import datetime as dt
 import json
-import datetime
+
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from klein import Klein
@@ -8,7 +9,7 @@ from txmongo import MongoConnection
 from klein_babel import gettext, locale_from_request
 
 from umongo import Instance, Document, fields, ValidationError, set_gettext
-from umongo.schema import SchemaFromUmongo
+from umongo.schema import RemoveMissingSchema
 
 app = Klein()
 db = MongoConnection().demo_umongo
@@ -18,7 +19,7 @@ set_gettext(gettext)
 
 class MongoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, (datetime.datetime, datetime.date)):
+        if isinstance(obj, (dt.datetime, dt.date)):
             return obj.isoformat()
         elif isinstance(obj, ObjectId):
             return str(obj)
@@ -39,10 +40,15 @@ def get_json(request):
 
 @instance.register
 class User(Document):
+
+    # We specify `RemoveMissingSchema` as a base marshmallow schema so that
+    # auto-generated marshmallow schemas skip missing fields instead of returning None
+    MA_BASE_SCHEMA_CLS = RemoveMissingSchema
+
     nick = fields.StrField(required=True, unique=True)
     firstname = fields.StrField()
     lastname = fields.StrField()
-    birthday = fields.DateTimeField()
+    birthday = fields.AwareDateTimeField()
     password = fields.StrField()  # Don't store it in clear in real life !
 
 
@@ -53,52 +59,69 @@ def populate_db():
     for data in [
         {
             'nick': 'mze', 'lastname': 'Mao', 'firstname': 'Zedong',
-            'birthday': datetime.datetime(1893, 12, 26),
+            'birthday': dt.datetime(1893, 12, 26),
             'password': 'Serve the people'
         },
         {
             'nick': 'lsh', 'lastname': 'Liu', 'firstname': 'Shaoqi',
-            'birthday': datetime.datetime(1898, 11, 24),
+            'birthday': dt.datetime(1898, 11, 24),
             'password': 'Dare to think, dare to act'
         },
         {
             'nick': 'lxia', 'lastname': 'Li', 'firstname': 'Xiannian',
-            'birthday': datetime.datetime(1909, 6, 23),
+            'birthday': dt.datetime(1909, 6, 23),
             'password': 'To rebel is justified'
         },
         {
             'nick': 'ysh', 'lastname': 'Yang', 'firstname': 'Shangkun',
-            'birthday': datetime.datetime(1907, 7, 5),
+            'birthday': dt.datetime(1907, 7, 5),
             'password': 'Smash the gang of four'
         },
         {
             'nick': 'jze', 'lastname': 'Jiang', 'firstname': 'Zemin',
-            'birthday': datetime.datetime(1926, 8, 17),
+            'birthday': dt.datetime(1926, 8, 17),
             'password': 'Seek truth from facts'
         },
         {
             'nick': 'huji', 'lastname': 'Hu', 'firstname': 'Jintao',
-            'birthday': datetime.datetime(1942, 12, 21),
+            'birthday': dt.datetime(1942, 12, 21),
             'password': 'It is good to have just 1 child'
         },
         {
             'nick': 'xiji', 'lastname': 'Xi', 'firstname': 'Jinping',
-            'birthday': datetime.datetime(1953, 6, 15),
+            'birthday': dt.datetime(1953, 6, 15),
             'password': 'Achieve the 4 modernisations'
         }
     ]:
         yield User(**data).commit()
 
 
-# Create a custom marshmallow schema from User document in order to avoid some fields
+# Define a custom marshmallow schema to ignore read-only fields
+class UserUpdateSchema(User.schema.as_marshmallow_schema()):
+    class Meta:
+        dump_only = ('nick', 'password',)
+
+user_update_schema = UserUpdateSchema()
+
+# Define a custom marshmallow schema from User document to exclude password field
 class UserNoPassSchema(User.schema.as_marshmallow_schema()):
     class Meta:
-        read_only = ('password',)
-        load_only = ('password',)
-no_pass_schema = UserNoPassSchema()
+        exclude = ('password',)
+
+user_no_pass_schema = UserNoPassSchema()
+
 
 def dump_user_no_pass(u):
-    return no_pass_schema.dump(u)
+    return user_no_pass_schema.dump(u)
+
+
+# Define a custom marshmallow schema from User document to expose only password field
+class ChangePasswordSchema(User.schema.as_marshmallow_schema()):
+    class Meta:
+        fields = ('password',)
+        required = ('password',)
+
+change_password_schema = ChangePasswordSchema()
 
 
 @app.route('/', methods=['GET'])
@@ -158,15 +181,8 @@ def update_user(request, nick_or_id):
     user = yield User.find_one(_nick_or_id_lookup(nick_or_id))
     if not user:
         raise Error(404, 'Not found')
-    # Define a custom schema from the default one to ignore read-only fields
-    UserUpdateSchema = User.Schema.as_marshmallow_schema(params={
-        'password': {'dump_only': True},
-        'nick': {'dump_only': True}
-    })()
-    # with `strict`, marshmallow raises a ValidationError if something is wrong
-    schema = UserUpdateSchema(strict=True)
     try:
-        data, _ = schema.load(payload)
+        data = user_update_schema.load(payload)
         user.update(data)
         yield user.commit()
     except ValidationError as ve:
@@ -199,15 +215,8 @@ def change_password_user(request, nick_or_id):
     if not user:
         raise Error(404, 'Not found')
 
-    # Use a field from our document to create a marshmallow schema
-    # Note that we use `SchemaFromUmongo` to skip missing fields
-    # instead of returning None
-    class ChangePasswordSchema(SchemaFromUmongo):
-        password = User.schema.fields['password'].as_marshmallow_field(params={'required': True})
-    # with `strict`, marshmallow raise ValidationError if something is wrong
-    schema = ChangePasswordSchema(strict=True)
     try:
-        data, _ = schema.load(payload)
+        data = change_password_schema.load(payload)
         user.password = data['password']
         yield user.commit()
     except ValidationError as ve:
