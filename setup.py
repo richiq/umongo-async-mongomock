@@ -29,7 +29,7 @@ setup(
     url='https://github.com/touilleMan/umongo',
     packages=['umongo', 'umongo.frameworks'],
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=requirements,
     extras_require={
         'motor': ['motor>=1.1,<3.0'],
@@ -45,7 +45,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
