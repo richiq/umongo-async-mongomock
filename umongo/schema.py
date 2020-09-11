@@ -13,8 +13,9 @@ __all__ = (
 
 class RemoveMissingSchema(ma.Schema):
     """
-    Custom :class:`marshmallow.Schema` subclass returning missing rather than
-    None for missing fields in umongo :class:`umongo.Document`s.
+    Custom :class:`marshmallow.Schema` subclass that skips missing fields
+    rather than returning None for missing fields when dumping umongo
+    :class:`umongo.Document`s.
     """
     def dump(self, *args, **kwargs):
         with ExposeMissing():
