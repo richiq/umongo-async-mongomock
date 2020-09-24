@@ -10,6 +10,7 @@ from copy import copy
 
 import marshmallow as ma
 
+from .abstract import BaseSchema
 from .template import Template, Implementation
 from .data_proxy import data_proxy_factory
 from .document import DocumentTemplate, DocumentOpts, DocumentImplementation
@@ -17,7 +18,6 @@ from .embedded_document import (
     EmbeddedDocumentTemplate, EmbeddedDocumentOpts, EmbeddedDocumentImplementation)
 from .mixin import MixinDocumentTemplate, MixinDocumentOpts, MixinDocumentImplementation
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
-from .schema import Schema
 from .indexes import parse_index
 from . import fields
 
@@ -283,7 +283,7 @@ class BaseBuilder:
             if issubclass(base, Implementation) and hasattr(base, 'Schema')
         )
         if not schema_bases:
-            schema_bases = (Schema, )
+            schema_bases = (BaseSchema, )
         if base_tmpl_cls is DocumentTemplate:
             nmspc['pk_field'] = _on_need_add_id_field(schema_bases, schema_fields)
 

@@ -22,6 +22,7 @@ class BaseSchema(ma.Schema):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.error_messages = I18nErrorDict(self.error_messages)
+        self._ma_schema = None
 
     def map_to_field(self, func):
         """
@@ -35,6 +36,27 @@ class BaseSchema(ma.Schema):
             func(mongo_path, name, field)
             if hasattr(field, 'map_to_field'):
                 field.map_to_field(mongo_path, name, func)
+
+    def as_marshmallow_schema(self):
+        """Return a pure-marshmallow version of this schema class"""
+        # Use a cache to avoid generating several times the same schema
+        if self._ma_schema is not None:
+            return self._ma_schema
+
+        # Create schema if not found in cache
+        nmspc = {
+            name: field.as_marshmallow_field()
+            for name, field in self.fields.items()
+        }
+        name = 'Marshmallow%s' % type(self).__name__
+        m_schema = type(name, (self.MA_BASE_SCHEMA_CLS, ), nmspc)
+        # Add i18n support to the schema
+        # We can't use I18nErrorDict here because __getitem__ is not called
+        # when error_messages is updated with _default_error_messages.
+        m_schema._default_error_messages = {
+            k: _(v) for k, v in m_schema._default_error_messages.items()}
+        self._ma_schema = m_schema
+        return m_schema
 
 
 class BaseField(ma.fields.Field):
