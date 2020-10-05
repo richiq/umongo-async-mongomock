@@ -3,8 +3,9 @@ import pytest
 from bson import ObjectId
 import marshmallow as ma
 
+from umongo import fields, EmbeddedDocument, validate, exceptions
+from umongo.abstract import BaseSchema
 from umongo.data_proxy import data_proxy_factory, BaseDataProxy, BaseNonStrictDataProxy
-from umongo import Schema, fields, EmbeddedDocument, validate, exceptions
 
 from .common import BaseTest
 
@@ -13,7 +14,7 @@ class TestDataProxy(BaseTest):
 
     def test_repr(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             field_a = fields.IntField(attribute='mongo_field_a')
             field_b = fields.StrField()
 
@@ -27,7 +28,7 @@ class TestDataProxy(BaseTest):
 
     def test_simple(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField()
 
@@ -45,7 +46,7 @@ class TestDataProxy(BaseTest):
 
     def test_load(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -66,7 +67,7 @@ class TestDataProxy(BaseTest):
 
     def test_modify(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -89,7 +90,7 @@ class TestDataProxy(BaseTest):
 
     def test_list_field_modify(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.ListField(fields.IntField())
             b = fields.ListField(fields.IntField(), attribute='in_mongo_b')
 
@@ -135,7 +136,7 @@ class TestDataProxy(BaseTest):
         class MyEmbedded(EmbeddedDocument):
             aa = fields.IntField()
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             # EmbeddedField need instance to retrieve implementation
             a = fields.EmbeddedField(MyEmbedded, instance=self.instance)
             b = fields.ListField(fields.IntField)
@@ -154,7 +155,7 @@ class TestDataProxy(BaseTest):
 
     def test_set(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
             c = fields.StrField(
@@ -188,7 +189,7 @@ class TestDataProxy(BaseTest):
 
     def test_del(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -206,7 +207,7 @@ class TestDataProxy(BaseTest):
 
     def test_route_naming(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             in_front = fields.IntField(attribute='in_mongo')
 
         MyDataProxy = data_proxy_factory('My', MySchema())
@@ -225,7 +226,7 @@ class TestDataProxy(BaseTest):
 
     def test_from_mongo(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             in_front = fields.IntField(attribute='in_mongo')
 
         MyDataProxy = data_proxy_factory('My', MySchema())
@@ -237,7 +238,7 @@ class TestDataProxy(BaseTest):
 
     def test_equality(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -257,7 +258,7 @@ class TestDataProxy(BaseTest):
 
     def test_share_ressources(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -272,7 +273,7 @@ class TestDataProxy(BaseTest):
 
     def test_set_to_missing_fields(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             a = fields.IntField()
             b = fields.IntField(attribute='in_mongo_b')
 
@@ -291,7 +292,7 @@ class TestDataProxy(BaseTest):
         default_value = ObjectId('507f1f77bcf86cd799439011')
         default_callable = lambda: ObjectId('507f1f77bcf86cd799439012')
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             no_default = fields.ObjectIdField()
             with_default = fields.ObjectIdField(default=default_value)
             with_callable_default = fields.ObjectIdField(default=default_callable)
@@ -322,7 +323,7 @@ class TestDataProxy(BaseTest):
 
     def test_validate(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             with_max = fields.IntField(validate=validate.Range(max=99))
 
         MyDataProxy = data_proxy_factory('My', MySchema())
@@ -340,7 +341,7 @@ class TestDataProxy(BaseTest):
         class MyEmbedded(EmbeddedDocument):
             required = fields.IntField(required=True)
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             # EmbeddedField need instance to retrieve implementation
             required = fields.IntField(required=True)
             embedded = fields.EmbeddedField(MyEmbedded, instance=self.instance)
@@ -385,7 +386,7 @@ class TestDataProxy(BaseTest):
         }
 
     def test_unkown_field_in_db(self):
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             field = fields.IntField(attribute='mongo_field')
 
         DataProxy = data_proxy_factory('My', MySchema())
@@ -396,7 +397,7 @@ class TestDataProxy(BaseTest):
             d.from_mongo({'mongo_field': 42, 'xxx': 'foo'})
 
     def test_iterators(self):
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             field_a = fields.IntField(attribute='mongo_field_a')
             field_b = fields.IntField(attribute='mongo_field_b')
 
@@ -418,7 +419,7 @@ class TestNonStrictDataProxy(BaseTest):
 
     def test_build(self):
 
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             pass
 
         strict_proxy = data_proxy_factory('My', MySchema(), strict=True)
@@ -427,7 +428,7 @@ class TestNonStrictDataProxy(BaseTest):
         assert issubclass(non_strict_proxy, BaseNonStrictDataProxy)
 
     def test_basic(self):
-        class MySchema(Schema):
+        class MySchema(BaseSchema):
             field_a = fields.IntField(attribute='mongo_field_a')
 
         NonStrictDataProxy = data_proxy_factory('My', MySchema(), strict=False)

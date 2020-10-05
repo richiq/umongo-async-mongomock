@@ -8,8 +8,9 @@ import marshmallow as ma
 
 from umongo import (
     Document, EmbeddedDocument, MixinDocument,
-    Schema, fields, exceptions, post_dump, pre_load, validates_schema, ExposeMissing
+    fields, exceptions, post_dump, pre_load, validates_schema, ExposeMissing
 )
+from umongo.abstract import BaseSchema
 from .common import BaseTest
 
 
@@ -566,7 +567,7 @@ class TestConfig(BaseTest):
             pass
 
         d = Doc()
-        assert isinstance(d.schema, Schema)
+        assert isinstance(d.schema, BaseSchema)
 
     def test_base_config(self):
 

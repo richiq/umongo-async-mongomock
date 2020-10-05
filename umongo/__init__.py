@@ -25,11 +25,10 @@ from .exceptions import (
     UnknownFieldInDBError,
 )
 from . import fields, validate
-from .schema import Schema
 from .data_objects import Reference
 from .embedded_document import EmbeddedDocument
 from .mixin import MixinDocument
-from .expose_missing import ExposeMissing
+from .expose_missing import ExposeMissing, RemoveMissingSchema
 from .i18n import set_gettext
 
 
@@ -54,6 +53,7 @@ __all__ = (
     'EmbeddedDocument',
     'MixinDocument',
     'ExposeMissing',
+    'RemoveMissingSchema',
 
     'UMongoError',
     'ValidationError',
@@ -65,8 +65,6 @@ __all__ = (
     'UnknownFieldInDBError',
 
     'fields',
-
-    'Schema',
 
     'Reference',
 
