@@ -86,12 +86,15 @@ class UserUpdateSchema(User.schema.as_marshmallow_schema()):
     class Meta:
         dump_only = ('nick', 'password',)
 
+
 user_update_schema = UserUpdateSchema()
+
 
 # Define a custom marshmallow schema from User document to exclude password field
 class UserNoPassSchema(User.schema.as_marshmallow_schema()):
     class Meta:
         exclude = ('password',)
+
 
 user_no_pass_schema = UserNoPassSchema()
 
@@ -105,6 +108,7 @@ class ChangePasswordSchema(User.schema.as_marshmallow_schema()):
     class Meta:
         fields = ('password',)
         required = ('password',)
+
 
 change_password_schema = ChangePasswordSchema()
 
