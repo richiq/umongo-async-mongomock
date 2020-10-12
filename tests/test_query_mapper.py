@@ -100,6 +100,15 @@ class TestQueryMapper(BaseTest):
             ]}
         }
 
+        # Test embedded document in query
+        query = map_query({
+            'author': Author(name='JRR Tolkien', birthday=dt.datetime(1892, 1, 3))
+        }, book_fields)
+        assert isinstance(query['a'], dict)
+        assert query == {
+            'a': {'name': 'JRR Tolkien', 'b': dt.datetime(1892, 1, 3)}
+        }
+
     def test_mix(self):
 
         @self.instance.register

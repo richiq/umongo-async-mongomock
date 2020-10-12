@@ -1,4 +1,5 @@
 from umongo.fields import ListField, EmbeddedField
+from umongo.embedded_document import EmbeddedDocumentImplementation
 
 
 def map_entry(entry, fields):
@@ -44,4 +45,6 @@ def map_query(query, fields):
         return mapped_query
     if isinstance(query, (list, tuple)):
         return [map_query(x, fields) for x in query]
+    if isinstance(query, EmbeddedDocumentImplementation):
+        return query.to_mongo()
     return query
