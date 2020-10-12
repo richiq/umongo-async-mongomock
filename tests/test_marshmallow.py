@@ -254,15 +254,20 @@ class TestMarshmallow(BaseTest):
         @self.instance.register
         class WithDefault(Document):
             with_umongo_default = fields.DateTimeField(default=dt.datetime(1999, 1, 1))
-            with_marshmallow_missing = fields.DateTimeField(marshmallow_missing=dt.datetime(2000, 1, 1))
-            with_marshmallow_default = fields.DateTimeField(marshmallow_default=dt.datetime(2001, 1, 1))
+            with_marshmallow_missing = fields.DateTimeField(
+                marshmallow_missing=dt.datetime(2000, 1, 1))
+            with_marshmallow_default = fields.DateTimeField(
+                marshmallow_default=dt.datetime(2001, 1, 1))
             with_marshmallow_and_umongo = fields.DateTimeField(
                 default=dt.datetime(1999, 1, 1),
                 marshmallow_missing=dt.datetime(2000, 1, 1),
                 marshmallow_default=dt.datetime(2001, 1, 1)
             )
             with_force_missing = fields.DateTimeField(
-                default=dt.datetime(2001, 1, 1), marshmallow_missing=missing, marshmallow_default=missing)
+                default=dt.datetime(2001, 1, 1),
+                marshmallow_missing=missing,
+                marshmallow_default=missing
+            )
             with_nothing = fields.StrField()
 
         ma_schema = WithDefault.schema.as_marshmallow_schema()()

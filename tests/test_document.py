@@ -606,8 +606,8 @@ class TestConfig(BaseTest):
             class Meta:
                 collection_name = 'col2'
 
-        assert DocChild1.opts.collection_name is 'col1'
-        assert DocChild1Child.opts.collection_name is 'col1'
+        assert DocChild1.opts.collection_name == 'col1'
+        assert DocChild1Child.opts.collection_name == 'col1'
         assert DocChild2.opts.collection_name == 'col2'
 
     def test_inheritance_from_embedded_document(self):

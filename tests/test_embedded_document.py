@@ -147,28 +147,28 @@ class TestEmbeddedDocument(BaseTest):
         @self.instance.register
         class MyDoc(Document):
             e = fields.EmbeddedField(MyEmbeddedDocument)
-            l = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
+            li = fields.ListField(fields.EmbeddedField(MyEmbeddedDocument))
             b = fields.IntField(required=True)
 
         with pytest.raises(ma.ValidationError) as exc:
-            MyDoc(l={})
-        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+            MyDoc(li={})
+        assert exc.value.args[0] == {'li': ['Not a valid list.']}
 
         with pytest.raises(ma.ValidationError) as exc:
-            MyDoc(l=True)
-        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+            MyDoc(li=True)
+        assert exc.value.args[0] == {'li': ['Not a valid list.']}
 
         with pytest.raises(ma.ValidationError) as exc:
-            MyDoc(l="string is not a list")
-        assert exc.value.args[0] == {'l': ['Not a valid list.']}
+            MyDoc(li="string is not a list")
+        assert exc.value.args[0] == {'li': ['Not a valid list.']}
 
         with pytest.raises(ma.ValidationError) as exc:
-            MyDoc(l=[42])
-        assert exc.value.args[0] == {'l': {0: {'_schema': ['Invalid input type.']}}}
+            MyDoc(li=[42])
+        assert exc.value.args[0] == {'li': {0: {'_schema': ['Invalid input type.']}}}
 
         with pytest.raises(ma.ValidationError) as exc:
-            MyDoc(l=[{}, 42])
-        assert exc.value.args[0] == {'l': {1: {'_schema': ['Invalid input type.']}}}
+            MyDoc(li=[{}, 42])
+        assert exc.value.args[0] == {'li': {1: {'_schema': ['Invalid input type.']}}}
 
         with pytest.raises(ma.ValidationError) as exc:
             MyDoc(b=[{}])
@@ -298,7 +298,8 @@ class TestEmbeddedDocument(BaseTest):
         assert cc.to_mongo() == {'in_mongo_a_parent': 1, 'b': 2, 'c': 3}
         assert cgc.to_mongo() == {'in_mongo_a_child': 1, 'b': 2, 'c': 3, 'd': 4}
         # But child of non abstract does
-        assert ccgc.to_mongo() == {'in_mongo_a_parent': 1, 'b': 2, 'c': 3, 'd': 4, '_cls': 'ConcreteConcreteGrandChild'}
+        assert ccgc.to_mongo() == {
+            'in_mongo_a_parent': 1, 'b': 2, 'c': 3, 'd': 4, '_cls': 'ConcreteConcreteGrandChild'}
 
         # Cannot use abstract embedded document in EmbeddedField
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
@@ -308,10 +309,9 @@ class TestEmbeddedDocument(BaseTest):
         assert exc.value.args[0] == "EmbeddedField doesn't accept abstract embedded document"
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
             @self.instance.register
-            class MyDoc(Document):
+            class MyOtherDoc(Document):
                 impossibru = fields.EmbeddedField(AbstractChild)
         assert exc.value.args[0] == "EmbeddedField doesn't accept abstract embedded document"
-
 
     def test_bad_inheritance(self):
         @self.instance.register

@@ -8,6 +8,10 @@ import marshmallow as ma
 
 from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
+from umongo import (
+    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
+)
+
 from ..common import BaseDBTest, TEST_DB, con
 
 DEP_ERROR = 'Missing txmongo or pytest_twisted'
@@ -34,10 +38,6 @@ except ImportError:
 else:
     pytest_inlineCallbacks = pytest_twisted.inlineCallbacks
     dep_error = False
-
-from umongo import (
-    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
-)
 
 
 if not dep_error:  # Make sure the module is valid by importing it
@@ -321,7 +321,8 @@ class TestTxMongo(BaseDBTest):
         class IOStudent(Student):
             io_field = fields.StrField(io_validate=io_validate)
             list_io_field = fields.ListField(fields.IntField(io_validate=io_validate))
-            reference_io_field = fields.ReferenceField(classroom_model.Course, io_validate=io_validate)
+            reference_io_field = fields.ReferenceField(
+                classroom_model.Course, io_validate=io_validate)
             embedded_io_field = fields.EmbeddedField(EmbeddedDoc, io_validate=io_validate)
 
         bad_reference = ObjectId()
@@ -755,7 +756,8 @@ class TestTxMongo(BaseDBTest):
         assert len(res) == 1
         res = yield Book.find({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
         assert len(res) == 2
-        res = yield Book.find({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
+        res = yield Book.find(
+            {'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
         assert len(res) == 1
         res = yield Book.find({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
         assert len(res) == 1
@@ -929,5 +931,3 @@ class TestTxMongo(BaseDBTest):
         callbacks.clear()
         yield p.delete()
         assert callbacks == ['pre_delete', 'post_delete']
-
-

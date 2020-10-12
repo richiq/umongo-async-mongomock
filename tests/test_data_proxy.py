@@ -290,7 +290,7 @@ class TestDataProxy(BaseTest):
 
     def test_default(self):
         default_value = ObjectId('507f1f77bcf86cd799439011')
-        default_callable = lambda: ObjectId('507f1f77bcf86cd799439012')
+        default_callable = lambda: ObjectId('507f1f77bcf86cd799439012')  # noqa: E731
 
         class MySchema(BaseSchema):
             no_default = fields.ObjectIdField()
@@ -375,7 +375,8 @@ class TestDataProxy(BaseTest):
         d.load({'embedded': {}, 'required': 42})
         with pytest.raises(ma.ValidationError) as exc:
             d.required_validate()
-        assert exc.value.messages == {'embedded': {'required': ['Missing data for required field.']}}
+        assert exc.value.messages == {
+            'embedded': {'required': ['Missing data for required field.']}}
 
         d.load({'embedded': {'required': 42}, 'required': 42, 'listed': [{}], 'dicted': {'a': {}}})
         with pytest.raises(ma.ValidationError) as exc:

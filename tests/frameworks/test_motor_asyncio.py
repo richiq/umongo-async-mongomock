@@ -6,6 +6,14 @@ import pytest
 from bson import ObjectId
 import marshmallow as ma
 
+from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
+from umongo import (
+    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
+)
+
+from ..common import BaseDBTest, TEST_DB
+
+
 DEP_ERROR = 'Missing motor'
 
 # Check if the required dependancies are met to run this driver's tests
@@ -17,15 +25,8 @@ except ImportError:
 else:
     dep_error = False
 
-from ..common import BaseDBTest, TEST_DB
-
-from umongo import (
-    Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
-)
-
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import motor_asyncio as framework  # noqa
-    from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 
 
 def _stripped(indexes):
@@ -383,7 +384,8 @@ class TestMotorAsyncio(BaseDBTest):
             class IOStudent(Student):
                 io_field = fields.StrField(io_validate=io_validate)
                 list_io_field = fields.ListField(fields.IntField(io_validate=io_validate))
-                reference_io_field = fields.ReferenceField(classroom_model.Course, io_validate=io_validate)
+                reference_io_field = fields.ReferenceField(
+                    classroom_model.Course, io_validate=io_validate)
                 embedded_io_field = fields.EmbeddedField(EmbeddedDoc, io_validate=io_validate)
 
             bad_reference = ObjectId()
@@ -612,7 +614,8 @@ class TestMotorAsyncio(BaseDBTest):
             await UniqueIndexCompoundDoc.ensure_indexes()
             indexes = await UniqueIndexCompoundDoc.collection.index_information()
             # Must sort compound indexes to avoid random inconsistence
-            indexes['compound1_1_compound2_1']['key'] = sorted(indexes['compound1_1_compound2_1']['key'])
+            indexes['compound1_1_compound2_1']['key'] = sorted(
+                indexes['compound1_1_compound2_1']['key'])
             expected_indexes = {
                 '_id_': {
                     'key': [('_id', 1)],
@@ -628,7 +631,8 @@ class TestMotorAsyncio(BaseDBTest):
             await UniqueIndexCompoundDoc.ensure_indexes()
             indexes = await UniqueIndexCompoundDoc.collection.index_information()
             # Must sort compound indexes to avoid random inconsistence
-            indexes['compound1_1_compound2_1']['key'] = sorted(indexes['compound1_1_compound2_1']['key'])
+            indexes['compound1_1_compound2_1']['key'] = sorted(
+                indexes['compound1_1_compound2_1']['key'])
             assert _stripped(indexes) == expected_indexes
 
             # Index is on the tuple (compound1, compound2)
@@ -819,11 +823,14 @@ class TestMotorAsyncio(BaseDBTest):
 
             res = await Book.count_documents({'title': 'The Hobbit'})
             assert res == 1
-            res = await Book.count_documents({'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
+            res = await Book.count_documents(
+                {'author.name': {'$in': ['JK Rowling', 'JRR Tolkien']}})
             assert res == 2
-            res = await Book.count_documents({'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
+            res = await Book.count_documents(
+                {'$and': [{'chapters.name': 'Roast Mutton'}, {'title': 'The Hobbit'}]})
             assert res == 1
-            res = await Book.count_documents({'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
+            res = await Book.count_documents(
+                {'chapters.name': {'$all': ['Roast Mutton', 'A Short Rest']}})
             assert res == 1
 
         loop.run_until_complete(do_test())

@@ -31,7 +31,8 @@ class TestQueryMapper(BaseTest):
 
         book_fields = Book.schema.fields
         # No changes needed
-        assert map_query({'title': 'The Lord of The Ring'}, book_fields) == {'title': 'The Lord of The Ring'}
+        assert map_query({'title': 'The Lord of The Ring'}, book_fields) == {
+            'title': 'The Lord of The Ring'}
         # Single substitution
         assert map_query({'length': 350}, book_fields) == {'l': 350}
         # Multiple substitutions
@@ -122,4 +123,5 @@ class TestQueryMapper(BaseTest):
         assert map_query({'sponsors.name': 1}, team_fields) == {'s.cn': 1}
         assert map_query({'sponsors': {'name': 1}}, team_fields) == {'s': {'cn': 1}}
         assert map_query({'sponsors.contact.name': 1}, team_fields) == {'s.cc.pn': 1}
-        assert map_query({'sponsors': {'contact': {'name': 1}}}, team_fields) == {'s': {'cc': {'pn': 1}}}
+        assert map_query(
+            {'sponsors': {'contact': {'name': 1}}}, team_fields) == {'s': {'cc': {'pn': 1}}}

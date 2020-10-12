@@ -58,13 +58,15 @@ class TestRequired(BaseTest):
         assert exc.value.messages == {'embedded_required': ['Missing data for required field.']}
         with pytest.raises(ma.ValidationError) as exc:
             MyDoc(embedded_required={'optional_field': 1}).required_validate()
-        assert exc.value.messages == {'embedded_required': {'required_field': ['Missing data for required field.']}}
+        assert exc.value.messages == {
+            'embedded_required': {'required_field': ['Missing data for required field.']}}
         with pytest.raises(ma.ValidationError) as exc:
             MyDoc(
                 embedded={'optional_field': 1},
                 embedded_required={'required_field': 42}
             ).required_validate()
-        assert exc.value.messages == {'embedded': {'required_field': ['Missing data for required field.']}}
+        assert exc.value.messages == {
+            'embedded': {'required_field': ['Missing data for required field.']}}
         with pytest.raises(ma.ValidationError) as exc:
             MyDoc(
                 embedded={'required_field': 1},
@@ -74,11 +76,17 @@ class TestRequired(BaseTest):
             ).required_validate()
         assert exc.value.messages == {
             'embedded_list': {0: {'required_field': ['Missing data for required field.']}},
-            'embedded_dict': {'a': {'value': {'required_field': ['Missing data for required field.']}}},
+            'embedded_dict': {
+                'a': {'value': {'required_field': ['Missing data for required field.']}}},
         }
 
         # Check valid constructions
-        doc = MyDoc(embedded={'required_field': 1}, embedded_list=[], embedded_dict={}, embedded_required={'required_field': 42})
+        doc = MyDoc(
+            embedded={'required_field': 1},
+            embedded_list=[],
+            embedded_dict={},
+            embedded_required={'required_field': 42}
+        )
         doc.required_validate()
         doc = MyDoc(
             embedded={'required_field': 1},
@@ -88,7 +96,6 @@ class TestRequired(BaseTest):
         )
         doc.required_validate()
 
-
     def test_required_nested_allow_none(self):
         @self.instance.register
         class MyEmbedded(EmbeddedDocument):
@@ -97,7 +104,8 @@ class TestRequired(BaseTest):
         @self.instance.register
         class MyDoc(Document):
             embedded_list = fields.ListField(fields.EmbeddedField(MyEmbedded), allow_none=True)
-            embedded_dict = fields.DictField(values=fields.EmbeddedField(MyEmbedded), allow_none=True)
+            embedded_dict = fields.DictField(
+                values=fields.EmbeddedField(MyEmbedded), allow_none=True)
             embedded = fields.EmbeddedField(MyEmbedded, allow_none=True)
 
         MyDoc(embedded_list=None, embedded_dict=None, embedded=None).required_validate()
