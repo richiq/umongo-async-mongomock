@@ -1,4 +1,5 @@
 from umongo.fields import ListField, EmbeddedField
+from umongo.document import DocumentImplementation
 from umongo.embedded_document import EmbeddedDocumentImplementation
 
 
@@ -45,6 +46,9 @@ def map_query(query, fields):
         return mapped_query
     if isinstance(query, (list, tuple)):
         return [map_query(x, fields) for x in query]
+    # Passing a Document only makes sense in a Reference, let's query on ObjectId
+    if isinstance(query, DocumentImplementation):
+        return query.pk
     if isinstance(query, EmbeddedDocumentImplementation):
         return query.to_mongo()
     return query
