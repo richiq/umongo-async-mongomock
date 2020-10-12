@@ -2,6 +2,13 @@
 History
 =======
 
+3.0.0b10 (2020-10-12)
+---------------------
+
+Features:
+
+* Allow passing ``Document`` and ``EmbeddedDocument`` in queries. (see #303)
+
 3.0.0b9 (2020-10-05)
 --------------------
 
