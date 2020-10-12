@@ -1,5 +1,5 @@
 from functools import wraps
-from datetime import datetime
+import datetime as dt
 
 import pytest
 
@@ -71,13 +71,13 @@ class TestTxMongo(BaseDBTest):
     @pytest_inlineCallbacks
     def test_create(self, classroom_model):
         Student = classroom_model.Student
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         ret = yield john.commit()
         assert isinstance(ret, InsertOneResult)
         assert john.to_mongo() == {
             '_id': john.id,
             'name': 'John Doe',
-            'birthday': datetime(1995, 12, 12)
+            'birthday': dt.datetime(1995, 12, 12)
         }
 
         john2 = yield Student.find_one(john.id)
@@ -89,7 +89,7 @@ class TestTxMongo(BaseDBTest):
     @pytest_inlineCallbacks
     def test_update(self, classroom_model):
         Student = classroom_model.Student
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         yield john.commit()
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
@@ -116,7 +116,7 @@ class TestTxMongo(BaseDBTest):
     def test_delete(self, classroom_model):
         Student = classroom_model.Student
         yield Student.collection.drop()
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             yield john.delete()
         yield john.commit()
@@ -148,7 +148,7 @@ class TestTxMongo(BaseDBTest):
     def test_reload(self, classroom_model):
         Student = classroom_model.Student
         yield Student(name='Other dude').commit()
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             yield john.reload()
         yield john.commit()
@@ -201,7 +201,7 @@ class TestTxMongo(BaseDBTest):
 
     @pytest_inlineCallbacks
     def test_classroom(self, classroom_model):
-        student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
+        student = classroom_model.Student(name='Marty McFly', birthday=dt.datetime(1968, 6, 9))
         yield student.commit()
         teacher = classroom_model.Teacher(name='M. Strickland')
         yield teacher.commit()
@@ -215,7 +215,7 @@ class TestTxMongo(BaseDBTest):
         assert student.to_mongo() == {
             '_id': student.pk,
             'name': 'Marty McFly',
-            'birthday': datetime(1968, 6, 9),
+            'birthday': dt.datetime(1968, 6, 9),
             'courses': [course.pk]
         }
 

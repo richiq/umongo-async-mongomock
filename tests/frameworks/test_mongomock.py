@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 
 import pytest
 
@@ -31,12 +31,12 @@ def db():
 @pytest.mark.skipif(dep_error, reason=DEP_ERROR)
 def test_mongomock(classroom_model):
     Student = classroom_model.Student
-    john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+    john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
     john.commit()
     assert john.to_mongo() == {
         '_id': john.id,
         'name': 'John Doe',
-        'birthday': datetime(1995, 12, 12)
+        'birthday': dt.datetime(1995, 12, 12)
     }
     john2 = Student.find_one(john.id)
     assert john2._data == john._data

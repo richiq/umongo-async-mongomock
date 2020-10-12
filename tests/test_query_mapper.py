@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 
 from umongo import Document, EmbeddedDocument, fields
 from umongo.query_mapper import map_query
@@ -58,11 +58,11 @@ class TestQueryMapper(BaseTest):
         # Test dot notation as well
         assert map_query({
             'author.name': 'JRR Tolkien',
-            'author.birthday': datetime(1892, 1, 3),
+            'author.birthday': dt.datetime(1892, 1, 3),
             'chapters.pagination': 81
         }, book_fields) == {
             'a.name': 'JRR Tolkien',
-            'a.b': datetime(1892, 1, 3),
+            'a.b': dt.datetime(1892, 1, 3),
             'chapters.p': 81
         }
         assert map_query({
@@ -75,10 +75,10 @@ class TestQueryMapper(BaseTest):
         assert map_query({
             'author': {
                 'name': 'JRR Tolkien',
-                'birthday': datetime(1892, 1, 3)
+                'birthday': dt.datetime(1892, 1, 3)
             }
         }, book_fields) == {
-            'a': {'name': 'JRR Tolkien', 'b': datetime(1892, 1, 3)}
+            'a': {'name': 'JRR Tolkien', 'b': dt.datetime(1892, 1, 3)}
         }
 
         # Test list conversion

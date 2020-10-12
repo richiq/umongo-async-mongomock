@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+import datetime as dt
 
 import pytest
 
@@ -65,13 +65,13 @@ class TestMotorAsyncio(BaseDBTest):
         Student = classroom_model.Student
 
         async def do_test():
-            john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
             ret = await john.commit()
             assert isinstance(ret, InsertOneResult)
             assert john.to_mongo() == {
                 '_id': john.id,
                 'name': 'John Doe',
-                'birthday': datetime(1995, 12, 12)
+                'birthday': dt.datetime(1995, 12, 12)
             }
 
             john2 = await Student.find_one(john.id)
@@ -86,7 +86,7 @@ class TestMotorAsyncio(BaseDBTest):
         Student = classroom_model.Student
 
         async def do_test():
-            john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
             await john.commit()
             john.name = 'William Doe'
             assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
@@ -116,7 +116,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         async def do_test():
             await Student.collection.drop()
-            john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
             with pytest.raises(exceptions.NotCreatedError):
                 await john.remove()
             await john.commit()
@@ -148,7 +148,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         async def do_test():
             await Student(name='Other dude').commit()
-            john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+            john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
             with pytest.raises(exceptions.NotCreatedError):
                 await john.reload()
             await john.commit()
@@ -249,7 +249,7 @@ class TestMotorAsyncio(BaseDBTest):
 
         async def do_test():
 
-            student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
+            student = classroom_model.Student(name='Marty McFly', birthday=dt.datetime(1968, 6, 9))
             await student.commit()
             teacher = classroom_model.Teacher(name='M. Strickland')
             await teacher.commit()
@@ -263,7 +263,7 @@ class TestMotorAsyncio(BaseDBTest):
             assert student.to_mongo() == {
                 '_id': student.pk,
                 'name': 'Marty McFly',
-                'birthday': datetime(1968, 6, 9),
+                'birthday': dt.datetime(1968, 6, 9),
                 'courses': [course.pk]
             }
 

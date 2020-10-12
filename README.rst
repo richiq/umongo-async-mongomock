@@ -41,7 +41,7 @@ Quick example
 
 .. code-block:: python
 
-    from datetime import datetime
+    import datetime as dt
     from pymongo import MongoClient
     from umongo import Instance, Document, fields, validate
 
@@ -51,7 +51,7 @@ Quick example
     @instance.register
     class User(Document):
         email = fields.EmailField(required=True, unique=True)
-        birthday = fields.DateTimeField(validate=validate.Range(min=datetime(1900, 1, 1)))
+        birthday = fields.DateTimeField(validate=validate.Range(min=dt.datetime(1900, 1, 1)))
         friends = fields.ListField(fields.ReferenceField("User"))
 
         class Meta:
@@ -60,7 +60,7 @@ Quick example
     # Make sure that unique indexes are created
     User.ensure_indexes()
 
-    goku = User(email='goku@sayen.com', birthday=datetime(1984, 11, 20))
+    goku = User(email='goku@sayen.com', birthday=dt.datetime(1984, 11, 20))
     goku.commit()
     vegeta = User(email='vegeta@over9000.com', friends=[goku])
     vegeta.commit()

@@ -1,5 +1,5 @@
 from copy import copy, deepcopy
-from datetime import datetime
+import datetime as dt
 
 import pytest
 
@@ -44,17 +44,17 @@ class TestDocument(BaseTest):
 
     def test_repr(self):
         # I love readable stuff !
-        john = self.Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
+        john = self.Student(name='John Doe', birthday=dt.datetime(1995, 12, 12), gpa=3.0)
         assert 'tests.test_document.Student' in repr(john)
         assert 'name' in repr(john)
         assert 'birthday' in repr(john)
         assert 'gpa' in repr(john)
 
     def test_create(self):
-        john = self.Student(name='John Doe', birthday=datetime(1995, 12, 12), gpa=3.0)
+        john = self.Student(name='John Doe', birthday=dt.datetime(1995, 12, 12), gpa=3.0)
         assert john.to_mongo() == {
             'name': 'John Doe',
-            'birthday': datetime(1995, 12, 12),
+            'birthday': dt.datetime(1995, 12, 12),
             'gpa': 3.0
         }
         assert john.is_created is False
@@ -63,28 +63,28 @@ class TestDocument(BaseTest):
 
     def test_from_mongo(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.to_mongo(update=True) is None
         assert john.is_created is True
         assert john.to_mongo() == {
             'name': 'John Doe',
-            'birthday': datetime(1995, 12, 12),
+            'birthday': dt.datetime(1995, 12, 12),
             'gpa': 3.0
         }
 
     def test_update(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         john.name = 'William Doe'
-        john.birthday = datetime(1996, 12, 12)
+        john.birthday = dt.datetime(1996, 12, 12)
         assert john.to_mongo(update=True) == {
-            '$set': {'name': 'William Doe', 'birthday': datetime(1996, 12, 12)}}
+            '$set': {'name': 'William Doe', 'birthday': dt.datetime(1996, 12, 12)}}
         john.clear_modified()
         assert john.to_mongo(update=True) is None
 
     def test_dump(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.dump() == {
             'name': 'John Doe',
             'birthday': '1995-12-12T00:00:00',
@@ -93,7 +93,7 @@ class TestDocument(BaseTest):
 
     def test_fields_by_attr(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.name == 'John Doe'
         john.name = 'William Doe'
         assert john.name == 'William Doe'
@@ -110,7 +110,7 @@ class TestDocument(BaseTest):
 
     def test_fields_by_items(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john['name'] == 'John Doe'
         john['name'] = 'William Doe'
         assert john['name'] == 'William Doe'
@@ -148,12 +148,12 @@ class TestDocument(BaseTest):
 
     def test_pk(self):
         john = self.Student.build_from_mongo(data={
-            'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.pk is None
         john_id = ObjectId("5672d47b1d41c88dcd37ef05")
         john = self.Student.build_from_mongo(data={
             '_id': john_id, 'name': 'John Doe',
-            'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
         assert john.pk == john_id
 
         # Don't do that in real life !
@@ -183,12 +183,12 @@ class TestDocument(BaseTest):
 
     def test_equality(self):
         john_data = {
-            '_id': 42, 'name': 'John Doe', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0
+            '_id': 42, 'name': 'John Doe', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0
         }
         john = self.EasyIdStudent.build_from_mongo(data=john_data)
         john2 = self.EasyIdStudent.build_from_mongo(data=john_data)
         phillipe = self.EasyIdStudent.build_from_mongo(data={
-            '_id': 3, 'name': 'Phillipe J. Fry', 'birthday': datetime(1995, 12, 12), 'gpa': 3.0})
+            '_id': 3, 'name': 'Phillipe J. Fry', 'birthday': dt.datetime(1995, 12, 12), 'gpa': 3.0})
 
         assert john != phillipe
         assert john2 == john
@@ -385,13 +385,13 @@ class TestDocument(BaseTest):
             child = fields.EmbeddedField(Child)
 
         john = Parent(name='John Doe', child={'name': 'John Jr.'})
-        john.birthday = datetime(1995, 12, 12)
+        john.birthday = dt.datetime(1995, 12, 12)
         john.id = ObjectId("5672d47b1d41c88dcd37ef05")
         jane = john.clone()
         assert isinstance(jane, Parent)
         assert isinstance(jane.child, Child)
         assert jane.id is None
-        assert jane.birthday == datetime(1995, 12, 12)
+        assert jane.birthday == dt.datetime(1995, 12, 12)
         assert jane.name == 'John Doe'
         assert jane.child == john.child
         assert jane.child is not john.child

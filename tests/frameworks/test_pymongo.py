@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+import datetime as dt
 
 import pytest
 
@@ -44,13 +44,13 @@ class TestPymongo(BaseDBTest):
 
     def test_create(self, classroom_model):
         Student = classroom_model.Student
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         ret = john.commit()
         assert isinstance(ret, InsertOneResult)
         assert john.to_mongo() == {
             '_id': john.id,
             'name': 'John Doe',
-            'birthday': datetime(1995, 12, 12)
+            'birthday': dt.datetime(1995, 12, 12)
         }
         john2 = Student.find_one(john.id)
         assert john2._data == john._data
@@ -59,7 +59,7 @@ class TestPymongo(BaseDBTest):
 
     def test_update(self, classroom_model):
         Student = classroom_model.Student
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         john.commit()
         john.name = 'William Doe'
         assert john.to_mongo(update=True) == {'$set': {'name': 'William Doe'}}
@@ -85,7 +85,7 @@ class TestPymongo(BaseDBTest):
     def test_delete(self, classroom_model):
         Student = classroom_model.Student
         Student.collection.drop()
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             john.delete()
         john.commit()
@@ -113,7 +113,7 @@ class TestPymongo(BaseDBTest):
     def test_reload(self, classroom_model):
         Student = classroom_model.Student
         Student(name='Other dude').commit()
-        john = Student(name='John Doe', birthday=datetime(1995, 12, 12))
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
         with pytest.raises(exceptions.NotCreatedError):
             john.reload()
         john.commit()
@@ -159,7 +159,7 @@ class TestPymongo(BaseDBTest):
         assert students[0].name == 'student-0'
 
     def test_classroom(self, classroom_model):
-        student = classroom_model.Student(name='Marty McFly', birthday=datetime(1968, 6, 9))
+        student = classroom_model.Student(name='Marty McFly', birthday=dt.datetime(1968, 6, 9))
         student.commit()
         teacher = classroom_model.Teacher(name='M. Strickland')
         teacher.commit()
@@ -173,7 +173,7 @@ class TestPymongo(BaseDBTest):
         assert student.to_mongo() == {
             '_id': student.pk,
             'name': 'Marty McFly',
-            'birthday': datetime(1968, 6, 9),
+            'birthday': dt.datetime(1968, 6, 9),
             'courses': [course.pk]
         }
 

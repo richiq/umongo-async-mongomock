@@ -1,5 +1,5 @@
 """Test marshmallow-related features"""
-from datetime import datetime
+import datetime as dt
 
 import pytest
 
@@ -253,16 +253,16 @@ class TestMarshmallow(BaseTest):
 
         @self.instance.register
         class WithDefault(Document):
-            with_umongo_default = fields.DateTimeField(default=datetime(1999, 1, 1))
-            with_marshmallow_missing = fields.DateTimeField(marshmallow_missing=datetime(2000, 1, 1))
-            with_marshmallow_default = fields.DateTimeField(marshmallow_default=datetime(2001, 1, 1))
+            with_umongo_default = fields.DateTimeField(default=dt.datetime(1999, 1, 1))
+            with_marshmallow_missing = fields.DateTimeField(marshmallow_missing=dt.datetime(2000, 1, 1))
+            with_marshmallow_default = fields.DateTimeField(marshmallow_default=dt.datetime(2001, 1, 1))
             with_marshmallow_and_umongo = fields.DateTimeField(
-                default=datetime(1999, 1, 1),
-                marshmallow_missing=datetime(2000, 1, 1),
-                marshmallow_default=datetime(2001, 1, 1)
+                default=dt.datetime(1999, 1, 1),
+                marshmallow_missing=dt.datetime(2000, 1, 1),
+                marshmallow_default=dt.datetime(2001, 1, 1)
             )
             with_force_missing = fields.DateTimeField(
-                default=datetime(2001, 1, 1), marshmallow_missing=missing, marshmallow_default=missing)
+                default=dt.datetime(2001, 1, 1), marshmallow_missing=missing, marshmallow_default=missing)
             with_nothing = fields.StrField()
 
         ma_schema = WithDefault.schema.as_marshmallow_schema()()
@@ -272,9 +272,9 @@ class TestMarshmallow(BaseTest):
             'with_marshmallow_and_umongo': '2001-01-01T00:00:00',
         }
         assert ma_schema.load({}) == {
-            'with_umongo_default': datetime(1999, 1, 1),
-            'with_marshmallow_missing': datetime(2000, 1, 1),
-            'with_marshmallow_and_umongo': datetime(2000, 1, 1),
+            'with_umongo_default': dt.datetime(1999, 1, 1),
+            'with_marshmallow_missing': dt.datetime(2000, 1, 1),
+            'with_marshmallow_and_umongo': dt.datetime(2000, 1, 1),
         }
 
     def test_nested_field(self):
