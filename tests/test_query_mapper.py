@@ -1,5 +1,7 @@
 import datetime as dt
 
+from bson import ObjectId
+
 from umongo import Document, EmbeddedDocument, fields
 from umongo.query_mapper import map_query
 
@@ -11,6 +13,10 @@ class TestQueryMapper(BaseTest):
     def test_query_mapper(self):
 
         @self.instance.register
+        class Editor(Document):
+            name = fields.StrField()
+
+        @self.instance.register
         class Author(EmbeddedDocument):
             name = fields.StrField()
             birthday = fields.DateTimeField(attribute='b')
@@ -19,7 +25,6 @@ class TestQueryMapper(BaseTest):
         class Chapter(EmbeddedDocument):
             title = fields.StrField()
             pagination = fields.IntField(attribute='p')
-            # sub_chapters = fields.EmbeddedField('Chapter')
 
         @self.instance.register
         class Book(Document):
@@ -28,6 +33,7 @@ class TestQueryMapper(BaseTest):
             author = fields.EmbeddedField(Author, attribute='a')
             chapters = fields.ListField(fields.EmbeddedField(Chapter))
             tags = fields.ListField(fields.StrField(), attribute='t')
+            editor = fields.ReferenceField(Editor, attribute='e')
 
         book_fields = Book.schema.fields
         # No changes needed
@@ -99,6 +105,22 @@ class TestQueryMapper(BaseTest):
                 {'$elemMatch': {'title': 'An Unexpected Party'}}
             ]}
         }
+
+        # Test embedded document in query
+        query = map_query({
+            'author': Author(name='JRR Tolkien', birthday=dt.datetime(1892, 1, 3))
+        }, book_fields)
+        assert isinstance(query['a'], dict)
+        assert query == {
+            'a': {'name': 'JRR Tolkien', 'b': dt.datetime(1892, 1, 3)}
+        }
+
+        # Test document in query
+        editor = Editor(name='Allen & Unwin')
+        editor.id = ObjectId()
+        query = map_query({'editor': editor}, book_fields)
+        assert isinstance(query['e'], ObjectId)
+        assert query['e'] == editor.id
 
     def test_mix(self):
 
