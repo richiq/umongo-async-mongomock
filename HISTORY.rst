@@ -2,6 +2,16 @@
 History
 =======
 
+3.0.0b11 (unreleased)
+---------------------
+
+Features:
+
+* *Backwards-incompatible*: Allow setting arbitrary attributes on ``Document``
+  and ``EmbeddedDocument`` instances. This change is part of a refactor meant
+  to simplify set / get / delete operations on document objets and (marginally)
+  improve performance. (see #272)
+
 3.0.0b10 (2020-10-12)
 ---------------------
 
