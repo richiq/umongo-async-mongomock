@@ -270,7 +270,7 @@ class DocumentImplementation(
         if name in self._fields:
             if self.is_created and name == self.pk_field:
                 raise AlreadyCreatedError("Can't modify id of a created document")
-            self._data.set(name, value, to_raise=AttributeError)
+            self._data.set(name, value)
         else:
             super().__setattr__(name, value)
 
@@ -278,7 +278,7 @@ class DocumentImplementation(
         if name in self._fields:
             if self.is_created and name == self.pk_field:
                 raise AlreadyCreatedError("Can't modify pk of a created document")
-            self._data.delete(name, to_raise=AttributeError)
+            self._data.delete(name)
         else:
             super().__delattr__(name)
 

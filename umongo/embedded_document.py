@@ -169,18 +169,18 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
 
     def __setattr__(self, name, value):
         if name in self._fields:
-            self._data.set(name, value, to_raise=AttributeError)
+            self._data.set(name, value)
         else:
             super().__setattr__(name, value)
 
     def __getattr__(self, name):
-        if name[:2] == name[-2:] == '__':
-            raise AttributeError(name)
-        value = self._data.get(name, to_raise=AttributeError)
-        return None if value is ma.missing and not EXPOSE_MISSING.get() else value
+        if name in self._fields:
+            value = self._data.get(name)
+            return None if value is ma.missing and not EXPOSE_MISSING.get() else value
+        raise AttributeError(name)
 
     def __delattr__(self, name):
         if name in self._fields:
-            self._data.delete(name, to_raise=AttributeError)
+            self._data.delete(name)
         else:
             super().__delattr__(name)

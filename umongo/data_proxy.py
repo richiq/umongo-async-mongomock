@@ -92,19 +92,17 @@ class BaseDataProxy:
         # TODO: mark added missing fields as modified?
         self._add_missing_fields()
 
-    def _get_field(self, name, to_raise):
-        if name not in self._fields:
-            raise to_raise(name)
+    def _get_field(self, name):
         field = self._fields[name]
         name = field.attribute or name
         return name, field
 
-    def get(self, name, to_raise=KeyError):
-        name, _ = self._get_field(name, to_raise)
+    def get(self, name):
+        name, _ = self._get_field(name)
         return self._data[name]
 
-    def set(self, name, value, to_raise=KeyError):
-        name, field = self._get_field(name, to_raise)
+    def set(self, name, value):
+        name, field = self._get_field(name)
         if value is None and not getattr(field, 'allow_none', False):
             raise ma.ValidationError(field.error_messages['null'])
         if value is not None:
@@ -113,8 +111,8 @@ class BaseDataProxy:
         self._data[name] = value
         self._mark_as_modified(name)
 
-    def delete(self, name, to_raise=KeyError):
-        name, field = self._get_field(name, to_raise)
+    def delete(self, name):
+        name, field = self._get_field(name)
         default = field.default
         self._data[name] = default() if callable(default) else default
         self._mark_as_modified(name)
