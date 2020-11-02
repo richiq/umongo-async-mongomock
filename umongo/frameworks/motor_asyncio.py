@@ -174,25 +174,20 @@ class MotorAsyncIODocument(DocumentImplementation):
                 self.is_created = True
                 await self.__coroutined_post_insert(ret)
         except DuplicateKeyError as exc:
-            # Need to dig into error message to find faulting index
-            errmsg = exc.details['errmsg']
-            for index in self.opts.indexes:
-                if ('.$%s' % index.document['name'] in errmsg or
-                        ' %s ' % index.document['name'] in errmsg):
-                    keys = index.document['key'].keys()
-                    if len(keys) == 1:
-                        key = tuple(keys)[0]
-                        msg = self.schema.fields[key].error_messages['unique']
-                        raise ma.ValidationError({key: msg})
-                    fields = self.schema.fields
-                    # Compound index (sort value to make testing easier)
-                    keys = sorted(keys)
-                    raise ma.ValidationError({
-                        k: fields[k].error_messages['unique_compound'].format(fields=keys)
-                        for k in keys
-                    })
-            # Unknown index, cannot wrap the error so just reraise it
-            raise
+            # Sort value to make testing easier for compound indexes
+            keys = sorted(exc.details['keyPattern'].keys())
+            try:
+                fields = [self.schema.fields[k] for k in keys]
+            except KeyError:
+                # A key in the index is unknwon from umongo
+                raise exc
+            if len(keys) == 1:
+                msg = fields[0].error_messages['unique']
+                raise ma.ValidationError({keys[0]: msg})
+            raise ma.ValidationError({
+                k: f.error_messages['unique_compound'].format(fields=keys)
+                for k, f in zip(keys, fields)
+            })
         self._data.clear_modified()
         return ret
 
