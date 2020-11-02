@@ -117,7 +117,7 @@ def _collect_schema_attrs(template):
 def _collect_indexes(meta, schema_nmspc, bases, is_child):
     """
     Retrieve all indexes (custom defined in meta class, by inheritances
-    and unique attribut in fields)
+    and unique attributes in fields)
     """
     indexes = []
 
@@ -127,13 +127,10 @@ def _collect_indexes(meta, schema_nmspc, bases, is_child):
             indexes += base.opts.indexes
 
     # Then get our own custom indexes
-    if is_child:
-        custom_indexes = [
-            parse_index(x, base_compound_field='_cls')
-            for x in getattr(meta, 'indexes', ())
-        ]
-    else:
-        custom_indexes = [parse_index(x) for x in getattr(meta, 'indexes', ())]
+    custom_indexes = [
+        parse_index(x, base_compound_field='_cls' if is_child else None)
+        for x in getattr(meta, 'indexes', ())
+    ]
     indexes += custom_indexes
 
     if is_child:
