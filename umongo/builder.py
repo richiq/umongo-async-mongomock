@@ -202,9 +202,6 @@ class BaseBuilder:
                 self._patch_field(field.key_field)
             if field.value_field:
                 self._patch_field(field.value_field)
-        elif isinstance(field, fields.EmbeddedField):
-            for embedded_field in field.schema.fields.values():
-                self._patch_field(embedded_field)
 
     def _build_schema(self, template, schema_bases, schema_fields, schema_non_fields):
         # Recursively set the `instance` attribute to all fields
