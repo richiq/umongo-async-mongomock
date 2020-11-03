@@ -573,13 +573,13 @@ from scratch... almost:
     can be used instead of regular :class:`marshmallow.Schema` to skip missing fields
     when dumping a :class:`umongo.Document` object.
 
-This time we directly convert umongo schema's fields into there marshmallow
+This time we directly convert umongo schema's fields into their marshmallow
 equivalent with ``as_marshmallow_field``. Now we can build our ducks easily:
 
 .. code-block:: python
 
     try:
-        data, _ =  MassiveDuckSchema(strict=True).load(payload)
+        data, _ =  MassiveDuckSchema().load(payload)
         ducks = []
         for breed in data['breeds']:
             for birthday in breed['births']:
