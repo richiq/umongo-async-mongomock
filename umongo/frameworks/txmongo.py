@@ -38,7 +38,7 @@ class TxMongoDocument(DocumentImplementation):
         self._data.from_mongo(ret)
 
     @inlineCallbacks
-    def commit(self, io_validate_all=False, conditions=None):
+    def commit(self, io_validate_all=False, conditions=None, replace=False):
         """
         Commit the document in database.
         If the document doesn't already exist it will be inserted, otherwise
@@ -49,12 +49,13 @@ class TxMongoDocument(DocumentImplementation):
             satisfies condition(s) (e.g. version number).
             Raises :class:`umongo.exceptions.UpdateError` if the
             conditions are not satisfied.
-         :return: A :class:`pymongo.results.UpdateResult` or
+        :param replace: Replace the document rather than update.
+        :return: A :class:`pymongo.results.UpdateResult` or
             :class:`pymongo.results.InsertOneResult` depending of the operation.
        """
         try:
             if self.is_created:
-                if self.is_modified():
+                if self.is_modified() or replace:
                     query = conditions or {}
                     query['_id'] = self.pk
                     # pre_update can provide additional query filter and/or
@@ -64,8 +65,12 @@ class TxMongoDocument(DocumentImplementation):
                         query.update(map_query(additional_filter, self.schema.fields))
                     self.required_validate()
                     yield self.io_validate(validate_all=io_validate_all)
-                    payload = self._data.to_mongo(update=True)
-                    ret = yield self.collection.update_one(query, payload)
+                    if replace:
+                        payload = self._data.to_mongo(update=False)
+                        ret = yield self.collection.replace_one(query, payload)
+                    else:
+                        payload = self._data.to_mongo(update=True)
+                        ret = yield self.collection.update_one(query, payload)
                     if ret.matched_count != 1:
                         raise UpdateError(ret)
                     yield maybeDeferred(self.post_update, ret)

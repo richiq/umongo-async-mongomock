@@ -71,6 +71,29 @@ class TestPymongo(BaseDBTest):
         with pytest.raises(exceptions.NotCreatedError):
             Student(name='Joe').commit(conditions={'name': 'dummy'})
 
+    def test_replace(self, classroom_model):
+        Student = classroom_model.Student
+        john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
+        # replace has no impact on creation
+        john.commit(replace=True)
+        john.name = 'William Doe'
+        john.clear_modified()
+        ret = john.commit(replace=True)
+        assert isinstance(ret, UpdateResult)
+        john2 = Student.find_one(john.id)
+        assert john2._data == john._data
+        # Test conditional commit
+        john.name = 'Zorro Doe'
+        john.clear_modified()
+        with pytest.raises(exceptions.UpdateError):
+            john.commit(conditions={'name': 'Bad Name'}, replace=True)
+        john.commit(conditions={'name': 'William Doe'}, replace=True)
+        john.reload()
+        assert john.name == 'Zorro Doe'
+        # Cannot use conditions when creating document
+        with pytest.raises(exceptions.NotCreatedError):
+            Student(name='Joe').commit(conditions={'name': 'dummy'}, replace=True)
+
     def test_delete(self, classroom_model):
         Student = classroom_model.Student
         Student.collection.drop()
