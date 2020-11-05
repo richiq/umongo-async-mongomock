@@ -11,6 +11,7 @@ from umongo import (
     Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
 )
 
+from .common import strip_indexes, name_sorted
 from ..common import BaseDBTest, TEST_DB
 
 
@@ -27,22 +28,6 @@ else:
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import motor_asyncio as framework  # noqa
-
-
-def _stripped(indexes):
-    # With pymongo==2.8 a `ns` field is returned with Mongodb>=3 but
-    # not with MongoDB<2, thus we have to clean this before doing comparing
-    # Version may differ between database versions and configurations so it
-    # shall not be checked
-    return {
-        k: {sk: sv for sk, sv in v.items() if sk not in ('ns', 'v')}
-        for k, v in indexes.items()
-    }
-
-
-# Helper to sort indexes by name in order to have deterministic comparison
-def name_sorted(indexes):
-    return sorted(indexes, key=lambda x: x['name'])
 
 
 def make_db():
@@ -489,7 +474,7 @@ class TestMotorAsyncio(BaseDBTest):
                 class Meta:
                     indexes = ['indexed']
 
-            await SimpleIndexDoc.collection.drop_indexes()
+            await SimpleIndexDoc.collection.drop()
 
             # Now ask for indexes building
             await SimpleIndexDoc.ensure_indexes()
@@ -502,12 +487,12 @@ class TestMotorAsyncio(BaseDBTest):
                     'key': [('indexed', 1)],
                 }
             }
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             await SimpleIndexDoc.ensure_indexes()
             indexes = await SimpleIndexDoc.collection.index_information()
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
         loop.run_until_complete(do_test())
 
@@ -523,7 +508,7 @@ class TestMotorAsyncio(BaseDBTest):
                 class Meta:
                     indexes = ['indexed']
 
-            await SimpleIndexDoc.collection.drop_indexes()
+            await SimpleIndexDoc.collection.drop()
 
             # Now ask for indexes building
             await SimpleIndexDoc.ensure_indexes()
@@ -536,12 +521,12 @@ class TestMotorAsyncio(BaseDBTest):
                     'key': [('indexed', 1)],
                 }
             }
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             await SimpleIndexDoc.ensure_indexes()
             indexes = await SimpleIndexDoc.collection.index_information()
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
         loop.run_until_complete(do_test())
 
@@ -556,7 +541,6 @@ class TestMotorAsyncio(BaseDBTest):
                 required_unique = fields.IntField(unique=True, required=True)
 
             await UniqueIndexDoc.collection.drop()
-            await UniqueIndexDoc.collection.drop_indexes()
 
             # Now ask for indexes building
             await UniqueIndexDoc.ensure_indexes()
@@ -575,12 +559,12 @@ class TestMotorAsyncio(BaseDBTest):
                     'sparse': True
                 }
             }
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             await UniqueIndexDoc.ensure_indexes()
             indexes = await UniqueIndexDoc.collection.index_information()
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             await UniqueIndexDoc(not_unique='a', required_unique=1).commit()
             await UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
@@ -608,7 +592,6 @@ class TestMotorAsyncio(BaseDBTest):
                     indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
             await UniqueIndexCompoundDoc.collection.drop()
-            await UniqueIndexCompoundDoc.collection.drop_indexes()
 
             # Now ask for indexes building
             await UniqueIndexCompoundDoc.ensure_indexes()
@@ -625,7 +608,7 @@ class TestMotorAsyncio(BaseDBTest):
                     'unique': True
                 }
             }
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             # Redoing indexes building should do nothing
             await UniqueIndexCompoundDoc.ensure_indexes()
@@ -633,7 +616,7 @@ class TestMotorAsyncio(BaseDBTest):
             # Must sort compound indexes to avoid random inconsistence
             indexes['compound1_1_compound2_1']['key'] = sorted(
                 indexes['compound1_1_compound2_1']['key'])
-            assert _stripped(indexes) == expected_indexes
+            assert strip_indexes(indexes) == expected_indexes
 
             # Index is on the tuple (compound1, compound2)
             await UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
@@ -674,7 +657,7 @@ class TestMotorAsyncio(BaseDBTest):
                 class Meta:
                     indexes = ['manual_index']
 
-            await UniqueIndexChildDoc.collection.drop_indexes()
+            await UniqueIndexChildDoc.collection.drop()
 
             # Now ask for indexes building
             await UniqueIndexChildDoc.ensure_indexes()
@@ -683,30 +666,25 @@ class TestMotorAsyncio(BaseDBTest):
                 {
                     'key': {'_id': 1},
                     'name': '_id_',
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
                 },
                 {
                     'key': {'unique': 1},
                     'name': 'unique_1',
                     'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
                 },
                 {
                     'key': {'manual_index': 1, '_cls': 1},
                     'name': 'manual_index_1__cls_1',
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
                 },
                 {
                     'key': {'_cls': 1},
                     'name': '_cls_1',
                     'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
                 },
                 {
                     'key': {'child_unique': 1, '_cls': 1},
                     'name': 'child_unique_1__cls_1',
                     'unique': True,
-                    'ns': '%s.unique_index_inheritance_doc' % TEST_DB
                 }
             ]
             assert name_sorted(indexes) == name_sorted(expected_indexes)

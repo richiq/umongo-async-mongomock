@@ -12,6 +12,7 @@ from umongo import (
     Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
 )
 
+from .common import strip_indexes, name_sorted
 from ..common import BaseDBTest, TEST_DB, con
 
 DEP_ERROR = 'Missing txmongo or pytest_twisted'
@@ -42,18 +43,6 @@ else:
 
 if not dep_error:  # Make sure the module is valid by importing it
     from umongo.frameworks import txmongo as framework  # noqa
-
-
-# Helper to sort indexes by name in order to have deterministic comparison
-def name_sorted(indexes):
-    return sorted(indexes, key=lambda x: x['name'])
-
-
-def _stripped(indexes):
-    # Version may differ between database versions and configurations so it shall not be checked
-    for idx in indexes:
-        idx.pop('v')
-    return indexes
 
 
 def make_db():
@@ -415,7 +404,7 @@ class TestTxMongo(BaseDBTest):
             class Meta:
                 indexes = ['indexed']
 
-        yield SimpleIndexDoc.collection.drop_indexes()
+        yield SimpleIndexDoc.collection.drop()
 
         # Now ask for indexes building
         yield SimpleIndexDoc.ensure_indexes()
@@ -425,20 +414,18 @@ class TestTxMongo(BaseDBTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.simple_index_doc' % TEST_DB,
             },
             {
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
-                'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield SimpleIndexDoc.ensure_indexes()
         indexes = list(con[TEST_DB].simple_index_doc.list_indexes())
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
     def test_indexes_inheritance(self, instance):
@@ -451,7 +438,7 @@ class TestTxMongo(BaseDBTest):
             class Meta:
                 indexes = ['indexed']
 
-        yield SimpleIndexDoc.collection.drop_indexes()
+        yield SimpleIndexDoc.collection.drop()
 
         # Now ask for indexes building
         yield SimpleIndexDoc.ensure_indexes()
@@ -461,20 +448,18 @@ class TestTxMongo(BaseDBTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.simple_index_doc' % TEST_DB,
             },
             {
                 'key': {'indexed': 1},
                 'name': 'indexed_1',
-                'ns': '%s.simple_index_doc' % TEST_DB
             }
         ]
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield SimpleIndexDoc.ensure_indexes()
         indexes = list(con[TEST_DB].simple_index_doc.list_indexes())
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
     def test_unique_index(self, instance):
@@ -486,7 +471,6 @@ class TestTxMongo(BaseDBTest):
             required_unique = fields.IntField(unique=True, required=True)
 
         yield UniqueIndexDoc.collection.drop()
-        yield UniqueIndexDoc.collection.drop_indexes()
 
         # Now ask for indexes building
         yield UniqueIndexDoc.ensure_indexes()
@@ -495,28 +479,25 @@ class TestTxMongo(BaseDBTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.unique_index_doc' % TEST_DB,
             },
             {
                 'key': {'required_unique': 1},
                 'name': 'required_unique_1',
                 'unique': True,
-                'ns': '%s.unique_index_doc' % TEST_DB
             },
             {
                 'key': {'sparse_unique': 1},
                 'name': 'sparse_unique_1',
                 'unique': True,
                 'sparse': True,
-                'ns': '%s.unique_index_doc' % TEST_DB
             },
         ]
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield UniqueIndexDoc.ensure_indexes()
         indexes = list(con[TEST_DB].unique_index_doc.list_indexes())
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         yield UniqueIndexDoc(not_unique='a', required_unique=1).commit()
         yield UniqueIndexDoc(not_unique='a', sparse_unique=1, required_unique=2).commit()
@@ -541,7 +522,6 @@ class TestTxMongo(BaseDBTest):
                 indexes = [{'key': ('compound1', 'compound2'), 'unique': True}]
 
         yield UniqueIndexCompoundDoc.collection.drop()
-        yield UniqueIndexCompoundDoc.collection.drop_indexes()
 
         # Now ask for indexes building
         yield UniqueIndexCompoundDoc.ensure_indexes()
@@ -550,21 +530,19 @@ class TestTxMongo(BaseDBTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.unique_index_compound_doc' % TEST_DB,
             },
             {
                 'key': {'compound1': 1, 'compound2': 1},
                 'name': 'compound1_1_compound2_1',
                 'unique': True,
-                'ns': '%s.unique_index_compound_doc' % TEST_DB
             }
         ]
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield UniqueIndexCompoundDoc.ensure_indexes()
         indexes = list(con[TEST_DB].unique_index_compound_doc.list_indexes())
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Index is on the tuple (compound1, compound2)
         yield UniqueIndexCompoundDoc(not_unique='a', compound1=1, compound2=1).commit()
@@ -602,7 +580,7 @@ class TestTxMongo(BaseDBTest):
             class Meta:
                 indexes = ['manual_index']
 
-        yield UniqueIndexChildDoc.collection.drop_indexes()
+        yield UniqueIndexChildDoc.collection.drop()
 
         # Now ask for indexes building
         yield UniqueIndexChildDoc.ensure_indexes()
@@ -611,7 +589,6 @@ class TestTxMongo(BaseDBTest):
             {
                 'key': {'_id': 1},
                 'name': '_id_',
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB,
                 'v': 1
             },
             {
@@ -619,35 +596,31 @@ class TestTxMongo(BaseDBTest):
                 'key': {'unique': 1},
                 'name': 'unique_1',
                 'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'manual_index': 1, '_cls': 1},
                 'name': 'manual_index_1__cls_1',
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'_cls': 1},
                 'name': '_cls_1',
                 'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             },
             {
                 'v': 1,
                 'key': {'child_unique': 1, '_cls': 1},
                 'name': 'child_unique_1__cls_1',
                 'unique': True,
-                'ns': '%s.unique_index_inheritance_doc' % TEST_DB
             }
         ]
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
         # Redoing indexes building should do nothing
         yield UniqueIndexChildDoc.ensure_indexes()
         indexes = list(con[TEST_DB].unique_index_inheritance_doc.list_indexes())
-        assert name_sorted(_stripped(indexes)) == name_sorted(expected_indexes)
+        assert name_sorted(strip_indexes(indexes)) == name_sorted(expected_indexes)
 
     @pytest_inlineCallbacks
     def test_inheritance_search(self, instance):
