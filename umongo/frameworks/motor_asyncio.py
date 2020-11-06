@@ -2,7 +2,6 @@ from inspect import iscoroutine
 import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
-from motor import version_tuple as MOTOR_VERSION
 from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
@@ -266,11 +265,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Return a count of the documents in a collection.
         """
         filter = cook_find_filter(cls, filter or {})
-        if MOTOR_VERSION < (2, 0):
-            count = await cls.find(filter, **kwargs).count(with_limit_and_skip)
-            return count
-        count = await cls.collection.count_documents(filter, **kwargs)
-        return count
+        return await cls.collection.count_documents(filter, **kwargs)
 
     @classmethod
     async def ensure_indexes(cls):

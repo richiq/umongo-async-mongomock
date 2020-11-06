@@ -25,10 +25,10 @@ stages:
         parameters:
           toxenvs:
             - py37-pymongo
-            - py37-motor1
+            - py37-motor
             - py37-txmongo
             - py39-pymongo
-            - py39-motor2
+            - py39-motor
             - py39-txmongo
           coverage: true
           pre_test:
