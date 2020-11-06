@@ -2,7 +2,7 @@
 History
 =======
 
-3.0.0b11 (unreleased)
+3.0.0b11 (2020-11-06)
 ---------------------
 
 Features:
@@ -11,8 +11,16 @@ Features:
   and ``EmbeddedDocument`` instances. This change is part of a refactor meant
   to simplify set / get / delete operations on document objets and (marginally)
   improve performance. (see #272)
-* Use structured information provided by pymongo with DuplicateKeyError rather
-  than parse the error message string (see #309).
+* Use structured information provided with ``DuplicateKeyError`` rather than
+  parse the error message string (see #309).
+* Add ``replace`` argument to ``commit`` method to force writing the whole
+  document rather than updating (see #310).
+
+Other changes:
+
+* Support Python 3.9 (see #311).
+* *Backwards-incompatible*: Drop motor<2.0.0 support (see #312).
+* *Backwards-incompatible*: Drop MongoDB<4.2 support (see #313).
 
 3.0.0b10 (2020-10-12)
 ---------------------
