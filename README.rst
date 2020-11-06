@@ -22,10 +22,6 @@
     :target: https://dev.azure.com/lafrech/umongo/_build/latest?definitionId=1&branchName=master
     :alt: Build status
 
-.. image:: https://img.shields.io/azure-devops/coverage/lafrech/umongo/1
-    :target: https://dev.azure.com/lafrech/umongo/_build/latest?definitionId=1&branchName=master
-    :alt: Code coverage
-
 .. image:: https://readthedocs.org/projects/umongo/badge/
         :target: http://umongo.readthedocs.io/
         :alt: Documentation
