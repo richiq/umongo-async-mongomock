@@ -3,18 +3,28 @@
 ======================
 
 .. image:: https://img.shields.io/pypi/v/umongo.svg
-        :target: https://pypi.python.org/pypi/umongo
+    :target: https://pypi.python.org/pypi/umongo
+    :alt: Latest version
 
-.. image:: https://img.shields.io/travis/Scille/umongo/master.svg
-        :target: https://travis-ci.org/Scille/umongo
+.. image:: https://img.shields.io/pypi/pyversions/umongo.svg
+    :target: https://pypi.org/project/umongo/
+    :alt: Python versions
 
-.. image:: https://readthedocs.org/projects/umongo/badge/?version=latest
-        :target: http://umongo.readthedocs.org/en/latest/?badge=latest
-        :alt: Documentation Status
+.. image:: https://img.shields.io/badge/marshmallow-3-blue.svg
+    :target: https://marshmallow.readthedocs.io/en/latest/upgrading.html
+    :alt: marshmallow 3 only
 
-.. image:: https://coveralls.io/repos/github/Scille/umongo/badge.svg?branch=master
-    :target: https://coveralls.io/github/Scille/umongo?branch=master
-    :alt: Code coverage
+.. image:: https://img.shields.io/pypi/l/umongo.svg
+    :target: https://umongo.readthedocs.io/en/latest/license.html
+    :alt: License
+
+.. image:: https://dev.azure.com/lafrech/umongo/_apis/build/status/Scille.umongo?branchName=master
+    :target: https://dev.azure.com/lafrech/umongo/_build/latest?definitionId=1&branchName=master
+    :alt: Build status
+
+.. image:: https://readthedocs.org/projects/umongo/badge/
+        :target: http://umongo.readthedocs.io/
+        :alt: Documentation
 
 μMongo is a Python MongoDB ODM. It inception comes from two needs:
 the lack of async ODM and the difficulty to do document (un)serialization
