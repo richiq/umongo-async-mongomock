@@ -96,6 +96,33 @@ class TestMotorAsyncio(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
+    def test_replace(self, loop, classroom_model):
+        Student = classroom_model.Student
+
+        async def do_test():
+            john = Student(name='John Doe', birthday=dt.datetime(1995, 12, 12))
+            # replace has no impact on creation
+            await john.commit(replace=True)
+            john.name = 'William Doe'
+            john.clear_modified()
+            ret = await john.commit(replace=True)
+            assert isinstance(ret, UpdateResult)
+            john2 = await Student.find_one(john.id)
+            assert john2._data == john._data
+            # Test conditional commit
+            john.name = 'Zorro Doe'
+            john.clear_modified()
+            with pytest.raises(exceptions.UpdateError):
+                await john.commit(conditions={'name': 'Bad Name'}, replace=True)
+            await john.commit(conditions={'name': 'William Doe'}, replace=True)
+            await john.reload()
+            assert john.name == 'Zorro Doe'
+            # Cannot use conditions when creating document
+            with pytest.raises(exceptions.NotCreatedError):
+                await Student(name='Joe').commit(conditions={'name': 'dummy'}, replace=True)
+
+        loop.run_until_complete(do_test())
+
     def test_remove(self, loop, classroom_model):
         Student = classroom_model.Student
 
