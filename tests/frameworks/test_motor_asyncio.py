@@ -20,7 +20,6 @@ DEP_ERROR = 'Missing motor'
 # Check if the required dependancies are met to run this driver's tests
 try:
     from motor.motor_asyncio import AsyncIOMotorClient
-    from motor import version_tuple as MOTOR_VERSION
 except ImportError:
     dep_error = True
 else:
@@ -155,20 +154,11 @@ class TestMotorAsyncio(BaseDBTest):
             for i in range(10):
                 await Student(name='student-%s' % i).commit()
             cursor = Student.find(limit=5, skip=6)
-            if MOTOR_VERSION < (2, 0):
-                # this test doesn't make as much sense in motor>2.0, since the cursor no
-                # longer supports a count() method
-                count = await cursor.count()
-                assert count == 10
-                count_with_limit_and_skip = await cursor.count(with_limit_and_skip=True)
-                assert count_with_limit_and_skip == 4
-            else:
-                assert (await Student.count_documents()) == 10
-                assert (await Student.count_documents(limit=5, skip=6)) == 4
+            assert (await Student.count_documents()) == 10
+            assert (await Student.count_documents(limit=5, skip=6)) == 4
 
             # to_list with callback should fail
-            error = NotImplementedError if MOTOR_VERSION < (2, 0, 0) else TypeError
-            with pytest.raises(error):
+            with pytest.raises(TypeError):
                 await cursor.to_list(length=100, callback=lambda r, e: r if r else e)
 
             # Make sure returned documents are wrapped
