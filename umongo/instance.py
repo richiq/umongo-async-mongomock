@@ -30,14 +30,12 @@ class BaseInstance:
 
     BUILDER_CLS = None
 
-    def __init__(self, templates=()):
+    def __init__(self):
         assert self.BUILDER_CLS, 'BUILDER_CLS must be defined.'
         self.builder = self.BUILDER_CLS(self)
         self._doc_lookup = {}
         self._embedded_lookup = {}
         self._mixin_lookup = {}
-        for template in templates:
-            self.register(template)
 
     @property
     def db(self):
@@ -134,12 +132,12 @@ class Instance(BaseInstance):
     the provided database.
     """
 
-    def __init__(self, db, templates=()):
+    def __init__(self, db):
         self._db = db
         # Dynamically find a builder compatible with the db
         from .frameworks import find_builder_from_db
         self.BUILDER_CLS = find_builder_from_db(db)
-        super().__init__(templates=templates)
+        super().__init__()
 
     @property
     def db(self):
@@ -156,9 +154,9 @@ class LazyLoaderInstance(BaseInstance):
 
     """
 
-    def __init__(self, templates=()):
+    def __init__(self):
         self._db = None
-        super().__init__(templates=templates)
+        super().__init__()
 
     @property
     def db(self):
