@@ -319,10 +319,6 @@ class TxMongoBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = TxMongoDocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, Database)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -349,3 +345,7 @@ class TxMongoInstance(LazyLoaderInstance):
     :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
     """
     BUILDER_CLS = TxMongoBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, Database)

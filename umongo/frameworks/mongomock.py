@@ -22,13 +22,13 @@ class MongoMockDocument(PyMongoDocument):
 class MongoMockBuilder(PyMongoBuilder):
     BASE_DOCUMENT_CLS = MongoMockDocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, Database)
-
 
 class MongoMockInstance(LazyLoaderInstance):
     """
     :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
     """
     BUILDER_CLS = MongoMockBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, Database)

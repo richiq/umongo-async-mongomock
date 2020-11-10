@@ -75,8 +75,8 @@ class TestInstance:
             Doc2(nested={})
 
     def test_multiple_instances(self, db):
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Doc(Document):
             pass
@@ -99,8 +99,8 @@ class TestInstance:
         assert Embedded2.opts.instance is instance2
 
     def test_register_other_implementation(self, db):
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Doc(Document):
             pass
@@ -191,8 +191,8 @@ class TestInstance:
 
     def test_patched_fields(self, db):
 
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Embedded(EmbeddedDocument):
             simple = fields.IntField()

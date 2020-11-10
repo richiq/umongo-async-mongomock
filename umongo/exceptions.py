@@ -5,8 +5,8 @@ class UMongoError(Exception):
     """Base umongo error"""
 
 
-class NoCompatibleBuilderError(UMongoError):
-    """Can't find builder compatible with database"""
+class NoCompatibleInstanceError(UMongoError):
+    """Can't find instance compatible with database"""
 
 
 class AbstractDocumentError(UMongoError):

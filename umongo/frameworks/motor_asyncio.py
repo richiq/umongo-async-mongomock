@@ -371,10 +371,6 @@ class MotorAsyncIOBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = MotorAsyncIODocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, AsyncIOMotorDatabase)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -404,3 +400,7 @@ class MotorAsyncIOInstance(LazyLoaderInstance):
     :class:`umongo.instance.LazyLoaderInstance` implementation for motor-asyncio
     """
     BUILDER_CLS = MotorAsyncIOBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, AsyncIOMotorDatabase)

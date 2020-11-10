@@ -308,10 +308,6 @@ class PyMongoBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = PyMongoDocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, Database)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -337,3 +333,7 @@ class PyMongoInstance(LazyLoaderInstance):
     :class:`umongo.instance.LazyLoaderInstance` implementation for pymongo
     """
     BUILDER_CLS = PyMongoBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, Database)

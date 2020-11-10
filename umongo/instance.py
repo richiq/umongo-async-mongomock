@@ -132,11 +132,16 @@ class Instance(BaseInstance):
     the provided database.
     """
 
+    @classmethod
+    def from_db(cls, db):
+        from .frameworks import find_instance_from_db
+        instance_cls = find_instance_from_db(db)
+        instance = instance_cls()
+        instance.init(db)
+        return instance
+
     def __init__(self, db):
         self._db = db
-        # Dynamically find a builder compatible with the db
-        from .frameworks import find_builder_from_db
-        self.BUILDER_CLS = find_builder_from_db(db)
         super().__init__()
 
     @property
@@ -164,6 +169,9 @@ class LazyLoaderInstance(BaseInstance):
             raise NoDBDefinedError('init must be called to define a db')
         return self._db
 
+    def is_compatible_with(self, db):
+        return NotImplemented
+
     def init(self, db):
         """
         Set the database to use whithin this instance.
@@ -172,5 +180,5 @@ class LazyLoaderInstance(BaseInstance):
             The documents registered in the instance cannot be used
             before this function is called.
         """
-        assert self.BUILDER_CLS.is_compatible_with(db)
+        assert self.is_compatible_with(db)
         self._db = db

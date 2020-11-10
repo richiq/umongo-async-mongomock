@@ -1,61 +1,65 @@
 import pytest
 
-from umongo.frameworks import BuilderRegisterer
+from umongo.frameworks import InstanceRegisterer
 from umongo.builder import BaseBuilder
+from umongo.instance import LazyLoaderInstance
 from umongo.document import DocumentImplementation
-from umongo.exceptions import NoCompatibleBuilderError
+from umongo.exceptions import NoCompatibleInstanceError
 
 
 def create_env(prefix):
-    db_cls = type('%sDB' % prefix, (), {})
-    document_cls = type('%sDocument' % prefix, (DocumentImplementation, ), {})
-    builder_cls = type('%sBuilder' % prefix, (BaseBuilder, ), {
+    db_cls = type("f{prefix}DB", (), {})
+    document_cls = type(f"{prefix}Document", (DocumentImplementation, ), {})
+    builder_cls = type(f"{prefix}Builder", (BaseBuilder, ), {
         'BASE_DOCUMENT_CLS': document_cls,
+    })
+    instance_cls = type(f"{prefix}Instance", (LazyLoaderInstance, ), {
+        'BUILDER_CLS': builder_cls,
         'is_compatible_with': staticmethod(lambda db: isinstance(db, db_cls))
     })
-    return db_cls, document_cls, builder_cls
+    return db_cls, document_cls, builder_cls, instance_cls
 
 
 class TestBuilder:
 
     def test_basic_builder_registerer(self):
-        registerer = BuilderRegisterer()
-        AlphaDB, AlphaDocument, AlphaBuilder = create_env('Alpha')
+        registerer = InstanceRegisterer()
+        AlphaDB, _, _, AlphaInstance = create_env('Alpha')
 
-        with pytest.raises(NoCompatibleBuilderError):
+        with pytest.raises(NoCompatibleInstanceError):
             registerer.find_from_db(AlphaDB())
-        registerer.register(AlphaBuilder)
-        assert registerer.find_from_db(AlphaDB()) is AlphaBuilder
+        registerer.register(AlphaInstance)
+        assert registerer.find_from_db(AlphaDB()) is AlphaInstance
         # Multiple registers does nothing
-        registerer.register(AlphaBuilder)
-        registerer.unregister(AlphaBuilder)
-        with pytest.raises(NoCompatibleBuilderError):
+        registerer.register(AlphaInstance)
+        registerer.unregister(AlphaInstance)
+        with pytest.raises(NoCompatibleInstanceError):
             registerer.find_from_db(AlphaDB())
 
     def test_multi_builder(self):
-        registerer = BuilderRegisterer()
-        AlphaDB, AlphaDocument, AlphaBuilder = create_env('Alpha')
-        BetaDB, BetaDocument, BetaBuilder = create_env('Beta')
+        registerer = InstanceRegisterer()
+        AlphaDB, _, _, AlphaInstance = create_env('Alpha')
+        BetaDB, _, _, BetaInstance = create_env('Beta')
 
-        registerer.register(AlphaBuilder)
-        assert registerer.find_from_db(AlphaDB()) is AlphaBuilder
-        with pytest.raises(NoCompatibleBuilderError):
+        registerer.register(AlphaInstance)
+        assert registerer.find_from_db(AlphaDB()) is AlphaInstance
+        with pytest.raises(NoCompatibleInstanceError):
             registerer.find_from_db(BetaDB())
-        registerer.register(BetaBuilder)
-        assert registerer.find_from_db(BetaDB()) is BetaBuilder
-        assert registerer.find_from_db(AlphaDB()) is AlphaBuilder
+        registerer.register(BetaInstance)
+        assert registerer.find_from_db(BetaDB()) is BetaInstance
+        assert registerer.find_from_db(AlphaDB()) is AlphaInstance
 
     def test_overload_builder(self):
-        registerer = BuilderRegisterer()
-        AlphaDB, AlphaDocument, AlphaBuilder = create_env('Alpha')
+        registerer = InstanceRegisterer()
+        AlphaDB, _, _, AlphaInstance = create_env('Alpha')
 
-        registerer.register(AlphaBuilder)
+        registerer.register(AlphaInstance)
 
         # Create a new builder compatible with AlphaDB
-        class Alpha2Builder(AlphaBuilder):
+        class Alpha2Instance(AlphaInstance):
             pass
 
-        registerer.register(Alpha2Builder)
+        registerer.register(Alpha2Instance)
 
         # Last registered builder should be tested first
-        assert registerer.find_from_db(AlphaDB()) is Alpha2Builder
+        assert registerer.find_from_db(AlphaDB()) is Alpha2Instance
