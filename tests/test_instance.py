@@ -184,10 +184,10 @@ class TestInstance:
 
         doc_impl_cls = instance.register(Doc)
 
-        with pytest.raises(NoDBDefinedError):
+        with pytest.raises(NoDBDefinedError, match="db not set, please call set_db"):
             doc_impl_cls.collection
 
-        instance.init(db)
+        instance.set_db(db)
 
         assert doc_impl_cls.collection == db['doc']
 

@@ -45,7 +45,7 @@ class Instance(abc.ABC):
         from .frameworks import find_instance_from_db
         instance_cls = find_instance_from_db(db)
         instance = instance_cls()
-        instance.init(db)
+        instance.set_db(db)
         return instance
 
     def retrieve_document(self, name_or_template):
@@ -134,14 +134,14 @@ class Instance(abc.ABC):
     @property
     def db(self):
         if not self._db:
-            raise NoDBDefinedError('init must be called to define a db')
+            raise NoDBDefinedError('db not set, please call set_db')
         return self._db
 
     @abc.abstractmethod
     def is_compatible_with(self, db):
         return NotImplemented
 
-    def init(self, db):
+    def set_db(self, db):
         """
         Set the database to use whithin this instance.
 
