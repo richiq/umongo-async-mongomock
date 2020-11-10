@@ -2,6 +2,7 @@ from mongomock.database import Database
 from mongomock.collection import Cursor
 
 from .pymongo import PyMongoBuilder, PyMongoDocument, BaseWrappedCursor
+from ..instance import LazyLoaderInstance
 from ..document import DocumentImplementation
 
 
@@ -24,3 +25,10 @@ class MongoMockBuilder(PyMongoBuilder):
     @staticmethod
     def is_compatible_with(db):
         return isinstance(db, Database)
+
+
+class MongoMockInstance(LazyLoaderInstance):
+    """
+    :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
+    """
+    BUILDER_CLS = MongoMockBuilder
