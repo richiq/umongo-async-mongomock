@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
 from ..builder import BaseBuilder
-from ..instance import LazyLoaderInstance
+from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
@@ -328,9 +328,9 @@ class PyMongoBuilder(BaseBuilder):
             field.io_validate_recursive = _embedded_document_io_validate
 
 
-class PyMongoInstance(LazyLoaderInstance):
+class PyMongoInstance(Instance):
     """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for pymongo
+    :class:`umongo.instance.Instance` implementation for pymongo
     """
     BUILDER_CLS = PyMongoBuilder
 

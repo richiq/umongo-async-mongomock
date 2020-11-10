@@ -1,7 +1,7 @@
 import pymongo
 
 from umongo.document import DocumentImplementation
-from umongo.instance import Instance, LazyLoaderInstance
+from umongo.instance import Instance
 from umongo.builder import BaseBuilder
 from umongo.frameworks import register_instance
 
@@ -58,7 +58,7 @@ class MockedBuilder(BaseBuilder):
     BASE_DOCUMENT_CLS = DocumentImplementation
 
 
-class MockedInstance(LazyLoaderInstance):
+class MockedInstance(Instance):
     BUILDER_CLS = MockedBuilder
 
     @staticmethod

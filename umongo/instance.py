@@ -128,10 +128,12 @@ class BaseInstance:
 
 class Instance(BaseInstance):
     """
-    Automatically configured instance according to the type of
-    the provided database.
-    """
+    Base class for instance
 
+    .. note::
+        This class should not be used directly but instead overloaded.
+        See :class:`umongo.PyMongoInstance` for example.
+    """
     @classmethod
     def from_db(cls, db):
         from .frameworks import find_instance_from_db
@@ -140,28 +142,11 @@ class Instance(BaseInstance):
         instance.init(db)
         return instance
 
-    def __init__(self, db):
+    def __init__(self, db=None):
+        super().__init__()
         self._db = db
-        super().__init__()
-
-    @property
-    def db(self):
-        return self._db
-
-
-class LazyLoaderInstance(BaseInstance):
-    """
-    Base class for instance with database lazy loading.
-
-    .. note::
-        This class should not be used directly but instead overloaded.
-        See :class:`umongo.PyMongoInstance` for example.
-
-    """
-
-    def __init__(self):
-        self._db = None
-        super().__init__()
+        if db is not None:
+            self.init(db)
 
     @property
     def db(self):

@@ -17,12 +17,14 @@ from .common import MockedDB, MockedInstance
 
 
 # Try to retrieve framework's db to test against each of them
-DB_AND_INSTANCE_PER_FRAMEWORK = [(MockedDB('my_db'), MockedInstance)]
+DB_AND_INSTANCE_PER_FRAMEWORK = [
+    (MockedDB('my_db'), MockedInstance),
+]
 for mod_name, inst_name in (
         ('mongomock', 'MongoMockInstance'),
         ('motor_asyncio', 'MotorAsyncIOInstance'),
         ('txmongo', 'TxMongoInstance'),
-        ('pymongo', 'PyMongoInstance')
+        ('pymongo', 'PyMongoInstance'),
 ):
     inst = getattr(umongo.frameworks, inst_name, None)
     if inst is not None:

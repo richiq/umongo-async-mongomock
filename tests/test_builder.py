@@ -2,7 +2,7 @@ import pytest
 
 from umongo.frameworks import InstanceRegisterer
 from umongo.builder import BaseBuilder
-from umongo.instance import LazyLoaderInstance
+from umongo.instance import Instance
 from umongo.document import DocumentImplementation
 from umongo.exceptions import NoCompatibleInstanceError
 
@@ -13,7 +13,7 @@ def create_env(prefix):
     builder_cls = type(f"{prefix}Builder", (BaseBuilder, ), {
         'BASE_DOCUMENT_CLS': document_cls,
     })
-    instance_cls = type(f"{prefix}Instance", (LazyLoaderInstance, ), {
+    instance_cls = type(f"{prefix}Instance", (Instance, ), {
         'BUILDER_CLS': builder_cls,
         'is_compatible_with': staticmethod(lambda db: isinstance(db, db_cls))
     })

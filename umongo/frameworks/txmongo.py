@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
 from ..builder import BaseBuilder
-from ..instance import LazyLoaderInstance
+from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
@@ -340,9 +340,9 @@ class TxMongoBuilder(BaseBuilder):
             field.io_validate_recursive = _embedded_document_io_validate
 
 
-class TxMongoInstance(LazyLoaderInstance):
+class TxMongoInstance(Instance):
     """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
+    :class:`umongo.instance.Instance` implementation for txmongo
     """
     BUILDER_CLS = TxMongoBuilder
 

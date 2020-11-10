@@ -13,8 +13,6 @@ Instance
     :inherited-members:
 
 .. autoclass:: umongo.Instance
-
-.. autoclass:: umongo.instance.LazyLoaderInstance
   :members:
 
 .. autoclass:: umongo.PyMongoInstance

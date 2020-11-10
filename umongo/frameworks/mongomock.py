@@ -2,7 +2,7 @@ from mongomock.database import Database
 from mongomock.collection import Cursor
 
 from .pymongo import PyMongoBuilder, PyMongoDocument, BaseWrappedCursor
-from ..instance import LazyLoaderInstance
+from ..instance import Instance
 from ..document import DocumentImplementation
 
 
@@ -23,9 +23,9 @@ class MongoMockBuilder(PyMongoBuilder):
     BASE_DOCUMENT_CLS = MongoMockDocument
 
 
-class MongoMockInstance(LazyLoaderInstance):
+class MongoMockInstance(Instance):
     """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
+    :class:`umongo.instance.Instance` implementation for mongomock
     """
     BUILDER_CLS = MongoMockBuilder
 
