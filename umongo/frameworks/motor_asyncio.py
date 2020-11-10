@@ -1,3 +1,6 @@
+from contextvars import ContextVar
+from contextlib import asynccontextmanager
+
 from inspect import iscoroutine
 import asyncio
 
@@ -14,6 +17,9 @@ from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
 from .tools import cook_find_filter
+
+
+SESSION = ContextVar("session", default=None)
 
 
 class WrappedCursor(AsyncIOMotorCursor):
@@ -120,7 +126,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
-        ret = await self.collection.find_one(self.pk)
+        ret = await self.collection.find_one(self.pk, session=SESSION.get())
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
         self._data = self.DataProxy()
@@ -155,10 +161,12 @@ class MotorAsyncIODocument(DocumentImplementation):
                     await self.io_validate(validate_all=io_validate_all)
                     if replace:
                         payload = self._data.to_mongo(update=False)
-                        ret = await self.collection.replace_one(query, payload)
+                        ret = await self.collection.replace_one(
+                            query, payload, session=SESSION.get())
                     else:
                         payload = self._data.to_mongo(update=True)
-                        ret = await self.collection.update_one(query, payload)
+                        ret = await self.collection.update_one(
+                            query, payload, session=SESSION.get())
                     if ret.matched_count != 1:
                         raise UpdateError(ret)
                     await self.__coroutined_post_update(ret)
@@ -173,7 +181,7 @@ class MotorAsyncIODocument(DocumentImplementation):
                 self.required_validate()
                 await self.io_validate(validate_all=io_validate_all)
                 payload = self._data.to_mongo(update=False)
-                ret = await self.collection.insert_one(payload)
+                ret = await self.collection.insert_one(payload, session=SESSION.get())
                 # TODO: check ret ?
                 self._data.set(self.pk_field, ret.inserted_id)
                 self.is_created = True
@@ -225,7 +233,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         additional_filter = await self.__coroutined_pre_delete()
         if additional_filter:
             query.update(map_query(additional_filter, self.schema.fields))
-        ret = await self.collection.delete_one(query)
+        ret = await self.collection.delete_one(query, session=SESSION.get())
         if ret.deleted_count != 1:
             raise DeleteError(ret)
         self.is_created = False
@@ -250,7 +258,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = await cls.collection.find_one(filter, *args, **kwargs)
+        ret = await cls.collection.find_one(filter, session=SESSION.get(), *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -263,7 +271,10 @@ class MotorAsyncIODocument(DocumentImplementation):
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        return WrappedCursor(cls, cls.collection.find(filter, *args, **kwargs))
+        return WrappedCursor(
+            cls,
+            cls.collection.find(filter, session=SESSION.get(), *args, **kwargs)
+        )
 
     @classmethod
     async def count_documents(cls, filter=None, *, with_limit_and_skip=False, **kwargs):
@@ -271,7 +282,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Return a count of the documents in a collection.
         """
         filter = cook_find_filter(cls, filter or {})
-        return await cls.collection.count_documents(filter, **kwargs)
+        return await cls.collection.count_documents(filter, session=SESSION.get(), **kwargs)
 
     @classmethod
     async def ensure_indexes(cls):
@@ -281,7 +292,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         for index in cls.opts.indexes:
             kwargs = index.document.copy()
             keys = kwargs.pop('key').items()
-            await cls.collection.create_index(keys, **kwargs)
+            await cls.collection.create_index(keys, session=SESSION.get(), **kwargs)
 
 
 # Run multiple validators and collect all errors in one
@@ -404,3 +415,12 @@ class MotorAsyncIOInstance(Instance):
     @staticmethod
     def is_compatible_with(db):
         return isinstance(db, AsyncIOMotorDatabase)
+
+    @asynccontextmanager
+    async def session(self):
+        async with await self.db.client.start_session() as session:
+            try:
+                token = SESSION.set(session)
+                yield session
+            finally:
+                SESSION.reset(token)
