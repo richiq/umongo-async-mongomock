@@ -9,11 +9,8 @@ API Reference
 Instance
 ========
 
-.. autoclass:: umongo.instance.BaseInstance
-    :inherited-members:
-
-.. autoclass:: umongo.Instance
-  :members:
+.. autoclass:: umongo.instance.Instance
+    :members:
 
 .. autoclass:: umongo.PyMongoInstance
 

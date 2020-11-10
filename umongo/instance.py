@@ -1,3 +1,5 @@
+import abc
+
 from .exceptions import (
     NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
 from .document import DocumentTemplate
@@ -5,9 +7,9 @@ from .embedded_document import EmbeddedDocumentTemplate
 from .template import get_template
 
 
-class BaseInstance:
+class Instance(abc.ABC):
     """
-    Base class for instance.
+    Abstract instance class
 
     Instances aims at collecting and implementing :class:`umongo.template.Template`::
 
@@ -15,7 +17,7 @@ class BaseInstance:
         class Doc(DocumentTemplate):
             pass
 
-        instance = Instance()
+        instance = MyFrameworkInstance()
         # doc_cls is the instance's implementation of Doc
         doc_cls = instance.register(Doc)
         # Implementations are registered as attribute into the instance
@@ -27,20 +29,24 @@ class BaseInstance:
         Instance registration is divided between :class:`umongo.Document` and
         :class:`umongo.EmbeddedDocument`.
     """
-
     BUILDER_CLS = None
 
-    def __init__(self):
-        assert self.BUILDER_CLS, 'BUILDER_CLS must be defined.'
+    def __init__(self, db=None):
         self.builder = self.BUILDER_CLS(self)
         self._doc_lookup = {}
         self._embedded_lookup = {}
         self._mixin_lookup = {}
+        self._db = db
+        if db is not None:
+            self.init(db)
 
-    @property
-    def db(self):
-        """Database used within the instance."""
-        raise NotImplementedError
+    @classmethod
+    def from_db(cls, db):
+        from .frameworks import find_instance_from_db
+        instance_cls = find_instance_from_db(db)
+        instance = instance_cls()
+        instance.init(db)
+        return instance
 
     def retrieve_document(self, name_or_template):
         """
@@ -125,35 +131,13 @@ class BaseInstance:
         self._mixin_lookup[implementation.__name__] = implementation
         return implementation
 
-
-class Instance(BaseInstance):
-    """
-    Base class for instance
-
-    .. note::
-        This class should not be used directly but instead overloaded.
-        See :class:`umongo.PyMongoInstance` for example.
-    """
-    @classmethod
-    def from_db(cls, db):
-        from .frameworks import find_instance_from_db
-        instance_cls = find_instance_from_db(db)
-        instance = instance_cls()
-        instance.init(db)
-        return instance
-
-    def __init__(self, db=None):
-        super().__init__()
-        self._db = db
-        if db is not None:
-            self.init(db)
-
     @property
     def db(self):
         if not self._db:
             raise NoDBDefinedError('init must be called to define a db')
         return self._db
 
+    @abc.abstractmethod
     def is_compatible_with(self, db):
         return NotImplemented
 
