@@ -2,9 +2,6 @@
 Frameworks
 ==========
 """
-
-from importlib import import_module
-
 from ..exceptions import NoCompatibleBuilderError
 from ..instance import LazyLoaderInstance
 from .pymongo import PyMongoBuilder
@@ -59,52 +56,49 @@ class PyMongoInstance(LazyLoaderInstance):
     """
     :class:`umongo.instance.LazyLoaderInstance` implementation for pymongo
     """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.pymongo').PyMongoBuilder
-        super().__init__(*args, **kwargs)
+    BUILDER_CLS = PyMongoBuilder
 
 
-class TxMongoInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.txmongo').TxMongoBuilder
-        super().__init__(*args, **kwargs)
-
-
-class MotorAsyncIOInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for motor-asyncio
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.motor_asyncio').MotorAsyncIOBuilder
-        super().__init__(*args, **kwargs)
-
-
-class MongoMockInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.mongomock').MongoMockBuilder
-        super().__init__(*args, **kwargs)
-
-
-# try to load all the builders by default
 register_builder(PyMongoBuilder)
+
+
 try:
     from .txmongo import TxMongoBuilder
     register_builder(TxMongoBuilder)
+
+    class TxMongoInstance(LazyLoaderInstance):
+        """
+        :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
+        """
+        BUILDER_CLS = TxMongoBuilder
+
 except ImportError:  # pragma: no cover
     pass
+
+
 try:
     from .motor_asyncio import MotorAsyncIOBuilder
     register_builder(MotorAsyncIOBuilder)
+
+    class MotorAsyncIOInstance(LazyLoaderInstance):
+        """
+        :class:`umongo.instance.LazyLoaderInstance` implementation for motor-asyncio
+        """
+        BUILDER_CLS = MotorAsyncIOBuilder
+
 except ImportError:  # pragma: no cover
     pass
+
+
 try:
     from .mongomock import MongoMockBuilder
     register_builder(MongoMockBuilder)
+
+    class MongoMockInstance(LazyLoaderInstance):
+        """
+        :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
+        """
+        BUILDER_CLS = MongoMockBuilder
+
 except ImportError:  # pragma: no cover
     pass

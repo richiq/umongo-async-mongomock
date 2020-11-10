@@ -8,9 +8,7 @@ from umongo import Document, fields, EmbeddedDocument
 from umongo.instance import Instance
 from umongo.document import DocumentTemplate, DocumentImplementation
 from umongo.embedded_document import EmbeddedDocumentTemplate, EmbeddedDocumentImplementation
-from umongo.frameworks import (
-    MongoMockInstance, MotorAsyncIOInstance, TxMongoInstance, PyMongoInstance
-)
+import umongo.frameworks
 from umongo.exceptions import (
     AlreadyRegisteredDocumentError, NotRegisteredDocumentError, NoDBDefinedError
 )
@@ -20,12 +18,15 @@ from .common import MockedDB, MockedInstance
 
 # Try to retrieve framework's db to test against each of them
 DB_AND_INSTANCE_PER_FRAMEWORK = [(MockedDB('my_db'), MockedInstance)]
-for name, inst in (('mongomock', MongoMockInstance),
-                   ('motor_asyncio', MotorAsyncIOInstance),
-                   ('txmongo', TxMongoInstance),
-                   ('pymongo', PyMongoInstance)):
-    mod = importlib.import_module('tests.frameworks.test_%s' % name)
-    if not mod.dep_error:
+for mod_name, inst_name in (
+        ('mongomock', 'MongoMockInstance'),
+        ('motor_asyncio', 'MotorAsyncIOInstance'),
+        ('txmongo', 'TxMongoInstance'),
+        ('pymongo', 'PyMongoInstance')
+):
+    inst = getattr(umongo.frameworks, inst_name, None)
+    if inst is not None:
+        mod = importlib.import_module(f"tests.frameworks.test_{mod_name}")
         DB_AND_INSTANCE_PER_FRAMEWORK.append((mod.make_db(), inst))
 
 
