@@ -8,9 +8,7 @@ from umongo import Document, fields, EmbeddedDocument
 from umongo.instance import Instance
 from umongo.document import DocumentTemplate, DocumentImplementation
 from umongo.embedded_document import EmbeddedDocumentTemplate, EmbeddedDocumentImplementation
-from umongo.frameworks import (
-    MongoMockInstance, MotorAsyncIOInstance, TxMongoInstance, PyMongoInstance
-)
+import umongo.frameworks
 from umongo.exceptions import (
     AlreadyRegisteredDocumentError, NotRegisteredDocumentError, NoDBDefinedError
 )
@@ -19,13 +17,18 @@ from .common import MockedDB, MockedInstance
 
 
 # Try to retrieve framework's db to test against each of them
-DB_AND_INSTANCE_PER_FRAMEWORK = [(MockedDB('my_db'), MockedInstance)]
-for name, inst in (('mongomock', MongoMockInstance),
-                   ('motor_asyncio', MotorAsyncIOInstance),
-                   ('txmongo', TxMongoInstance),
-                   ('pymongo', PyMongoInstance)):
-    mod = importlib.import_module('tests.frameworks.test_%s' % name)
-    if not mod.dep_error:
+DB_AND_INSTANCE_PER_FRAMEWORK = [
+    (MockedDB('my_db'), MockedInstance),
+]
+for mod_name, inst_name in (
+        ('mongomock', 'MongoMockInstance'),
+        ('motor_asyncio', 'MotorAsyncIOInstance'),
+        ('txmongo', 'TxMongoInstance'),
+        ('pymongo', 'PyMongoInstance'),
+):
+    inst = getattr(umongo.frameworks, inst_name, None)
+    if inst is not None:
+        mod = importlib.import_module(f"tests.frameworks.test_{mod_name}")
         DB_AND_INSTANCE_PER_FRAMEWORK.append((mod.make_db(), inst))
 
 
@@ -74,8 +77,8 @@ class TestInstance:
             Doc2(nested={})
 
     def test_multiple_instances(self, db):
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Doc(Document):
             pass
@@ -98,8 +101,8 @@ class TestInstance:
         assert Embedded2.opts.instance is instance2
 
     def test_register_other_implementation(self, db):
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Doc(Document):
             pass
@@ -181,17 +184,17 @@ class TestInstance:
 
         doc_impl_cls = instance.register(Doc)
 
-        with pytest.raises(NoDBDefinedError):
+        with pytest.raises(NoDBDefinedError, match="db not set, please call set_db"):
             doc_impl_cls.collection
 
-        instance.init(db)
+        instance.set_db(db)
 
         assert doc_impl_cls.collection == db['doc']
 
     def test_patched_fields(self, db):
 
-        instance1 = Instance(db)
-        instance2 = Instance(db)
+        instance1 = Instance.from_db(db)
+        instance2 = Instance.from_db(db)
 
         class Embedded(EmbeddedDocument):
             simple = fields.IntField()

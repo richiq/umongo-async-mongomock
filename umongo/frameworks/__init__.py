@@ -2,21 +2,17 @@
 Frameworks
 ==========
 """
-
-from importlib import import_module
-
-from ..exceptions import NoCompatibleBuilderError
-from ..instance import LazyLoaderInstance
-from .pymongo import PyMongoBuilder
+from ..exceptions import NoCompatibleInstanceError
+from .pymongo import PyMongoInstance
 
 
 __all__ = (
-    'BuilderRegisterer',
+    'InstanceRegisterer',
 
-    'default_builder_registerer',
-    'register_builder',
-    'unregister_builder',
-    'find_builder_from_db',
+    'default_instance_registerer',
+    'register_instance',
+    'unregister_instance',
+    'find_instance_from_db',
 
     'PyMongoInstance',
     'TxMongoInstance',
@@ -25,86 +21,55 @@ __all__ = (
 )
 
 
-class BuilderRegisterer:
+class InstanceRegisterer:
 
     def __init__(self):
-        self.builders = []
+        self.instances = []
 
-    def register(self, builder):
-        if builder not in self.builders:
-            # Insert new item first to overload older compatible builders
-            self.builders.insert(0, builder)
+    def register(self, instance):
+        if instance not in self.instances:
+            # Insert new item first to overload older compatible instances
+            self.instances.insert(0, instance)
 
-    def unregister(self, builder):
+    def unregister(self, instance):
         # Basically only used for tests
-        self.builders.remove(builder)
+        self.instances.remove(instance)
 
     def find_from_db(self, db):
-        for builder in self.builders:
-            if builder.is_compatible_with(db):
-                return builder
-        raise NoCompatibleBuilderError(
-            'Cannot find a umongo builder compatible with %s' % type(db))
+        for instance in self.instances:
+            if instance.is_compatible_with(db):
+                return instance
+        raise NoCompatibleInstanceError(
+            'Cannot find a umongo instance compatible with %s' % type(db))
 
 
-default_builder_registerer = BuilderRegisterer()
-register_builder = default_builder_registerer.register
-unregister_builder = default_builder_registerer.unregister
-find_builder_from_db = default_builder_registerer.find_from_db
+default_instance_registerer = InstanceRegisterer()
+register_instance = default_instance_registerer.register
+unregister_instance = default_instance_registerer.unregister
+find_instance_from_db = default_instance_registerer.find_from_db
 
 
-# Define lazy loader instances for each builder
+# Define lazy loader instances for each instance
 
-class PyMongoInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for pymongo
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.pymongo').PyMongoBuilder
-        super().__init__(*args, **kwargs)
+register_instance(PyMongoInstance)
 
 
-class TxMongoInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for txmongo
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.txmongo').TxMongoBuilder
-        super().__init__(*args, **kwargs)
-
-
-class MotorAsyncIOInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for motor-asyncio
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.motor_asyncio').MotorAsyncIOBuilder
-        super().__init__(*args, **kwargs)
-
-
-class MongoMockInstance(LazyLoaderInstance):
-    """
-    :class:`umongo.instance.LazyLoaderInstance` implementation for mongomock
-    """
-    def __init__(self, *args, **kwargs):
-        self.BUILDER_CLS = import_module('umongo.frameworks.mongomock').MongoMockBuilder
-        super().__init__(*args, **kwargs)
-
-
-# try to load all the builders by default
-register_builder(PyMongoBuilder)
 try:
-    from .txmongo import TxMongoBuilder
-    register_builder(TxMongoBuilder)
+    from .txmongo import TxMongoInstance
+    register_instance(TxMongoInstance)
 except ImportError:  # pragma: no cover
     pass
+
+
 try:
-    from .motor_asyncio import MotorAsyncIOBuilder
-    register_builder(MotorAsyncIOBuilder)
+    from .motor_asyncio import MotorAsyncIOInstance
+    register_instance(MotorAsyncIOInstance)
 except ImportError:  # pragma: no cover
     pass
+
+
 try:
-    from .mongomock import MongoMockBuilder
-    register_builder(MongoMockBuilder)
+    from .mongomock import MongoMockInstance
+    register_instance(MongoMockInstance)
 except ImportError:  # pragma: no cover
     pass

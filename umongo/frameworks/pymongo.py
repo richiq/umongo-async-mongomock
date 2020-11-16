@@ -4,6 +4,7 @@ from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
 from ..builder import BaseBuilder
+from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
@@ -307,10 +308,6 @@ class PyMongoBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = PyMongoDocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, Database)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -329,3 +326,14 @@ class PyMongoBuilder(BaseBuilder):
             field.reference_cls = PyMongoReference
         if isinstance(field, EmbeddedField):
             field.io_validate_recursive = _embedded_document_io_validate
+
+
+class PyMongoInstance(Instance):
+    """
+    :class:`umongo.instance.Instance` implementation for pymongo
+    """
+    BUILDER_CLS = PyMongoBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, Database)

@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
 from ..builder import BaseBuilder
+from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
@@ -370,10 +371,6 @@ class MotorAsyncIOBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = MotorAsyncIODocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, AsyncIOMotorDatabase)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -396,3 +393,14 @@ class MotorAsyncIOBuilder(BaseBuilder):
             field.reference_cls = MotorAsyncIOReference
         if isinstance(field, EmbeddedField):
             field.io_validate_recursive = _embedded_document_io_validate
+
+
+class MotorAsyncIOInstance(Instance):
+    """
+    :class:`umongo.instance.Instance` implementation for motor-asyncio
+    """
+    BUILDER_CLS = MotorAsyncIOBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, AsyncIOMotorDatabase)

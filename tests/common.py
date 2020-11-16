@@ -1,9 +1,9 @@
 import pymongo
 
 from umongo.document import DocumentImplementation
-from umongo.instance import Instance, LazyLoaderInstance
+from umongo.instance import Instance
 from umongo.builder import BaseBuilder
-from umongo.frameworks import register_builder
+from umongo.frameworks import register_instance
 
 
 TEST_DB = 'umongo_test'
@@ -57,22 +57,22 @@ class MockedBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = DocumentImplementation
 
+
+class MockedInstance(Instance):
+    BUILDER_CLS = MockedBuilder
+
     @staticmethod
     def is_compatible_with(db):
         return isinstance(db, MockedDB)
 
 
-register_builder(MockedBuilder)
-
-
-class MockedInstance(LazyLoaderInstance):
-    BUILDER_CLS = MockedBuilder
+register_instance(MockedInstance)
 
 
 class BaseTest:
 
     def setup(self):
-        self.instance = Instance(MockedDB('my_moked_db'))
+        self.instance = Instance.from_db(MockedDB('my_moked_db'))
 
 
 class BaseDBTest:

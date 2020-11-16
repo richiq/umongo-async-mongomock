@@ -8,7 +8,7 @@ from umongo.instance import Instance
 @pytest.fixture
 def instance(db):
     # `db` should be a fixture provided by the current framework's testbench
-    return Instance(db)
+    return Instance.from_db(db)
 
 
 @pytest.fixture

@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 import marshmallow as ma
 
 from ..builder import BaseBuilder
+from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
@@ -318,10 +319,6 @@ class TxMongoBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = TxMongoDocument
 
-    @staticmethod
-    def is_compatible_with(db):
-        return isinstance(db, Database)
-
     def _patch_field(self, field):
         super()._patch_field(field)
 
@@ -341,3 +338,14 @@ class TxMongoBuilder(BaseBuilder):
             field.reference_cls = TxMongoReference
         if isinstance(field, EmbeddedField):
             field.io_validate_recursive = _embedded_document_io_validate
+
+
+class TxMongoInstance(Instance):
+    """
+    :class:`umongo.instance.Instance` implementation for txmongo
+    """
+    BUILDER_CLS = TxMongoBuilder
+
+    @staticmethod
+    def is_compatible_with(db):
+        return isinstance(db, Database)

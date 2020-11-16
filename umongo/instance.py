@@ -1,3 +1,5 @@
+import abc
+
 from .exceptions import (
     NotRegisteredDocumentError, AlreadyRegisteredDocumentError, NoDBDefinedError)
 from .document import DocumentTemplate
@@ -5,9 +7,9 @@ from .embedded_document import EmbeddedDocumentTemplate
 from .template import get_template
 
 
-class BaseInstance:
+class Instance(abc.ABC):
     """
-    Base class for instance.
+    Abstract instance class
 
     Instances aims at collecting and implementing :class:`umongo.template.Template`::
 
@@ -15,7 +17,7 @@ class BaseInstance:
         class Doc(DocumentTemplate):
             pass
 
-        instance = Instance()
+        instance = MyFrameworkInstance()
         # doc_cls is the instance's implementation of Doc
         doc_cls = instance.register(Doc)
         # Implementations are registered as attribute into the instance
@@ -27,22 +29,24 @@ class BaseInstance:
         Instance registration is divided between :class:`umongo.Document` and
         :class:`umongo.EmbeddedDocument`.
     """
-
     BUILDER_CLS = None
 
-    def __init__(self, templates=()):
-        assert self.BUILDER_CLS, 'BUILDER_CLS must be defined.'
+    def __init__(self, db=None):
         self.builder = self.BUILDER_CLS(self)
         self._doc_lookup = {}
         self._embedded_lookup = {}
         self._mixin_lookup = {}
-        for template in templates:
-            self.register(template)
+        self._db = db
+        if db is not None:
+            self.init(db)
 
-    @property
-    def db(self):
-        """Database used within the instance."""
-        raise NotImplementedError
+    @classmethod
+    def from_db(cls, db):
+        from .frameworks import find_instance_from_db
+        instance_cls = find_instance_from_db(db)
+        instance = instance_cls()
+        instance.set_db(db)
+        return instance
 
     def retrieve_document(self, name_or_template):
         """
@@ -127,46 +131,17 @@ class BaseInstance:
         self._mixin_lookup[implementation.__name__] = implementation
         return implementation
 
-
-class Instance(BaseInstance):
-    """
-    Automatically configured instance according to the type of
-    the provided database.
-    """
-
-    def __init__(self, db, templates=()):
-        self._db = db
-        # Dynamically find a builder compatible with the db
-        from .frameworks import find_builder_from_db
-        self.BUILDER_CLS = find_builder_from_db(db)
-        super().__init__(templates=templates)
-
-    @property
-    def db(self):
-        return self._db
-
-
-class LazyLoaderInstance(BaseInstance):
-    """
-    Base class for instance with database lazy loading.
-
-    .. note::
-        This class should not be used directly but instead overloaded.
-        See :class:`umongo.PyMongoInstance` for example.
-
-    """
-
-    def __init__(self, templates=()):
-        self._db = None
-        super().__init__(templates=templates)
-
     @property
     def db(self):
         if not self._db:
-            raise NoDBDefinedError('init must be called to define a db')
+            raise NoDBDefinedError('db not set, please call set_db')
         return self._db
 
-    def init(self, db):
+    @abc.abstractmethod
+    def is_compatible_with(self, db):
+        return NotImplemented
+
+    def set_db(self, db):
         """
         Set the database to use whithin this instance.
 
@@ -174,5 +149,5 @@ class LazyLoaderInstance(BaseInstance):
             The documents registered in the instance cannot be used
             before this function is called.
         """
-        assert self.BUILDER_CLS.is_compatible_with(db)
+        assert self.is_compatible_with(db)
         self._db = db
