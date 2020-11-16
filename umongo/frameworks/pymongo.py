@@ -1,3 +1,6 @@
+from contextvars import ContextVar
+from contextlib import contextmanager
+
 from pymongo.database import Database
 from pymongo.cursor import Cursor
 from pymongo.errors import DuplicateKeyError
@@ -12,6 +15,9 @@ from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
 from .tools import cook_find_filter
+
+
+SESSION = ContextVar("session", default=None)
 
 
 # pymongo.Cursor defines __del__ method, hence mongomock's WrappedCursor should
@@ -70,7 +76,7 @@ class PyMongoDocument(DocumentImplementation):
         """
         if not self.is_created:
             raise NotCreatedError("Document doesn't exists in database")
-        ret = self.collection.find_one(self.pk)
+        ret = self.collection.find_one(self.pk, session=SESSION.get())
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
         self._data = self.DataProxy()
@@ -105,10 +111,10 @@ class PyMongoDocument(DocumentImplementation):
                     self.io_validate(validate_all=io_validate_all)
                     if replace:
                         payload = self._data.to_mongo(update=False)
-                        ret = self.collection.replace_one(query, payload)
+                        ret = self.collection.replace_one(query, payload, session=SESSION.get())
                     else:
                         payload = self._data.to_mongo(update=True)
-                        ret = self.collection.update_one(query, payload)
+                        ret = self.collection.update_one(query, payload, session=SESSION.get())
                     if ret.matched_count != 1:
                         raise UpdateError(ret)
                     self.post_update(ret)
@@ -123,7 +129,7 @@ class PyMongoDocument(DocumentImplementation):
                 self.required_validate()
                 self.io_validate(validate_all=io_validate_all)
                 payload = self._data.to_mongo(update=False)
-                ret = self.collection.insert_one(payload)
+                ret = self.collection.insert_one(payload, session=SESSION.get())
                 # TODO: check ret ?
                 self._data.set(self.pk_field, ret.inserted_id)
                 self.is_created = True
@@ -169,7 +175,7 @@ class PyMongoDocument(DocumentImplementation):
         additional_filter = self.pre_delete()
         if additional_filter:
             query.update(map_query(additional_filter, self.schema.fields))
-        ret = self.collection.delete_one(query)
+        ret = self.collection.delete_one(query, session=SESSION.get())
         if ret.deleted_count != 1:
             raise DeleteError(ret)
         self.is_created = False
@@ -195,7 +201,7 @@ class PyMongoDocument(DocumentImplementation):
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = cls.collection.find_one(filter, *args, **kwargs)
+        ret = cls.collection.find_one(filter, session=SESSION.get(), *args, **kwargs)
         if ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -208,7 +214,7 @@ class PyMongoDocument(DocumentImplementation):
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        raw_cursor = cls.collection.find(filter, *args, **kwargs)
+        raw_cursor = cls.collection.find(filter, session=SESSION.get(), *args, **kwargs)
         return cls.cursor_cls(cls, raw_cursor)
 
     @classmethod
@@ -220,7 +226,7 @@ class PyMongoDocument(DocumentImplementation):
         defaults to an empty filter.
         """
         filter = cook_find_filter(cls, filter or {})
-        return cls.collection.count_documents(filter, **kwargs)
+        return cls.collection.count_documents(filter, session=SESSION.get(), **kwargs)
 
     @classmethod
     def ensure_indexes(cls):
@@ -228,7 +234,7 @@ class PyMongoDocument(DocumentImplementation):
         Check&create if needed the Document's indexes in database
         """
         if cls.opts.indexes:
-            cls.collection.create_indexes(cls.opts.indexes)
+            cls.collection.create_indexes(cls.opts.indexes, session=SESSION.get())
 
 
 # Run multiple validators and collect all errors in one
@@ -337,3 +343,12 @@ class PyMongoInstance(Instance):
     @staticmethod
     def is_compatible_with(db):
         return isinstance(db, Database)
+
+    @contextmanager
+    def session(self):
+        with self.db.client.start_session() as session:
+            try:
+                token = SESSION.set(session)
+                yield session
+            finally:
+                SESSION.reset(token)

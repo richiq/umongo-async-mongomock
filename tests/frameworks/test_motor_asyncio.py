@@ -1,15 +1,18 @@
 import asyncio
 import datetime as dt
 
+from unittest import mock
 import pytest
 
 from bson import ObjectId
 import marshmallow as ma
 
 from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
+from pymongo.collection import Collection
 from umongo import (
     Document, EmbeddedDocument, MixinDocument, fields, exceptions, Reference
 )
+from umongo.document import MetaDocumentImplementation
 
 from .common import strip_indexes, name_sorted
 from ..common import BaseDBTest, TEST_DB
@@ -44,7 +47,7 @@ def loop():
 
 
 @pytest.mark.skipif(dep_error, reason=DEP_ERROR)
-class TestMotorAsyncio(BaseDBTest):
+class TestMotorAsyncIO(BaseDBTest):
 
     def test_create(self, loop, classroom_model):
         Student = classroom_model.Student
@@ -1011,5 +1014,76 @@ class TestMotorAsyncio(BaseDBTest):
             callbacks.clear()
             await p.delete()
             assert callbacks == ['pre_delete', 'post_delete']
+
+        loop.run_until_complete(do_test())
+
+    def test_session_context_manager(self, loop, instance):
+        """Test session is passed to framework methods"""
+
+        coll_mock = mock.Mock(Collection, wraps=instance.db['Doc'])
+
+        class MockMetaDocumentImplementation(MetaDocumentImplementation):
+            @property
+            def collection(cls):
+                return coll_mock
+
+        @instance.register
+        class Doc(Document):
+            # Set unique to create an index
+            s = fields.StringField(unique=True)
+
+        Doc.__class__ = MockMetaDocumentImplementation
+
+        doc = Doc(s="test")
+
+        async def do_test():
+
+            async with instance.session() as session:
+                await doc.commit()
+            coll_mock.insert_one.assert_called_once()
+            assert coll_mock.insert_one.call_args[1]["session"] == session
+
+            doc.s = "retest"
+            async with instance.session() as session:
+                await doc.commit()
+            coll_mock.update_one.assert_called_once()
+            assert coll_mock.update_one.call_args[1]["session"] == session
+
+            doc.s = "reretest"
+            async with instance.session() as session:
+                await doc.commit(replace=True)
+            coll_mock.replace_one.assert_called_once()
+            assert coll_mock.replace_one.call_args[1]["session"] == session
+
+            async with instance.session() as session:
+                await doc.reload()
+            coll_mock.find_one.assert_called_once()
+            assert coll_mock.find_one.call_args[1]["session"] == session
+
+            async with instance.session() as session:
+                await doc.delete()
+            coll_mock.delete_one.assert_called_once()
+            assert coll_mock.delete_one.call_args[1]["session"] == session
+
+            coll_mock.reset_mock()
+            async with instance.session() as session:
+                await Doc.find_one(doc.id)
+            coll_mock.find_one.assert_called_once()
+            assert coll_mock.find_one.call_args[1]["session"] == session
+
+            async with instance.session() as session:
+                Doc.find()
+            coll_mock.find.assert_called_once()
+            assert coll_mock.find.call_args[1]["session"] == session
+
+            async with instance.session() as session:
+                await Doc.count_documents()
+            coll_mock.count_documents.assert_called_once()
+            assert coll_mock.count_documents.call_args[1]["session"] == session
+
+            async with instance.session() as session:
+                await Doc.ensure_indexes()
+            coll_mock.create_index.assert_called_once()
+            assert coll_mock.create_index.call_args[1]["session"] == session
 
         loop.run_until_complete(do_test())
