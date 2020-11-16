@@ -2,6 +2,20 @@
 History
 =======
 
+3.0.0b12 (2020-11-16)
+---------------------
+
+Features:
+
+* *Backwards-incompatible*: Rework ``Instance``: merge ``BaseInstance``,
+  ``Instance`` and ``LazyLoaderInstance`` into a single abstract ``Instance``
+  class. Remove ``templates`` argument from ``Instance``. Rename
+  ``Instance.init`` to ``Instance.set_db``. Don't republish concrete framework
+  instances in ``umongo`` top module. (see #314)
+* Add ``session`` context manager to ``PyMongoInstance`` and
+  ``MotorAsyncIOInstance``. This allows to use session related features
+  (causally consistent reads, transactions) from umongo. (see #315)
+
 3.0.0b11 (2020-11-06)
 ---------------------
 
