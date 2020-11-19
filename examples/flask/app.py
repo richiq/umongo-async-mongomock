@@ -5,13 +5,14 @@ from flask_babel import Babel, gettext
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Instance, Document, fields, ValidationError, set_gettext
+from umongo import Document, fields, ValidationError, set_gettext
+from umongo.frameworks import PyMongoInstance
 from umongo.schema import RemoveMissingSchema
 
 
 app = Flask(__name__)
 db = MongoClient().demo_umongo
-instance = Instance(db)
+instance = PyMongoInstance(db)
 babel = Babel(app)
 set_gettext(gettext)
 

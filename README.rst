@@ -55,10 +55,11 @@ Quick example
 
     import datetime as dt
     from pymongo import MongoClient
-    from umongo import Instance, Document, fields, validate
+    from umongo import Document, fields, validate
+    from umongo.frameworks import PyMongoInstance
 
     db = MongoClient().test
-    instance = Instance(db)
+    instance = PyMongoInstance(db)
 
     @instance.register
     class User(Document):

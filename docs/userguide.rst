@@ -256,11 +256,11 @@ But enough of theory, let's create our first instance !
 
 .. code-block:: python
 
-    >>> from umongo import Instance
+    >>> from umongo.frameworks import PyMongoInstance
     >>> import pymongo
     >>> con = pymongo.MongoClient()
-    >>> instance1 = Instance(con.db1)
-    >>> instance2 = Instance(con.db2)
+    >>> instance1 = PyMongoInstance(con.db1)
+    >>> instance2 = PyMongoInstance(con.db2)
 
 Now we can define & register documents, then work with them:
 
@@ -285,9 +285,9 @@ Now we can define & register documents, then work with them:
     0
 
 .. note::
-    You can use ``instance.register`` as a decoration to replace the template
-    by it implementation. This is expecially useful if you only use a single
-    instance:
+    In most cases, you only use a single instance. In this case, you can use
+    ``instance.register`` as a decoration to replace the template by its
+    implementation.
 
     .. code-block:: python
 
@@ -297,20 +297,25 @@ Now we can define & register documents, then work with them:
         >>> Dog().commit()
 
 .. note::
-    Often in more complex applications you won't have your driver ready
-    when defining your documents. In such case you should use a special
-    instance with lazy db loader depending of your driver:
+    In real-life applications, the driver connection details may not be known
+    when registering models. For instance, when using the Flask app factory
+    pattern, one will instantiate the instance and register model documents
+    at import time, then pass the database connection at app init time. This
+    can be achieved with the ``set_db`` method. No database interaction can
+    be performed until a database connection is set.
 
     .. code-block:: python
 
-        >>> from umongo import TxMongoInstance
+        >>> from umongo.frameworks import TxMongoInstance
+        >>> # Don't pass a database connection when instantiating the instance
         >>> instance = TxMongoInstance()
         >>> @instance.register
         ... class Dog(Document):
         ...     pass
-        >>> # Don't try to use Dog (except for inheritance) now !
+        >>> # Don't try to use Dog (except for inheritance) yet
+        >>> # A database connection must be set first
         >>> db = create_txmongo_database()
-        >>> instance.init(db)
+        >>> instance.set_db(db)
         >>> # Now instance is ready
         >>> yield Dog().commit()
 
@@ -321,8 +326,9 @@ and you're good to go:
 
 .. code-block:: python
 
+    >>> from umongo.frameworks import MotorAsyncIOInstance
     >>> db = motor.motor_asyncio.AsyncIOMotorClient()['umongo_test']
-    >>> instance = Instance(db)
+    >>> instance = MotorAsyncIOInstance(db)
     >>> @instance.register
     ... class Dog(Document):
     ...     name = fields.StrField(attribute='_id')
@@ -658,8 +664,9 @@ wrapped by :class:`asyncio.coroutine` and called with ``yield from``.
 .. code-block:: python
 
     from motor.motor_asyncio import AsyncIOMotorClient
+    from umongo.frameworks import MotorAsyncIOInstance
     db = AsyncIOMotorClient().test
-    instance = Instance(db)
+    instance = MotorAsyncIOInstance(db)
 
     @instance.register
     class TrendyActivity(Document):

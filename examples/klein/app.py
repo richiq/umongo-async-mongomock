@@ -8,12 +8,13 @@ from bson import ObjectId
 from txmongo import MongoConnection
 from klein_babel import gettext, locale_from_request
 
-from umongo import Instance, Document, fields, ValidationError, set_gettext
+from umongo import Document, fields, ValidationError, set_gettext
+from umongo.frameworks import PyMongoInstance
 from umongo.schema import RemoveMissingSchema
 
 app = Klein()
 db = MongoConnection().demo_umongo
-instance = Instance(db)
+instance = PyMongoInstance(db)
 set_gettext(gettext)
 
 

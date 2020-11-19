@@ -1,11 +1,12 @@
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Instance, Document, fields, ValidationError, validate
+from umongo import Document, fields, ValidationError, validate
+from umongo.frameworks import PyMongoInstance
 
 
 db = MongoClient().demo_umongo
-instance = Instance(db)
+instance = PyMongoInstance(db)
 
 
 @instance.register
