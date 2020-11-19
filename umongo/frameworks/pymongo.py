@@ -9,6 +9,7 @@ import marshmallow as ma
 from ..builder import BaseBuilder
 from ..instance import Instance
 from ..document import DocumentImplementation
+from ..data_proxy import data_proxy_factory
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
 from ..fields import ReferenceField, ListField, EmbeddedField
@@ -352,3 +353,41 @@ class PyMongoInstance(Instance):
                 yield session
             finally:
                 SESSION.reset(token)
+
+
+class PyMongoMigrationInstance(PyMongoInstance):
+    """PyMongo instance with migration features"""
+
+    def migrate_2_to_3(self):
+        """Migrate database from umongo 2 to umongo 3
+
+        - EmbeddedDocument _cls field is only set if child of concrete embedded document
+        """
+        not_children = {
+            name: ed for name, ed in self._embedded_lookup.items()
+            if not ed.opts.is_child
+        }
+
+        # Force "not strict" to accept unexpected _cls field
+        for name, edoc in not_children.items():
+            schema = edoc.schema
+            new_data_proxy = data_proxy_factory(name, schema, False)
+            edoc.DataProxy = new_data_proxy
+
+        def remove_cls_field(doc):
+            doc_cls = doc.__class__
+            if doc_cls in not_children.values():
+                doc._data._additional_data.pop('_cls', None)
+            for name, field in doc_cls.schema.fields.items():
+                if isinstance(field, EmbeddedField):
+                    if doc[name] is not None:
+                        remove_cls_field(doc[name])
+
+        for name, doc_cls in self._doc_lookup.items():
+            if doc_cls.opts.abstract:
+                continue
+            if doc_cls.opts.is_child:
+                continue
+            for doc in doc_cls.find():
+                remove_cls_field(doc)
+                doc.commit(replace=True)
