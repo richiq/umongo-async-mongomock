@@ -38,7 +38,7 @@ class Instance(abc.ABC):
         self._mixin_lookup = {}
         self._db = db
         if db is not None:
-            self.init(db)
+            self.set_db(db)
 
     @classmethod
     def from_db(cls, db):
