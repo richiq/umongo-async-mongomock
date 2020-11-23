@@ -2,6 +2,14 @@
 History
 =======
 
+3.0.0b13 (2020-11-23)
+---------------------
+
+Bug fixes:
+
+* Fix a bug introduced in 3.0.0b12 preventing instance initialization with DB
+  as parameter as in ``instance = PyMongoInstance(db)``. (see #318)
+
 3.0.0b12 (2020-11-16)
 ---------------------
 
