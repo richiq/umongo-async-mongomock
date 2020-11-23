@@ -5,9 +5,8 @@ from flask_babel import Babel, gettext
 from bson import ObjectId
 from pymongo import MongoClient
 
-from umongo import Document, fields, ValidationError, set_gettext
+from umongo import Document, fields, ValidationError, RemoveMissingSchema, set_gettext
 from umongo.frameworks import PyMongoInstance
-from umongo.schema import RemoveMissingSchema
 
 
 app = Flask(__name__)
