@@ -72,7 +72,7 @@ register_instance(MockedInstance)
 class BaseTest:
 
     def setup(self):
-        self.instance = Instance.from_db(MockedDB('my_moked_db'))
+        self.instance = MockedInstance(MockedDB('my_moked_db'))
 
 
 class BaseDBTest:
