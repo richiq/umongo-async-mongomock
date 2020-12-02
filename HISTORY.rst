@@ -2,6 +2,14 @@
 History
 =======
 
+3.0.0b14 (unreleased)
+---------------------
+
+Features:
+
+* Provide ``Instance`` subclasses for each framework to help users migrating
+  a database from umongo 2 to umongo 3 (see #319).
+
 3.0.0b13 (2020-11-23)
 ---------------------
 
