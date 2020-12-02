@@ -586,8 +586,8 @@ class TestPymongo(BaseDBTest):
         assert InheritanceSearchChild1Child.count_documents() == 1
         assert InheritanceSearchChild2.count_documents() == 1
 
-        res = InheritanceSearchParent.find_one({'sc1f': 1})
-        assert isinstance(res, InheritanceSearchChild1Child)
+        res = InheritanceSearchParent.find_one({'pf': 2})
+        assert isinstance(res, InheritanceSearchChild2)
 
         res = InheritanceSearchParent.find({'pf': 1})
         for r in res:
