@@ -928,3 +928,75 @@ class TestTxMongo(BaseDBTest):
         callbacks.clear()
         yield p.delete()
         assert callbacks == ['pre_delete', 'post_delete']
+
+    @pytest_inlineCallbacks
+    def test_2_to_3_migration(self, db):
+
+        instance = framework.TxMongoMigrationInstance(db)
+
+        @instance.register
+        class AbstractEmbeddedDoc(EmbeddedDocument):
+            f = fields.StringField()
+
+            class Meta:
+                abstract = True
+
+        @instance.register
+        class ConcreteEmbeddedDoc(AbstractEmbeddedDoc):
+            pass
+
+        @instance.register
+        class ConcreteEmbeddedDocChild(ConcreteEmbeddedDoc):
+            pass
+
+        @instance.register
+        class AbstractDoc(Document):
+
+            class Meta:
+                abstract = True
+
+        @instance.register
+        class Doc(AbstractDoc):
+            ec = fields.EmbeddedField(ConcreteEmbeddedDoc)
+            ecc = fields.EmbeddedField(ConcreteEmbeddedDocChild)
+
+        @instance.register
+        class DocChild(Doc):
+            cec = fields.EmbeddedField(ConcreteEmbeddedDoc)
+            cecc = fields.EmbeddedField(ConcreteEmbeddedDocChild)
+
+        doc_umongo_2 = {
+            "ec": {"f": "Hello", "_cls": "ConcreteEmbeddedDoc"},
+            "ecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+        }
+        child_doc_umongo_2 = {
+            "_cls": "DocChild",
+            "ec": {"f": "Hello", "_cls": "ConcreteEmbeddedDoc"},
+            "ecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+            "cec": {"f": "Hello", "_cls": "ConcreteEmbeddedDoc"},
+            "cecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+        }
+
+        doc_umongo_3 = {
+            "ec": {"f": "Hello"},
+            "ecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+        }
+        child_doc_umongo_3 = {
+            "_cls": "DocChild",
+            "ec": {"f": "Hello"},
+            "ecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+            "cec": {"f": "Hello"},
+            "cecc": {"f": "Hi", "_cls": "ConcreteEmbeddedDocChild"},
+        }
+
+        res = yield instance.db.doc.insert_one(doc_umongo_2)
+        doc_umongo_3['_id'] = res.inserted_id
+        res = yield instance.db.doc.insert_one(child_doc_umongo_2)
+        child_doc_umongo_3['_id'] = res.inserted_id
+
+        yield instance.migrate_2_to_3()
+
+        res = yield instance.db.doc.find_one(doc_umongo_3['_id'])
+        assert res == doc_umongo_3
+        res = yield instance.db.doc.find_one(child_doc_umongo_3['_id'])
+        assert res == child_doc_umongo_3

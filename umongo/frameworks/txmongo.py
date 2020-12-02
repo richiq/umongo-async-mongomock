@@ -349,3 +349,41 @@ class TxMongoInstance(Instance):
     @staticmethod
     def is_compatible_with(db):
         return isinstance(db, Database)
+
+
+class TxMongoMigrationInstance(TxMongoInstance):
+    """TxMongo instance with migration features"""
+
+    @inlineCallbacks
+    def migrate_2_to_3(self):
+        """Migrate database from umongo 2 to umongo 3
+
+        - EmbeddedDocument _cls field is only set if child of concrete embedded document
+        """
+        concrete_not_children = [
+            name for name, ed in self._embedded_lookup.items()
+            if not ed.opts.is_child and not ed.opts.abstract
+        ]
+
+        def remove_cls_field(json_input):
+            if isinstance(json_input, dict):
+                return {
+                    k: remove_cls_field(v)
+                    for k, v in json_input.items()
+                    if k != "_cls" or v not in concrete_not_children
+                }
+            if isinstance(json_input, list):
+                return [remove_cls_field(item) for item in json_input]
+            return json_input
+
+        for doc_cls in self._doc_lookup.values():
+            if doc_cls.opts.abstract:
+                continue
+            if doc_cls.opts.is_child:
+                continue
+            res = yield doc_cls.collection.find()
+            for doc in res:
+                doc = remove_cls_field(doc)
+                ret = yield doc_cls.collection.replace_one({"_id": doc["_id"]}, doc)
+                if ret.matched_count != 1:
+                    raise UpdateError(ret)
