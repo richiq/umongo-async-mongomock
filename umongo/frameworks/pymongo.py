@@ -14,7 +14,7 @@ from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenc
 from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
-from .tools import cook_find_filter
+from .tools import cook_find_filter, remove_cls_field_from_embedded_docs
 
 
 SESSION = ContextVar("session", default=None)
@@ -352,3 +352,28 @@ class PyMongoInstance(Instance):
                 yield session
             finally:
                 SESSION.reset(token)
+
+
+class PyMongoMigrationInstance(PyMongoInstance):
+    """PyMongo instance with migration features"""
+
+    def migrate_2_to_3(self):
+        """Migrate database from umongo 2 to umongo 3
+
+        - EmbeddedDocument _cls field is only set if child of concrete embedded document
+        """
+        concrete_not_children = [
+            name for name, ed in self._embedded_lookup.items()
+            if not ed.opts.is_child and not ed.opts.abstract
+        ]
+
+        for doc_cls in self._doc_lookup.values():
+            if doc_cls.opts.abstract:
+                continue
+            if doc_cls.opts.is_child:
+                continue
+            for doc in doc_cls.collection.find():
+                doc = remove_cls_field_from_embedded_docs(doc, concrete_not_children)
+                ret = doc_cls.collection.replace_one({"_id": doc["_id"]}, doc)
+                if ret.matched_count != 1:
+                    raise UpdateError(ret)

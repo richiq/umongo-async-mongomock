@@ -22,3 +22,27 @@ def cook_find_filter(doc_cls, filter):
         else:
             filter['_cls'] = doc_cls.__name__
     return filter
+
+
+def remove_cls_field_from_embedded_docs(dict_in, embedded_docs):
+    """Recursively remove _cls field from nested embedded documents
+
+    This is meant to be used in umongo 2 to 3 migration. The embedded_docs list
+    should be the list of concrete embedded documents that are not subclasses
+    of a concrete document.
+
+    :param dict dict_in: Input document content (dump)
+    :param list embedded_docs: List of embedded documents for which to remove _cls
+    """
+    if isinstance(dict_in, dict):
+        return {
+            k: remove_cls_field_from_embedded_docs(v, embedded_docs)
+            for k, v in dict_in.items()
+            if k != "_cls" or v not in embedded_docs
+        }
+    if isinstance(dict_in, list):
+        return [
+            remove_cls_field_from_embedded_docs(item, embedded_docs)
+            for item in dict_in
+        ]
+    return dict_in
