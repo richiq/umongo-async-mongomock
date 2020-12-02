@@ -748,8 +748,8 @@ class TestMotorAsyncIO(BaseDBTest):
             assert (await InheritanceSearchChild1Child.count_documents()) == 1
             assert (await InheritanceSearchChild2.count_documents()) == 1
 
-            res = await InheritanceSearchParent.find_one({'sc1f': 1})
-            assert isinstance(res, InheritanceSearchChild1Child)
+            res = await InheritanceSearchParent.find_one({'pf': 2})
+            assert isinstance(res, InheritanceSearchChild2)
 
             cursor = InheritanceSearchParent.find({'pf': 1})
             for r in (await cursor.to_list(length=100)):
