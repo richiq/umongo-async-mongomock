@@ -16,7 +16,7 @@ from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenc
 from ..fields import ReferenceField, ListField, EmbeddedField
 from ..query_mapper import map_query
 
-from .tools import cook_find_filter
+from .tools import cook_find_filter, remove_cls_field_from_embedded_docs
 
 
 SESSION = ContextVar("session", default=None)
@@ -439,24 +439,13 @@ class MotorAsyncIOMigrationInstance(MotorAsyncIOInstance):
             if not ed.opts.is_child and not ed.opts.abstract
         ]
 
-        def remove_cls_field(json_input):
-            if isinstance(json_input, dict):
-                return {
-                    k: remove_cls_field(v)
-                    for k, v in json_input.items()
-                    if k != "_cls" or v not in concrete_not_children
-                }
-            if isinstance(json_input, list):
-                return [remove_cls_field(item) for item in json_input]
-            return json_input
-
         for doc_cls in self._doc_lookup.values():
             if doc_cls.opts.abstract:
                 continue
             if doc_cls.opts.is_child:
                 continue
             async for doc in doc_cls.collection.find():
-                doc = remove_cls_field(doc)
+                doc = remove_cls_field_from_embedded_docs(doc, concrete_not_children)
                 ret = await doc_cls.collection.replace_one({"_id": doc["_id"]}, doc)
                 if ret.matched_count != 1:
                     raise UpdateError(ret)
