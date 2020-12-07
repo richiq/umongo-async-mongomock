@@ -465,11 +465,12 @@ class EmbeddedField(BaseField, ma.fields.Nested):
         implementing the `embedded_document` attribute.
         """
         if not self._embedded_document_cls:
-            self._embedded_document_cls = self.instance.retrieve_embedded_document(
-                self.embedded_document)
-            if self._embedded_document_cls.opts.abstract:
+            embedded_document_cls = self.instance.retrieve_embedded_document(self.embedded_document)
+            if embedded_document_cls.opts.abstract:
                 raise DocumentDefinitionError(
-                    "EmbeddedField doesn't accept abstract embedded document")
+                    "EmbeddedField doesn't accept abstract embedded document"
+                )
+            self._embedded_document_cls = embedded_document_cls
         return self._embedded_document_cls
 
     def _serialize(self, value, attr, obj):
