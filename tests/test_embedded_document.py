@@ -333,15 +333,20 @@ class TestEmbeddedDocument(BaseTest):
             'in_mongo_a_parent': 1, 'b': 2, 'c': 3, 'd': 4, '_cls': 'ConcreteConcreteGrandChild'}
 
         # Cannot use abstract embedded document in EmbeddedField
+        @self.instance.register
+        class MyDoc(Document):
+            impossible = fields.EmbeddedField(AbstractParent)
+
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class MyDoc(Document):
-                impossibru = fields.EmbeddedField(AbstractParent)
+            MyDoc(impossible={"a": 12})
         assert exc.value.args[0] == "EmbeddedField doesn't accept abstract embedded document"
+
+        @self.instance.register
+        class MyOtherDoc(Document):
+            impossible = fields.EmbeddedField(AbstractChild)
+
         with pytest.raises(exceptions.DocumentDefinitionError) as exc:
-            @self.instance.register
-            class MyOtherDoc(Document):
-                impossibru = fields.EmbeddedField(AbstractChild)
+            MyOtherDoc(impossible={"a": 12})
         assert exc.value.args[0] == "EmbeddedField doesn't accept abstract embedded document"
 
     def test_bad_inheritance(self):

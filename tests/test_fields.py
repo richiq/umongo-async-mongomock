@@ -11,7 +11,7 @@ from umongo.data_proxy import data_proxy_factory
 from umongo import Document, EmbeddedDocument, fields, Reference, validate
 from umongo.data_objects import List, Dict
 from umongo.abstract import BaseSchema
-
+from umongo.exceptions import NotRegisteredDocumentError
 from .common import BaseTest
 
 
@@ -631,6 +631,44 @@ class TestFields(BaseTest):
 
         with pytest.raises(ma.ValidationError):
             d.set('objid', 'notanid')
+
+    def test_embedded_as_string(self):
+
+        @self.instance.register
+        class Doc(Document):
+            embedded = fields.EmbeddedField('EmbeddedDoc')
+
+        @self.instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            field = fields.IntField()
+
+        Doc(embedded={"field": 12})
+
+    def test_embedded_as_string_unregistered(self):
+
+        @self.instance.register
+        class Doc(Document):
+            embedded = fields.EmbeddedField('EmbeddedDoc')
+
+        class EmbeddedDoc(EmbeddedDocument):
+            field = fields.IntField()
+
+        with pytest.raises(
+                NotRegisteredDocumentError,
+                match='Unknown embedded document class "EmbeddedDoc"'
+        ):
+            Doc(embedded={"field": 12})
+
+        with pytest.raises(
+                NotRegisteredDocumentError,
+                match='Unknown embedded document class "EmbeddedDoc"'
+        ):
+            Doc.schema.as_marshmallow_schema()
+
+        # Need to wait until registration to call these
+        self.instance.register(EmbeddedDoc)
+        Doc(embedded={"field": 12})
+        Doc.schema.as_marshmallow_schema()
 
     def test_reference(self):
 

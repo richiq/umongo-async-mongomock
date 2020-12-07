@@ -18,7 +18,6 @@ from .embedded_document import (
     EmbeddedDocumentTemplate, EmbeddedDocumentOpts, EmbeddedDocumentImplementation)
 from .mixin import MixinDocumentTemplate, MixinDocumentOpts, MixinDocumentImplementation
 from .exceptions import DocumentDefinitionError, NotRegisteredDocumentError
-from .indexes import parse_index
 from . import fields
 
 
@@ -112,46 +111,6 @@ def _collect_schema_attrs(template):
         else:
             nmspc[key] = item
     return nmspc, schema_fields, schema_non_fields
-
-
-def _collect_indexes(meta, schema_nmspc, bases, is_child):
-    """
-    Retrieve all indexes (custom defined in meta class, by inheritances
-    and unique attributes in fields)
-    """
-    indexes = []
-
-    # First collect parent indexes (including inherited field's unique indexes)
-    for base in bases:
-        if issubclass(base, DocumentImplementation):
-            indexes += base.opts.indexes
-
-    # Then get our own custom indexes
-    custom_indexes = [
-        parse_index(x, base_compound_field='_cls' if is_child else None)
-        for x in getattr(meta, 'indexes', ())
-    ]
-    indexes += custom_indexes
-
-    if is_child:
-        indexes.append(parse_index('_cls'))
-
-    # Finally parse our own fields (i.e. not inherited) for unique indexes
-    def parse_field(mongo_path, path, field):
-        if field.unique:
-            index = {'unique': True, 'key': [mongo_path]}
-            if not field.required or field.allow_none:
-                index['sparse'] = True
-            if is_child:
-                index['key'].append('_cls')
-            indexes.append(parse_index(index))
-
-    for name, field in schema_nmspc.items():
-        parse_field(name or field.attribute, name, field)
-        if hasattr(field, 'map_to_field'):
-            field.map_to_field(name or field.attribute, name, parse_field)
-
-    return indexes
 
 
 class BaseBuilder:
@@ -294,11 +253,6 @@ class BaseBuilder:
             nmspc['DataProxy'] = data_proxy_factory(name, schema, strict=opts.strict)
             # Add field names set as class attribute
             nmspc['_fields'] = set(schema.fields.keys())
-
-        if base_tmpl_cls is DocumentTemplate:
-            # _build_document_opts cannot determine the indexes given we need to
-            # visit the document's fields which weren't defined at this time
-            opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases, is_child)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation

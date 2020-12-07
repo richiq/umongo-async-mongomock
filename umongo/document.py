@@ -13,6 +13,7 @@ from .exceptions import (
 from .template import Template, MetaImplementation
 from .embedded_document import EmbeddedDocumentImplementation
 from .data_objects import Reference
+from .indexes import parse_index
 
 
 __all__ = (
@@ -107,6 +108,9 @@ class DocumentOpts:
 
 class MetaDocumentImplementation(MetaImplementation):
 
+    def __init__(cls, *args, **kwargs):
+        cls._indexes = None
+
     @property
     def collection(cls):
         """
@@ -117,6 +121,58 @@ class MetaDocumentImplementation(MetaImplementation):
         if not cls.opts.instance.db:
             raise NoDBDefinedError('Instance must be initialized first')
         return cls.opts.instance.db[cls.opts.collection_name]
+
+    @property
+    def indexes(cls):
+        """
+        Retrieve all indexes (custom defined in meta class, by inheritances
+        and unique attributes in fields)
+        """
+        if cls._indexes is None:
+
+            idxs = []
+            is_child = cls.opts.is_child
+
+            # First collect parent indexes (including inherited field's unique indexes)
+            for base in cls.mro():
+                if (
+                        base is not cls and
+                        issubclass(base, DocumentImplementation) and
+                        # Skip base framework doc classes
+                        hasattr(base, "schema")
+                ):
+                    idxs += base.indexes
+
+            # Then get our own custom indexes
+            if hasattr(cls, "Meta") and hasattr(cls.Meta, "indexes"):
+                custom_indexes = [
+                    parse_index(x, base_compound_field="_cls" if is_child else None)
+                    for x in cls.Meta.indexes
+                ]
+                idxs += custom_indexes
+
+            # Add _cls to indexes
+            if is_child:
+                idxs.append(parse_index('_cls'))
+
+            # Finally parse our own fields (i.e. not inherited) for unique indexes
+            def parse_field(mongo_path, path, field):
+                if field.unique:
+                    index = {'unique': True, 'key': [mongo_path]}
+                    if not field.required or field.allow_none:
+                        index['sparse'] = True
+                    if is_child:
+                        index['key'].append('_cls')
+                    idxs.append(parse_index(index))
+
+            for name, field in cls.schema.fields.items():
+                parse_field(name or field.attribute, name, field)
+                if hasattr(field, 'map_to_field'):
+                    field.map_to_field(name or field.attribute, name, parse_field)
+
+            cls._indexes = idxs
+
+        return cls._indexes
 
 
 class DocumentImplementation(

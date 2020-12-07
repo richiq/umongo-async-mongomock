@@ -364,7 +364,7 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
     {'cls': 'Child', 'unique_in_parent': 42, 'unique_in_child': 'forty_two'}
     >>> Parent(unique_in_parent=22).dump()
     {'unique_in_parent': 22}
-    >>> [x.document for x in Parent.opts.indexes]
+    >>> [x.document for x in Parent.indexes]
     [{'key': SON([('unique_in_parent', 1)]), 'name': 'unique_in_parent_1', 'sparse': True, 'unique': True}]
 
 .. warning:: You must ``register`` a parent before its child inside a given instance.
@@ -384,7 +384,7 @@ In fields, ``unique`` attribute is implicitly handled by an index:
     >>> @instance.register
     ... class WithUniqueEmail(Document):
     ...     email = fields.StrField(unique=True)
-    >>> [x.document for x in WithUniqueEmail.opts.indexes]
+    >>> [x.document for x in WithUniqueEmail.indexes]
     [{'key': SON([('email', 1)]), 'name': 'email_1', 'sparse': True, 'unique': True}]
     >>> WithUniqueEmail.ensure_indexes()
     >>> WithUniqueEmail().commit()
@@ -404,7 +404,7 @@ For more custom indexes, the ``Meta.indexes`` attribute should be used:
     ...     age = fields.Int()
     ...     class Meta:
     ...         indexes = ('#name', 'age', ('-age', 'name'))
-    >>> [x.document for x in CustomIndexes.opts.indexes]
+    >>> [x.document for x in CustomIndexes.indexes]
     [{'key': SON([('name', 'hashed')]), 'name': 'name_hashed'},
      {'key': SON([('age', 1), ]), 'name': 'age_1'},
      {'key': SON([('age', -1), ('name', 1)]), 'name': 'age_-1_name_1'}
@@ -443,7 +443,7 @@ compounded with the ``_cls``
       ...     unique_in_child = fields.StrField(unique=True)
       ...     class Meta:
       ...         indexes = ['#unique_in_parent']
-      >>> [x.document for x in Child.opts.indexes]
+      >>> [x.document for x in Child.indexes]
       [{'name': 'unique_in_parent_1', 'sparse': True, 'unique': True, 'key': SON([('unique_in_parent', 1)])},
        {'name': 'unique_in_parent_hashed__cls_1', 'key': SON([('unique_in_parent', 'hashed'), ('_cls', 1)])},
        {'name': '_cls_1', 'key': SON([('_cls', 1)])},

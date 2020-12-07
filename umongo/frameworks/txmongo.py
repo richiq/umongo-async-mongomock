@@ -209,7 +209,7 @@ class TxMongoDocument(DocumentImplementation):
         """
         Check&create if needed the Document's indexes in database
         """
-        for index in cls.opts.indexes:
+        for index in cls.indexes:
             kwargs = index.document.copy()
             keys = kwargs.pop('key')
             index = qf.sort(keys.items())

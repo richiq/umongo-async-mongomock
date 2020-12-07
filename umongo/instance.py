@@ -57,7 +57,7 @@ class Instance(abc.ABC):
             name_or_template = name_or_template.__name__
         if name_or_template not in self._doc_lookup:
             raise NotRegisteredDocumentError(
-                'Unknown document class `%s`' % name_or_template)
+                'Unknown document class "%s"' % name_or_template)
         return self._doc_lookup[name_or_template]
 
     def retrieve_embedded_document(self, name_or_template):
@@ -70,7 +70,7 @@ class Instance(abc.ABC):
             name_or_template = name_or_template.__name__
         if name_or_template not in self._embedded_lookup:
             raise NotRegisteredDocumentError(
-                'Unknown embedded document class `%s`' % name_or_template)
+                'Unknown embedded document class "%s"' % name_or_template)
         return self._embedded_lookup[name_or_template]
 
     def register(self, template):

@@ -289,7 +289,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         Check&create if needed the Document's indexes in database
         """
-        for index in cls.opts.indexes:
+        for index in cls.indexes:
             kwargs = index.document.copy()
             keys = kwargs.pop('key').items()
             await cls.collection.create_index(keys, session=SESSION.get(), **kwargs)
