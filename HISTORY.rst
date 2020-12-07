@@ -9,6 +9,13 @@ Features:
 
 * Provide ``Instance`` subclasses for each framework to help users migrating
   a database from umongo 2 to umongo 3 (see #319).
+* *Backwards-incompatible*: Postpone embedded document resolution in
+  ``EmbeddedField`` to allow passing an embedded document as string before its
+  registration. Unknown embedded document errors in ``EmbeddedField`` are now
+  detected at runtime, not registration time. Also, indexes are now collected
+  on first use rather than upon registration and should be accesses through
+  ``Document.indexes`` cached property rather than ``Document.opts.indexes``.
+  (see #322)
 
 3.0.0b13 (2020-11-23)
 ---------------------
