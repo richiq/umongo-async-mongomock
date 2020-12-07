@@ -5,7 +5,7 @@ from bson import ObjectId
 from umongo import Document, EmbeddedDocument, fields
 from umongo.query_mapper import map_query
 
-from .common import BaseTest
+from .common import BaseTest, assert_equal_order
 
 
 class TestQueryMapper(BaseTest):
@@ -110,10 +110,15 @@ class TestQueryMapper(BaseTest):
         query = map_query({
             'author': Author(name='JRR Tolkien', birthday=dt.datetime(1892, 1, 3))
         }, book_fields)
-        assert isinstance(query['a'], dict)
         assert query == {
             'a': {'name': 'JRR Tolkien', 'b': dt.datetime(1892, 1, 3)}
         }
+        assert isinstance(query['a'], dict)
+        # Check the order is preserved when serializing the embedded document
+        # in the query. This is necessary as MongoDB only matches embedded
+        # documents with same order.
+        expected = {'name': 'JRR Tolkien', 'b': dt.datetime(1892, 1, 3)}
+        assert_equal_order(query["a"], expected)
 
         # Test document in query
         editor = Editor(name='Allen & Unwin')

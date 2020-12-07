@@ -22,6 +22,9 @@ class BaseSchema(ma.Schema):
     # It may be overriden in Template classes.
     MA_BASE_SCHEMA_CLS = ma.Schema
 
+    class Meta:
+        ordered = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.error_messages = I18nErrorDict(self.error_messages)
