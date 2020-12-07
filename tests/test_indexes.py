@@ -77,8 +77,9 @@ class TestIndexes(BaseTest):
             class Meta:
                 indexes = ['-first_name']
 
-        assert_indexes(Parent.opts.indexes, [IndexModel([('last_name', ASCENDING)])])
-        assert_indexes(Child.opts.indexes,
+        assert_indexes(Parent.indexes, [IndexModel([('last_name', ASCENDING)])])
+        assert_indexes(
+            Child.indexes,
             [
                 IndexModel([('last_name', ASCENDING)]),
                 IndexModel([('first_name', DESCENDING), ('_cls', ASCENDING)]),
@@ -104,7 +105,8 @@ class TestIndexes(BaseTest):
                     'parent', 'parent.child', 'parent.child.grandchild',
                 ]
 
-        assert_indexes(Doc.opts.indexes,
+        assert_indexes(
+            Doc.indexes,
             [
                 IndexModel([('parent', ASCENDING)]),
                 IndexModel([('parent.child', ASCENDING)]),
@@ -133,4 +135,4 @@ class TestIndexes(BaseTest):
         class Doc(Document):
             field = u_field
 
-        assert_indexes(Doc.opts.indexes, [index])
+        assert_indexes(Doc.indexes, [index])

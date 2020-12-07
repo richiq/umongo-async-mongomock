@@ -233,8 +233,8 @@ class PyMongoDocument(DocumentImplementation):
         """
         Check&create if needed the Document's indexes in database
         """
-        if cls.opts.indexes:
-            cls.collection.create_indexes(cls.opts.indexes, session=SESSION.get())
+        if cls.indexes:
+            cls.collection.create_indexes(cls.indexes, session=SESSION.get())
 
 
 # Run multiple validators and collect all errors in one
