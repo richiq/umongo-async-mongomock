@@ -548,7 +548,7 @@ class EmbeddedField(BaseField, ma.fields.Nested):
     def as_marshmallow_field(self):
         # Overwrite default `as_marshmallow_field` to handle nesting
         field_kwargs = self._extract_marshmallow_field_params()
-        nested_ma_schema = self._embedded_document_cls.schema.as_marshmallow_schema()
+        nested_ma_schema = self.embedded_document_cls.schema.as_marshmallow_schema()
         return ma.fields.Nested(nested_ma_schema, **field_kwargs)
 
     def _required_validate(self, value):
