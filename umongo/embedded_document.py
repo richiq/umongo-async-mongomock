@@ -24,7 +24,6 @@ class EmbeddedDocumentTemplate(Template):
         :class:`umongo.instance.BaseInstance` to obtain it corresponding
         :class:`umongo.embedded_document.EmbeddedDocumentImplementation`.
     """
-    MA_BASE_SCHEMA_CLS = ma.Schema
 
 
 EmbeddedDocument = EmbeddedDocumentTemplate

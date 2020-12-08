@@ -1,3 +1,6 @@
+import marshmallow as ma
+
+
 class MetaTemplate(type):
 
     def __new__(cls, name, bases, nmspc):
@@ -18,6 +21,8 @@ class Template(metaclass=MetaTemplate):
     """
     Base class to represent a template.
     """
+    MA_BASE_SCHEMA_CLS = ma.Schema
+
     def __init__(self, *args, **kwargs):
         raise NotImplementedError('Cannot instantiate a template, '
                                   'use instance.register result instead.')

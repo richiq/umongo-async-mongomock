@@ -43,7 +43,6 @@ class DocumentTemplate(Template):
         or `marshmallow.post_dump`) to this class that will be passed
         to the marshmallow schema internally used for this document.
     """
-    MA_BASE_SCHEMA_CLS = ma.Schema
 
 
 Document = DocumentTemplate
