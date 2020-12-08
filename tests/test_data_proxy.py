@@ -7,7 +7,7 @@ from umongo import fields, EmbeddedDocument, validate, exceptions
 from umongo.abstract import BaseSchema
 from umongo.data_proxy import data_proxy_factory, BaseDataProxy, BaseNonStrictDataProxy
 
-from .common import BaseTest
+from .common import BaseTest, assert_equal_order
 
 
 class TestDataProxy(BaseTest):
@@ -414,6 +414,26 @@ class TestDataProxy(BaseTest):
         assert set(d.keys()) == {'mongo_field_a', 'mongo_field_b'}
         assert set(d.values()) == {100, 200}
         assert set(d.items()) == {('field_a', 100), ('field_b', 200)}
+
+    def test_order(self):
+        """Test schema order of embedded doc preserved when serializing to mongo"""
+
+        @self.instance.register
+        class MyEmbedded(EmbeddedDocument):
+            a = fields.IntField()
+            b = fields.IntField()
+            c = fields.IntField()
+
+        class MySchema(BaseSchema):
+            # EmbeddedField need instance to retrieve implementation
+            e = fields.EmbeddedField(MyEmbedded, instance=self.instance)
+
+        MyDataProxy = data_proxy_factory('My', MySchema())
+        d = MyDataProxy()
+        d.load({'e': {'c': 3, 'b': 2, 'a': 1}})
+        assert_equal_order(d.to_mongo()['e'], {'a': 1, 'b': 2, 'c': 3})
+        d.get('e')['b'] = 4
+        assert_equal_order(d.to_mongo()['e'], {'a': 1, 'b': 4, 'c': 3})
 
 
 class TestNonStrictDataProxy(BaseTest):

@@ -40,6 +40,10 @@ class TestMarshmallow(BaseTest):
         assert issubclass(ma_schema_cls, ma.Schema)
         assert not issubclass(ma_schema_cls, BaseSchema)
 
+    def test_base_marshmallow_schema(self):
+        ma_schema_cls = self.User.schema.as_marshmallow_schema()
+        assert ma_schema_cls.Meta.ordered
+
     def test_custom_ma_base_schema_cls(self):
 
         # Define custom marshmallow schema base class

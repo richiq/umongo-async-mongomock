@@ -79,3 +79,8 @@ class BaseDBTest:
 
     def setup(self):
         con.drop_database(TEST_DB)
+
+
+def assert_equal_order(dict_a, dict_b):
+    assert dict_a == dict_b
+    assert list(dict_a.items()) == list(dict_b.items())

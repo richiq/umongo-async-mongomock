@@ -387,20 +387,24 @@ class TestEmbeddedDocument(BaseTest):
     def test_equality(self):
         @self.instance.register
         class MyChildEmbeddedDocument(EmbeddedDocument):
-            num = fields.IntField()
+            num_1 = fields.IntField()
+            num_2 = fields.IntField()
 
         @self.instance.register
         class MyParentEmbeddedDocument(EmbeddedDocument):
             embedded = fields.EmbeddedField(MyChildEmbeddedDocument)
 
-        emb_1 = MyParentEmbeddedDocument(embedded={'num': 1})
-        emb_2 = MyParentEmbeddedDocument(embedded={'num': 1})
+        emb_1 = MyParentEmbeddedDocument(embedded={'num_1': 1, 'num_2': 2})
+        emb_2 = MyParentEmbeddedDocument(embedded={'num_1': 1, 'num_2': 2})
         emb_3 = MyParentEmbeddedDocument(embedded={})
         emb_4 = MyParentEmbeddedDocument()
+        emb_5 = MyParentEmbeddedDocument(embedded={'num_2': 2})
+        emb_5["embedded"]["num_1"] = 1
 
         assert emb_1 == emb_2
         assert emb_1 != emb_3
         assert emb_1 != emb_4
+        assert emb_1 == emb_5
         assert emb_1 != None  # noqa: E711 (None comparison)
         assert emb_1 != ma.missing
         assert None != emb_1  # noqa: E711 (None comparison)

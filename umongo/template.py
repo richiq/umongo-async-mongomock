@@ -1,4 +1,4 @@
-import marshmallow as ma
+from .abstract import BaseMarshmallowSchema
 
 
 class MetaTemplate(type):
@@ -21,7 +21,7 @@ class Template(metaclass=MetaTemplate):
     """
     Base class to represent a template.
     """
-    MA_BASE_SCHEMA_CLS = ma.Schema
+    MA_BASE_SCHEMA_CLS = BaseMarshmallowSchema
 
     def __init__(self, *args, **kwargs):
         raise NotImplementedError('Cannot instantiate a template, '

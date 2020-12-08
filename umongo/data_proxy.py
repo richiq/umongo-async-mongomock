@@ -84,7 +84,8 @@ class BaseDataProxy:
     def load(self, data):
         # Always use marshmallow partial load to skip required checks
         loaded_data = self.schema.load(data, partial=True)
-        self._data = loaded_data
+        # Cast to dict to ignore field order in comparisons
+        self._data = dict(loaded_data)
         # Map the modified fields list on the the loaded data
         self.clear_modified()
         for key in loaded_data:
