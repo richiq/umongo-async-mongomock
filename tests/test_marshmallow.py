@@ -10,7 +10,7 @@ from umongo import (
     Document, EmbeddedDocument, fields, set_gettext, validate, missing, RemoveMissingSchema
 )
 from umongo import marshmallow_bonus as ma_bonus_fields
-from umongo.abstract import BaseField, BaseSchema
+from umongo.abstract import BaseField, BaseSchema, BaseMarshmallowSchema
 
 from .common import BaseTest
 
@@ -391,10 +391,12 @@ class TestMarshmallow(BaseTest):
         data = RemoveMissingDocSchema().dump(Doc(a=1))
         assert data == {'a': 1}
 
-    @pytest.mark.parametrize("base_schema", (ma.Schema, RemoveMissingSchema))
-    def test_marshmallow_remove_missing_schema_as_base_schema(self, base_schema):
-        """Test RemoveMissingSchema used as base marshmallow Schema"""
+    @pytest.mark.parametrize("base_schema", (BaseMarshmallowSchema, ma.Schema))
+    def test_marshmallow_base_schema_remove_missing(self, base_schema):
+        """Test remove missing feature in base marshmallow Schema
 
+        Also test opting out by setting a pure marshmallow Schema for base
+        """
         # Typically, we'll use it in all our schemas, so let's define base
         # Document and EmbeddedDocument classes using this base schema class
         @self.instance.register
@@ -443,8 +445,8 @@ class TestMarshmallow(BaseTest):
             ]
         }
         expected_dump = {
+            BaseMarshmallowSchema: remove_missing_dump,
             ma.Schema: dump,
-            RemoveMissingSchema: remove_missing_dump,
         }[base_schema]
 
         bag = Bag(**data)

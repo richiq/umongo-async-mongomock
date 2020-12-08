@@ -1,5 +1,6 @@
 import marshmallow as ma
 
+from .expose_missing import RemoveMissingSchema
 from .exceptions import DocumentDefinitionError
 from .i18n import gettext as _, N_
 
@@ -19,7 +20,7 @@ class I18nErrorDict(dict):
         return _(raw_msg)
 
 
-class BaseMarshmallowSchema(ma.Schema):
+class BaseMarshmallowSchema(RemoveMissingSchema):
     """Base schema for pure marshmallow schemas"""
     class Meta:
         ordered = True
