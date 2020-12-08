@@ -17,6 +17,9 @@ class BaseSchema(ma.Schema):
     """
     All schema used in umongo should inherit from this base schema
     """
+    # This class attribute is overriden by the builder upon registration
+    # to let the template set the base marshmallow schema class.
+    # It may be overriden in Template classes.
     MA_BASE_SCHEMA_CLS = ma.Schema
 
     def __init__(self, *args, **kwargs):

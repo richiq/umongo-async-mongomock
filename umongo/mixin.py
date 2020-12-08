@@ -1,6 +1,4 @@
 """umongo MixinDocument"""
-import marshmallow as ma
-
 from .template import Implementation, Template
 
 __all__ = (
@@ -19,7 +17,6 @@ class MixinDocumentTemplate(Template):
         :class:`umongo.instance.BaseInstance` to obtain it corresponding
         :class:`umongo.mixin.MixinDocumentImplementation`.
     """
-    MA_BASE_SCHEMA_CLS = ma.Schema
 
 
 MixinDocument = MixinDocumentTemplate
