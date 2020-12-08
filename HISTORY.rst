@@ -2,7 +2,7 @@
 History
 =======
 
-3.0.0b14 (unreleased)
+3.0.0b14 (2020-12-08)
 ---------------------
 
 Features:
@@ -16,6 +16,13 @@ Features:
   on first use rather than upon registration and should be accesses through
   ``Document.indexes`` cached property rather than ``Document.opts.indexes``.
   (see #322)
+* *Backwards-incompatible*: Make ``BaseSchema`` ordered. This fixes querying on
+  embedded documents. Make ``BaseMarshmallowSchema`` ordered as well.
+  (see #323)
+* *Backwards-incompatible*: Make ``RemoveMissingSchema`` opt-out. By default,
+  generated pure marshmallow schemas now skip missing values from ``Document``
+  instances rather that returning ``None``. This can be changed by setting
+  ``MA_BASE_SCHEMA_CLS``. (see #325)
 
 3.0.0b13 (2020-11-23)
 ---------------------
