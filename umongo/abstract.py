@@ -4,13 +4,25 @@ from .exceptions import DocumentDefinitionError
 from .i18n import gettext as _, N_
 
 
-__all__ = ('BaseSchema', 'BaseField', 'BaseValidator', 'BaseDataObject')
+__all__ = (
+    'BaseSchema',
+    'BaseMarshmallowSchema',
+    'BaseField',
+    'BaseValidator',
+    'BaseDataObject'
+)
 
 
 class I18nErrorDict(dict):
     def __getitem__(self, name):
         raw_msg = dict.__getitem__(self, name)
         return _(raw_msg)
+
+
+class BaseMarshmallowSchema(ma.Schema):
+    """Base schema for pure marshmallow schemas"""
+    class Meta:
+        ordered = True
 
 
 class BaseSchema(ma.Schema):
@@ -20,7 +32,7 @@ class BaseSchema(ma.Schema):
     # This class attribute is overriden by the builder upon registration
     # to let the template set the base marshmallow schema class.
     # It may be overriden in Template classes.
-    MA_BASE_SCHEMA_CLS = ma.Schema
+    MA_BASE_SCHEMA_CLS = BaseMarshmallowSchema
 
     class Meta:
         ordered = True
