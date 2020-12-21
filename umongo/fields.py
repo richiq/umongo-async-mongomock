@@ -11,7 +11,7 @@ from .exceptions import NotRegisteredDocumentError, DocumentDefinitionError
 from .template import get_template
 from .data_objects import Reference, List, Dict
 from . import marshmallow_bonus as ma_bonus_fields
-from .abstract import BaseField
+from .abstract import BaseField, I18nErrorDict
 from .i18n import gettext as _
 
 
@@ -213,14 +213,15 @@ class DictField(BaseField, ma.fields.Dict):
         return Dict(self.key_field, self.value_field)
 
     def as_marshmallow_field(self):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
         field_kwargs = self._extract_marshmallow_field_params()
         if self.value_field:
-            inner_ma_schema = self.value_field.as_marshmallow_field()
+            inner_ma_field = self.value_field.as_marshmallow_field()
         else:
-            inner_ma_schema = None
-        return ma.fields.Dict(self.key_field, inner_ma_schema, **field_kwargs)
+            inner_ma_field = None
+        m_field = ma.fields.Dict(
+            self.key_field, inner_ma_field, metadata=self.metadata, **field_kwargs)
+        m_field.error_messages = I18nErrorDict(m_field.error_messages)
+        return m_field
 
     def _required_validate(self, value):
         if not hasattr(self.value_field, '_required_validate'):
@@ -276,11 +277,11 @@ class ListField(BaseField, ma.fields.List):
             self.inner.map_to_field(mongo_path, path, func)
 
     def as_marshmallow_field(self):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
         field_kwargs = self._extract_marshmallow_field_params()
-        inner_ma_schema = self.inner.as_marshmallow_field()
-        return ma.fields.List(inner_ma_schema, **field_kwargs)
+        inner_ma_field = self.inner.as_marshmallow_field()
+        m_field = ma.fields.List(inner_ma_field, metadata=self.metadata, **field_kwargs)
+        m_field.error_messages = I18nErrorDict(m_field.error_messages)
+        return m_field
 
     def _required_validate(self, value):
         if not hasattr(self.inner, '_required_validate'):
@@ -368,12 +369,6 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
 
-    def as_marshmallow_field(self):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
-        field_kwargs = self._extract_marshmallow_field_params()
-        return ma_bonus_fields.Reference(**field_kwargs)
-
 
 class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
 
@@ -423,12 +418,6 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
     def _deserialize_from_mongo(self, value):
         document_cls = self._document_cls(value['_cls'])
         return self.reference_cls(document_cls, value['_id'])
-
-    def as_marshmallow_field(self):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
-        field_kwargs = self._extract_marshmallow_field_params()
-        return ma_bonus_fields.GenericReference(**field_kwargs)
 
 
 class EmbeddedField(BaseField, ma.fields.Nested):
@@ -550,7 +539,9 @@ class EmbeddedField(BaseField, ma.fields.Nested):
         # Overwrite default `as_marshmallow_field` to handle nesting
         field_kwargs = self._extract_marshmallow_field_params()
         nested_ma_schema = self.embedded_document_cls.schema.as_marshmallow_schema()
-        return ma.fields.Nested(nested_ma_schema, **field_kwargs)
+        m_field = ma.fields.Nested(nested_ma_schema, metadata=self.metadata, **field_kwargs)
+        m_field.error_messages = I18nErrorDict(m_field.error_messages)
+        return m_field
 
     def _required_validate(self, value):
         value.required_validate()
