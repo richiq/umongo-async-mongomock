@@ -340,9 +340,9 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         if value is None:
             return None
         if isinstance(value, DBRef):
-            if self._document_cls.collection.name != value.collection:
+            if self.document_cls.collection.name != value.collection:
                 raise ma.ValidationError(_("DBRef must be on collection `{collection}`.").format(
-                    self._document_cls.collection.name))
+                    self.document_cls.collection.name))
             value = value.id
         elif isinstance(value, Reference):
             if value.document_cls != self.document_cls:
