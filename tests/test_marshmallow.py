@@ -156,7 +156,7 @@ class TestMarshmallow(BaseTest):
     def test_keep_attributes(self):
         @self.instance.register
         class Vehicle(Document):
-            brand = fields.StrField(description='Manufacturer name')
+            brand = fields.StrField(metadata={"description": "Manufacturer name"})
             category = fields.StrField(required=True)
             nb_wheels = fields.IntField(default=4)
 

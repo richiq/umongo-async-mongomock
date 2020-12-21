@@ -15,7 +15,7 @@ with open('HISTORY.rst', 'rb') as history_file:
     history = history_file.read().decode('utf8')
 
 requirements = [
-    "marshmallow>=3.5.0",
+    "marshmallow>=3.10.0",
     "pymongo>=3.7.0",
 ]
 

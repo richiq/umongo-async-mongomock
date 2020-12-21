@@ -197,7 +197,6 @@ class BaseField(ma.fields.Field):
         }
         # Override uMongo attributes with marshmallow_ prefixed attributes
         params.update(self._ma_kwargs)
-        params.update(self.metadata)
         return params
 
     def as_marshmallow_field(self):
@@ -207,7 +206,7 @@ class BaseField(ma.fields.Field):
         for m_class in type(self).mro():
             if (not issubclass(m_class, BaseField) and
                     issubclass(m_class, ma.fields.Field)):
-                m_field = m_class(**field_kwargs)
+                m_field = m_class(**field_kwargs, metadata=self.metadata)
                 # Add i18n support to the field
                 m_field.error_messages = I18nErrorDict(m_field.error_messages)
                 return m_field
