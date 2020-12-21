@@ -641,8 +641,9 @@ class TestFields(BaseTest):
         @self.instance.register
         class EmbeddedDoc(EmbeddedDocument):
             field = fields.IntField()
+            embedded = fields.EmbeddedField('EmbeddedDoc')
 
-        Doc(embedded={"field": 12})
+        Doc(embedded={"field": 12, "embedded": {"field": 42}})
 
     def test_embedded_as_string_unregistered(self):
 
