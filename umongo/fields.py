@@ -315,6 +315,8 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         :param document: Can be a :class:`umongo.embedded_document.DocumentTemplate`,
             another instance's :class:`umongo.embedded_document.DocumentImplementation` or
             the embedded document class name.
+
+        .. warning:: The referenced document's _id must be an `ObjectId`.
         """
         super().__init__(*args, **kwargs)
         # TODO : check document_cls is implementation or string
