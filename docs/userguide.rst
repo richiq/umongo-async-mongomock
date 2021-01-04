@@ -18,9 +18,9 @@ Client world
 ------------
 
 This is the data from outside μMongo, it can be a JSON dict from your web framework
-(i.g. ``request.get_json()`` with `flask <http://flask.pocoo.org/>`_ or
+(i.g. ``request.get_json()`` with `flask <http://flask.palletsprojects.com/>`_ or
 ``json.loads(request.raw_post_data)`` in `django <https://www.djangoproject.com/>`_)
-or it could be a regular Python dict with Python-typed data
+or it could be a regular Python dict with Python-typed data.
 
 JSON dict example
 
@@ -34,19 +34,19 @@ Python dict example
 
     >>> {"str_field": "hello world", "int_field": 42, "date_field": datetime(2015, 1, 1)}
 
-To be integrated into μMongo, those data need to be unserialized. Same thing
-to leave μMongo they need to be serialized (under the hood
-μMongo uses `marshmallow <http://marshmallow.readthedocs.org/>`_ schema).
-The unserialization operation is done automatically when instantiating a
+To be integrated into μMongo, those data need to be deserialized and to leave
+μMongo they need to be serialized (under the hood μMongo uses
+`marshmallow <http://marshmallow.readthedocs.org/>`_ schema).
+
+The deserialization operation is done automatically when instantiating a
 :class:`umongo.Document`. The serialization is done when calling
 :meth:`umongo.Document.dump` on a document instance.
-
 
 Object Oriented world
 ---------------------
 
-So what's good about :class:`umongo.Document` ? Well it allows you to work
-with your data as Objects and to guarantee there validity against a model.
+:class:`umongo.Document` allows you to work with your data as objects and to
+guarantee their validity against a model.
 
 First let's define a document with few :mod:`umongo.fields`
 
@@ -58,11 +58,11 @@ First let's define a document with few :mod:`umongo.fields`
         breed = fields.StrField(default="Mongrel")
         birthday = fields.DateTimeField()
 
-First don't pay attention to the ``@instance.register``, this is for later ;-)
+Don't pay attention to the ``@instance.register`` for now.
 
 Note that each field can be customized with special attributes like
 ``required`` (which is pretty self-explanatory) or ``default`` (if the
-field is missing during unserialization it will take this value).
+field is missing during deserialization it will take this value).
 
 Now we can play back and forth between OO and client worlds
 
@@ -115,11 +115,11 @@ Object orientation means inheritance, of course you can do that
     class Duck(Animal):
         pass
 
-Note the ``Meta`` subclass, it is used (along with inherited Meta classes from
-parent documents) to configure the document class, you can access this final
-config through the ``opts`` attribute.
+The ``Meta`` subclass is used (along with inherited Meta classes from parent
+documents) to configure the document class, you can access this final config
+through the ``opts`` attribute.
 
-Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
+Here we use this to allow ``Animal`` to be inherited and to make it abstract.
 
 .. code-block:: python
 
@@ -138,9 +138,7 @@ Here we use this to allow ``Animal`` to be inheritable and to make it abstract.
 Mongo world
 -----------
 
-What the point of a MongoDB ODM without MongoDB ? So here it is !
-
-Mongo world consist of data returned in a format comprehensible by a MongoDB
+Mongo world consist of data returned in a format suitable for a MongoDB
 driver (`pymongo <https://api.mongodb.org/python/current/>`_ for instance).
 
 .. code-block:: python
@@ -148,7 +146,7 @@ driver (`pymongo <https://api.mongodb.org/python/current/>`_ for instance).
     >>> odwin.to_mongo()
     {'birthday': datetime.datetime(2001, 9, 22, 0, 0), 'name': 'Odwin'}
 
-Well it our case the data haven't change much (if any !). Let's consider something more complex:
+In this case, the data is unchanged. Let's consider something more complex:
 
 .. code-block:: python
 
@@ -156,8 +154,8 @@ Well it our case the data haven't change much (if any !). Let's consider somethi
     class Dog(Document):
         name = fields.StrField(attribute='_id')
 
-Here we decided to use the name of the dog as our ``_id`` key, but for
-readability we keep it as ``name`` inside our document.
+We use the name of the dog as our ``_id`` key, but for readability we keep it
+as ``name`` inside our document.
 
 .. code-block:: python
 
@@ -180,8 +178,7 @@ readability we keep it as ``name`` inside our document.
         >>> AutoId.find_one()
         <object Document __main__.AutoId({'id': ObjectId('5714b9a61d41c8feb01222c8')})>
 
-But what about if we what to retrieve the ``_id`` field whatever it name is ?
-No problem, use the ``pk`` property:
+To retrieve the ``_id`` field whatever its name is, use the ``pk`` property:
 
 .. code-block:: python
 
@@ -190,16 +187,16 @@ No problem, use the ``pk`` property:
     >>> Duck().pk
     None
 
-Ok so now we got our data in a way we can insert it to MongoDB through our favorite driver.
-In fact most of the time you don't need to use ``to_mongo`` directly.
-Instead you can directly ask the document to ``commit`` it changes in database:
+Most of the time, the user doesn't need to use ``to_mongo`` directly. It is
+called internally by :meth:`umongo.Document.commit`` which is the method used
+to commit changes to the database.
 
 .. code-block:: python
 
     >>> odwin = Dog(name='Odwin', breed='Labrador')
     >>> odwin.commit()
 
-You get also access to Object Oriented version of your driver methods:
+μMongo provides access to Object Oriented versions of driver methods:
 
 .. code-block:: python
 
@@ -210,8 +207,8 @@ You get also access to Object Oriented version of your driver methods:
     Dog.find_one({'_id': 'Odwin'})
     <object Document __main__.Dog({'id': 'Odwin', 'breed': 'Labrador'})>
 
-You can also access the collection used by the document at any time
-(for example to do more low-level operations):
+The suer can also access the collection used by the document at any time
+to perform more low-level operations:
 
 .. code-block:: python
 
@@ -221,19 +218,17 @@ You can also access the collection used by the document at any time
 .. note::
     By default the collection to use is the snake-cased version of the
     document's name (e.g. ``Dog`` => ``dog``, ``HTTPError`` => ``http_error``).
-    However, you can configure (remember the ``Meta`` class ?) the collection
+    However, you can configure, through the ``Meta`` class, the collection
     to use for a document with the ``collection_name`` meta attribute.
 
 
 Multi-driver support
 ====================
 
-Remember the ``@instance.register`` ? That's now it kicks in !
-
 The idea behind μMongo is to allow the same document definition to be used
-with different mongoDB drivers.
+with different MongoDB drivers.
 
-To achieve that the user only define document templates. Templates which
+To achieve that the user only defines document templates. Templates which
 will be implemented when registered by an instance:
 
 .. figure:: instance_template.png
@@ -243,7 +238,7 @@ Basically an instance provide three informations:
 
 - the mongoDB driver type to use
 - the database to use
-- the documents implemented
+- the implemented documents
 
 This way a template can be implemented by multiple instances, this can be
 useful for example to:
@@ -252,7 +247,7 @@ useful for example to:
 - define an instance with async driver for a web server and a
   sync one for shell interactions
 
-But enough of theory, let's create our first instance !
+Here's how to create and use an instance:
 
 .. code-block:: python
 
@@ -285,7 +280,7 @@ Now we can define & register documents, then work with them:
     0
 
 .. note::
-    In most cases, you only use a single instance. In this case, you can use
+    In most cases, only a single instance is used. In this case, one can use
     ``instance.register`` as a decoration to replace the template by its
     implementation.
 
@@ -320,9 +315,8 @@ Now we can define & register documents, then work with them:
         >>> yield Dog().commit()
 
 
-For the moment all examples have been done with pymongo, but thing are
-pretty the same with other drivers, just configure the ``instance``
-and you're good to go:
+For the moment all examples have been done with pymongo. Things are pretty much
+the same with other drivers, just configure the ``instance`` and you're good to go:
 
 .. code-block:: python
 
@@ -374,7 +368,7 @@ Indexes
 =======
 
 .. warning:: Indexes must be first submitted to MongoDB. To do so you should
-             call :meth:`umongo.Document.ensure_indexes` once for each document
+             call :meth:`umongo.Document.ensure_indexes` once for each document.
 
 
 In fields, ``unique`` attribute is implicitly handled by an index:
@@ -430,8 +424,8 @@ Allowed direction prefix are:
 
 .. note:: If no direction prefix is passed, ascending is assumed
 
-In case of a field defined in a child document, it index is automatically
-compounded with the ``_cls``
+In case of a field defined in a child document, its index is automatically
+compounded with ``_cls``
 
 .. code-block:: python
 
@@ -489,25 +483,22 @@ in a μMongo document but instead use their μMongo equivalents (respectively
 :class:`umongo.abstract.BaseSchema`, :class:`umongo.abstract.BaseField` and
 :class:`umongo.abstract.BaseValidator`).
 
-Now let's go back to the `Base concepts`_, the schema contains a little...
-simplification !
-
+In the `Base concepts`_ paragraph, the schema contains a little simplification.
 According to it, the client and OO worlds are made of the same data, but only
 in a different form (serialized vs object oriented).
-However it happened pretty often the API you want to provide doesn't strictly
-follow your datamodel (e.g. you don't want to display or allow modification
-of the passwords in your `/users` route)
+However, quite often, the application API doesn't strictly exposes the
+datamodel (e.g. you don't want to display or allow modification
+of the passwords in your `/users` route).
 
-Let's go back to our `Dog` document, in real life you can rename your dog but
-not change it breed. So in our user API we should have a schema that enforce this !
+Back to our `Dog` document. In real life one can rename your dog but not change
+its breed. The user API should have a schema that enforces this.
 
 .. code-block:: python
 
     >>> DogMaSchema = Dog.schema.as_marshmallow_schema()
 
-As you can imagine, ``as_marshmallow_schema`` convert the original umongo's
-schema into a pure marshmallow schema. This way we can now customize it
-by subclassing it:
+``as_marshmallow_schema`` convert the original µMongo schema into a pure
+marshmallow schema that can be subclassed and customized:
 
 .. code-block:: python
 
@@ -529,7 +520,7 @@ Finally we can integrate the validated data into OO world:
     >>> my_dog.name
     'Scruffy'
 
-This works great when you want to add special behavior depending of the situation.
+This works great when you want to add special behaviors depending of the situation.
 For more simple usecases we could use the
 `marshmallow pre/post precessors  <http://marshmallow.readthedocs.io/en/latest/extending.html#pre-processing-and-post-processing-methods>`_
 . For example to simply customize the dump:
@@ -551,7 +542,7 @@ For more simple usecases we could use the
     {'name': 'Scruffy', 'breed': 'Mongrel', 'brief': "Hi ! My name is Scruffy and I'm a Mongrel"}
 
 Now let's imagine we want to allow the per-breed creation of a massive number of ducks.
-The API would accept a really different format that our datamodel:
+The API would accept a really different format than our datamodel:
 
 .. code-block:: python
 
@@ -563,8 +554,9 @@ The API would accept a really different format that our datamodel:
         ]
     }
 
-Now starting from the umongo schema would not help, so we will create our schema
-from scratch... almost:
+Starting from the µMongo schema would not help, but one can create a new schema
+using pure marshmallow fields generated with the
+:meth:`umongo.BaseField.dump.as_marshmallow_field` method:
 
 .. code-block:: python
 
@@ -579,13 +571,11 @@ from scratch... almost:
     can be used instead of regular :class:`marshmallow.Schema` to skip missing fields
     when dumping a :class:`umongo.Document` object.
 
-This time we directly convert umongo schema's fields into their marshmallow
-equivalent with ``as_marshmallow_field``. Now we can build our ducks easily:
 
 .. code-block:: python
 
     try:
-        data, _ =  MassiveDuckSchema().load(payload)
+        data, _ = MassiveDuckSchema().load(payload)
         ducks = []
         for breed in data['breeds']:
             for birthday in breed['births']:
@@ -596,21 +586,21 @@ equivalent with ``as_marshmallow_field``. Now we can build our ducks easily:
         # Error handling
         ...
 
-One final thought: field's ``missing`` and ``default`` attributes are not handled the same in
-marshmallow and umongo.
+.. note:: Field's ``missing`` and ``default`` attributes are not handled the
+   same in marshmallow and umongo.
 
-In marshmallow ``default`` contains the value to use during serialization
-(i.e. calling ``schema.dump(doc)``) and ``missing`` the value for deserialization.
+  In marshmallow ``default`` contains the value to use during serialization
+  (i.e. calling ``schema.dump(doc)``) and ``missing`` the value for deserialization.
 
-In umongo however there is only a ``default`` attribute which will be used when
-creating (or loading from user world) a document where this field is missing.
-This is because you don't need to control how umongo will store the document in
-mongo world.
+  In umongo however there is only a ``default`` attribute which will be used when
+  creating (or loading from user world) a document where this field is missing.
+  This is because you don't need to control how umongo will store the document in
+  mongo world.
 
-So when you use ``as_marshmallow_field``, the resulting marshmallow field's
-``missing``&``default`` will be by default both infered from the umongo's
-``default`` field. You can overwrite this behavior by using
-``marshmallow_missing``/``marshmallow_default`` attributes:
+  So when you use ``as_marshmallow_field``, the resulting marshmallow field's
+  ``missing``&``default`` will be by default both infered from the umongo's
+  ``default`` field. You can overwrite this behavior by using
+  ``marshmallow_missing``/``marshmallow_default`` attributes:
 
 .. code-block:: python
 
@@ -652,11 +642,10 @@ Those validators will be enforced each time a field is modified:
     [...]
     ValidationError: ['Must be between 18 and 65.']
 
-Now sometime you'll need for your validator to query your database (this
-is mainly done to validate a :class:`umongo.data_objects.Reference`). For
-this need you can use the ``io_validate`` attribute.
-This attribute should get passed a function (or a list of functions) that
-will do database access in accordance with the used mongodb driver.
+Validators may need to query the database (e.g. to validate
+a :class:`umongo.data_objects.Reference`). For this need one can use the
+``io_validate`` argument. It should be a function (or a list of functions) that
+will do database access in accordance with the chosen mongodb driver.
 
 For example with Motor-asyncio driver, ``io_validate``'s functions will be
 wrapped by :class:`asyncio.coroutine` and called with ``yield from``.
