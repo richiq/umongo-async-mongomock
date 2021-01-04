@@ -21,7 +21,7 @@ def classroom_model(instance):
     @instance.register
     class Course(Document):
         name = fields.StrField(required=True)
-        teacher = fields.ReferenceField(Teacher, required=True)
+        teacher = fields.ReferenceField(Teacher, required=True, allow_none=True)
 
     @instance.register
     class Student(Document):

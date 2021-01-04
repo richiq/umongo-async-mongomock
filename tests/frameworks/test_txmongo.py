@@ -294,6 +294,11 @@ class TestTxMongo(BaseDBTest):
         with pytest.raises(ma.ValidationError) as exc:
             yield course.io_validate()
         assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
+        # Test setting to None / deleting
+        course.teacher = None
+        yield course.io_validate()
+        del course.teacher
+        yield course.io_validate()
 
     @pytest_inlineCallbacks
     def test_io_validate(self, instance, classroom_model):

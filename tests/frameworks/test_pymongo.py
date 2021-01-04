@@ -245,6 +245,11 @@ class TestPymongo(BaseDBTest):
         with pytest.raises(ma.ValidationError) as exc:
             course.io_validate()
         assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
+        # Test setting to None / deleting
+        course.teacher = None
+        course.io_validate()
+        del course.teacher
+        course.io_validate()
 
     def test_io_validate(self, instance, classroom_model):
         Student = classroom_model.Student

@@ -272,6 +272,8 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 
 def _reference_io_validate(field, value):
+    if value is None:
+        return
     value.fetch(no_data=True)
 
 

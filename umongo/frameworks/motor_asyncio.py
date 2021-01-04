@@ -338,6 +338,8 @@ async def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 
 async def _reference_io_validate(field, value):
+    if value is None:
+        return
     await value.fetch(no_data=True)
 
 

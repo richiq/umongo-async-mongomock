@@ -342,6 +342,11 @@ class TestMotorAsyncIO(BaseDBTest):
             with pytest.raises(ma.ValidationError) as exc:
                 await course.io_validate()
             assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
+            # Test setting to None / deleting
+            course.teacher = None
+            await course.io_validate()
+            del course.teacher
+            await course.io_validate()
 
         loop.run_until_complete(do_test())
 
