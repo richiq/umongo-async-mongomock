@@ -347,6 +347,24 @@ class TestPymongo(BaseDBTest):
         del student.io_field
         student.io_validate()
 
+    def test_io_validate_embedded(self, instance, classroom_model):
+        Student = classroom_model.Student
+
+        @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField()
+
+        @instance.register
+        class IOStudent(Student):
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, allow_none=True)
+
+        student = IOStudent(name='Marty', embedded_io_field={'io_field': 12})
+        student.io_validate()
+        student.embedded_io_field = None
+        student.io_validate()
+        del student.embedded_io_field
+        student.io_validate()
+
     def test_indexes(self, instance):
 
         @instance.register

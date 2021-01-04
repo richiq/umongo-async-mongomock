@@ -495,6 +495,28 @@ class TestMotorAsyncIO(BaseDBTest):
 
         loop.run_until_complete(do_test())
 
+    def test_io_validate_embedded(self, loop, instance, classroom_model):
+        Student = classroom_model.Student
+
+        @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField()
+
+        @instance.register
+        class IOStudent(Student):
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, allow_none=True)
+
+        async def do_test():
+
+            student = IOStudent(name='Marty', embedded_io_field={'io_field': 12})
+            await student.io_validate()
+            student.embedded_io_field = None
+            await student.io_validate()
+            del student.embedded_io_field
+            await student.io_validate()
+
+        loop.run_until_complete(do_test())
+
     def test_indexes(self, loop, instance):
 
         async def do_test():

@@ -428,6 +428,25 @@ class TestTxMongo(BaseDBTest):
         assert called == values
 
     @pytest_inlineCallbacks
+    def test_io_validate_embedded(self, instance, classroom_model):
+        Student = classroom_model.Student
+
+        @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField()
+
+        @instance.register
+        class IOStudent(Student):
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, allow_none=True)
+
+        student = IOStudent(name='Marty', embedded_io_field={'io_field': 12})
+        yield student.io_validate()
+        student.embedded_io_field = None
+        yield student.io_validate()
+        del student.embedded_io_field
+        yield student.io_validate()
+
+    @pytest_inlineCallbacks
     def test_indexes(self, instance):
 
         @instance.register

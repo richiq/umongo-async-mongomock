@@ -300,6 +300,8 @@ def _list_io_validate(field, value):
 
 
 def _embedded_document_io_validate(field, value):
+    if not value:
+        return
     return _io_validate_data_proxy(value.schema, value._data)
 
 
