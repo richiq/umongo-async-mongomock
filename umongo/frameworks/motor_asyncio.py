@@ -1,3 +1,4 @@
+import collections
 from contextvars import ContextVar
 from contextlib import asynccontextmanager
 
@@ -13,7 +14,7 @@ from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
-from ..fields import ReferenceField, ListField, EmbeddedField
+from ..fields import ReferenceField, ListField, DictField, EmbeddedField
 from ..query_mapper import map_query
 
 from .tools import cook_find_filter, remove_cls_field_from_embedded_docs
@@ -361,6 +362,26 @@ async def _list_io_validate(field, value):
         raise ma.ValidationError(errors)
 
 
+async def _dict_io_validate(field, value):
+    if not value or not field.value_field:
+        return
+    validators = field.value_field.io_validate
+    if not validators:
+        return
+    tasks = []
+    for key, val in value.items():
+        tasks.append(_run_validators(validators, field.value_field, val))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    errors = collections.defaultdict(dict)
+    for key, res in zip(value.keys(), results):
+        if isinstance(res, ma.ValidationError):
+            errors[key]["value"] = res.messages
+        elif res:
+            raise res
+    if errors:
+        raise ma.ValidationError(errors)
+
+
 async def _embedded_document_io_validate(field, value):
     if not value:
         return
@@ -405,6 +426,8 @@ class MotorAsyncIOBuilder(BaseBuilder):
             ]
         if isinstance(field, ListField):
             field.io_validate_recursive = _list_io_validate
+        if isinstance(field, DictField):
+            field.io_validate_recursive = _dict_io_validate
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = MotorAsyncIOReference

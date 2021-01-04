@@ -10,7 +10,7 @@ from ..instance import Instance
 from ..document import DocumentImplementation
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, DeleteError, NoneReferenceError
-from ..fields import ReferenceField, ListField, EmbeddedField
+from ..fields import ReferenceField, ListField, DictField, EmbeddedField
 from ..query_mapper import map_query
 
 from .tools import cook_find_filter, remove_cls_field_from_embedded_docs
@@ -216,14 +216,17 @@ class TxMongoDocument(DocumentImplementation):
             yield cls.collection.create_index(index, **kwargs)
 
 
-def _errback_factory(errors, field=None):
+def _errback_factory(errors, field=None, subkey=None):
 
     def errback(err):
         if isinstance(err.value, ma.ValidationError):
+            error = err.value.messages
+            if subkey is not None:
+                error = {subkey: error}
             if field is not None:
-                errors[field] = err.value.messages
+                errors[field] = error
             else:
-                errors.extend(err.value.messages)
+                errors.extend(error)
         else:
             raise err.value
 
@@ -299,6 +302,24 @@ def _list_io_validate(field, value):
         raise ma.ValidationError(errors)
 
 
+@inlineCallbacks
+def _dict_io_validate(field, value):
+    if not value or not field.value_field:
+        return
+    validators = field.value_field.io_validate
+    if not validators:
+        return
+    errors = {}
+    defers = []
+    for key, exc in value.items():
+        defer = _run_validators(validators, field.value_field, exc)
+        defer.addErrback(_errback_factory(errors, key, subkey="value"))
+        defers.append(defer)
+    yield DeferredList(defers)
+    if errors:
+        raise ma.ValidationError(errors)
+
+
 def _embedded_document_io_validate(field, value):
     if not value:
         return
@@ -341,6 +362,8 @@ class TxMongoBuilder(BaseBuilder):
             field.io_validate = validators
         if isinstance(field, ListField):
             field.io_validate_recursive = _list_io_validate
+        if isinstance(field, DictField):
+            field.io_validate_recursive = _dict_io_validate
         if isinstance(field, ReferenceField):
             field.io_validate.append(_reference_io_validate)
             field.reference_cls = TxMongoReference

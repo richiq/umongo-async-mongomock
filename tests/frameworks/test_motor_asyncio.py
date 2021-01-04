@@ -394,6 +394,10 @@ class TestMotorAsyncIO(BaseDBTest):
             class IOStudent(Student):
                 io_field = fields.StrField(io_validate=io_validate)
                 list_io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+                dict_io_field = fields.DictField(
+                    fields.StrField(),
+                    fields.IntField(io_validate=io_validate),
+                )
                 reference_io_field = fields.ReferenceField(
                     classroom_model.Course, io_validate=io_validate)
                 embedded_io_field = fields.EmbeddedField(EmbeddedDoc, io_validate=io_validate)
@@ -403,6 +407,7 @@ class TestMotorAsyncIO(BaseDBTest):
                 name='Marty',
                 io_field='io?',
                 list_io_field=[1, 2],
+                dict_io_field={"1": 1, "2": 2},
                 reference_io_field=bad_reference,
                 embedded_io_field={'io_field': 42}
             )
@@ -411,6 +416,7 @@ class TestMotorAsyncIO(BaseDBTest):
             assert exc.value.messages == {
                 'io_field': ['Ho boys !'],
                 'list_io_field': {0: ['Ho boys !'], 1: ['Ho boys !']},
+                'dict_io_field': {"1": {"value": ['Ho boys !']}, "2": {"value": ['Ho boys !']}},
                 'reference_io_field': ['Ho boys !', 'Reference not found for document Course.'],
                 'embedded_io_field': {'io_field': ['Ho boys !']}
             }
@@ -487,6 +493,37 @@ class TestMotorAsyncIO(BaseDBTest):
             student = IOStudent(name='Marty', io_field=values)
             await student.io_validate()
             assert set(called) == set(values)
+
+            student.io_field = None
+            await student.io_validate()
+            del student.io_field
+            await student.io_validate()
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate_dict(self, loop, instance, classroom_model):
+
+        async def do_test():
+
+            Student = classroom_model.Student
+            called = []
+            keys = ["1", "2", "3", "4"]
+            values = [1, 2, 3, 4]
+
+            def io_validate(field, value):
+                called.append(value)
+
+            @instance.register
+            class IOStudent(Student):
+                io_field = fields.DictField(
+                    fields.StrField(),
+                    fields.IntField(io_validate=io_validate),
+                    allow_none=True
+                )
+
+            student = IOStudent(name='Marty', io_field=dict(zip(keys, values)))
+            await student.io_validate()
+            assert called == values
 
             student.io_field = None
             await student.io_validate()
