@@ -13,9 +13,7 @@ __all__ = (
 
 
 class ObjectId(ma.fields.Field):
-    """
-    Marshmallow field for :class:`bson.ObjectId`
-    """
+    """Marshmallow field for :class:`bson.objectid.ObjectId`"""
 
     def _serialize(self, value, attr, obj):
         if value is None:
@@ -30,9 +28,7 @@ class ObjectId(ma.fields.Field):
 
 
 class Reference(ObjectId):
-    """
-    Marshmallow field for :class:`umongo.fields.ReferenceField`
-    """
+    """Marshmallow field for :class:`umongo.fields.ReferenceField`"""
 
     def _serialize(self, value, attr, obj):
         if value is None:
@@ -45,9 +41,7 @@ class Reference(ObjectId):
 
 
 class GenericReference(ma.fields.Field):
-    """
-    Marshmallow field for :class:`umongo.fields.GenericReferenceField`
-    """
+    """Marshmallow field for :class:`umongo.fields.GenericReferenceField`"""
 
     def _serialize(self, value, attr, obj):
         if value is None:
