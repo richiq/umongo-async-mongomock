@@ -5,7 +5,6 @@ A builder connect a :class:`umongo.document.Template` with a
 :class:`umongo.document.Implementation`.
 """
 import re
-import inspect
 from copy import copy
 
 import marshmallow as ma
@@ -259,7 +258,7 @@ class BaseBuilder:
         # Notify the parent & grand parents of the newborn !
         if base_tmpl_cls is not MixinDocumentTemplate:
             for base in bases:
-                for parent in inspect.getmro(base):
+                for parent in base.mro():
                     if issubclass(parent, base_impl_cls) and parent is not base_impl_cls:
                         parent.opts.offspring.add(implementation)
         return implementation
