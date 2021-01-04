@@ -12,6 +12,11 @@ Features:
 * Don't pass field metadata as kwargs (deprecated in marshmallow 3.10.0) but as
   ``metadata`` argument (see #328).
 
+Bug fixes:
+
+* Fix IO validation of `None` for references, lists and embedded documents
+  (see #330).
+
 Other changes:
 
 * *Backwards-incompatible*: Require marshmallow>=3.10.0 (see #328).
