@@ -120,9 +120,7 @@ Features:
 * Let ``Document`` inherit from ``EmbeddedDocument`` (see #266).
 
 * Add ``MixinDocument`` allowing ``Document`` and ``EmbeddedDocument`` to
-  inherit fields and pre/post methods from mixin objects. The mixin class
-  should appear first (leftmost) in the bases:
-  ``class MyDocument(MyMixin, Document)``. (see #278)
+  inherit fields and pre/post methods from mixin objects (see #278).
 
 * *Backwards-incompatible*: Remove ``as_attribute`` argument of
   ``BaseInstance.register`` method. Documents can not be accessed by name as

@@ -363,6 +363,24 @@ Inheritance inside the same collection is achieve by adding a ``_cls`` field
 
 .. warning:: You must ``register`` a parent before its child inside a given instance.
 
+Due to the way document instances are created from templates, fields and
+pre/post_dump/load methods can only be inherited from mixin classes by
+explicitly using a :class:`umongo.MixinDocument`.
+
+.. code-block:: python
+
+    @instance.register
+    class TimeMixin(MixinDocument):
+        date_created = fields.DateTimeField()
+        date_modified = fields.DateTimeField()
+
+    @instance.register
+    class MyDocument(Document, TimeMixin)
+        name = fields.StringField()
+
+A :class:`umongo.MixinDocument` can be inherited by both
+:class:`umongo.Document` and :class:`umongo.EmbeddedDocument` classes.
+
 
 Indexes
 =======
@@ -641,6 +659,7 @@ it makes sense to build from here.
 
 This is done at document level, but it is possible to do it in a custom base
 ``Document`` class to avoid duplication.
+
 
 Field validate & io_validate
 ============================

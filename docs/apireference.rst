@@ -32,6 +32,30 @@ Document
 .. autoclass:: umongo.document.DocumentImplementation
     :inherited-members:
 
+EmbeddedDocument
+================
+
+.. autoclass:: umongo.EmbeddedDocument
+
+.. autoclass:: umongo.embedded_document.EmbeddedDocumentTemplate
+
+.. autoclass:: umongo.embedded_document.EmbeddedDocumentOpts
+
+.. autoclass:: umongo.embedded_document.EmbeddedDocumentImplementation
+    :inherited-members:
+
+MixinDocument
+=============
+
+.. autoclass:: umongo.MixinDocument
+
+.. autoclass:: umongo.mixin.MixinDocumentTemplate
+
+.. autoclass:: umongo.mixin.MixinDocumentOpts
+
+.. autoclass:: umongo.mixin.MixinDocumentImplementation
+    :inherited-members:
+
 .. _api_abstracts:
 
 Abstracts
