@@ -308,7 +308,7 @@ class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
     pass
 
 
-class ReferenceField(BaseField, ma_bonus_fields.Reference):
+class ReferenceField(BaseField):
 
     def __init__(self, document, *args, reference_cls=Reference, **kwargs):
         """
@@ -339,21 +339,27 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             self._document_cls = self.instance.retrieve_document(self.document)
         return self._document_cls
 
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        pk_field = self.document_cls.schema.fields[self.document_cls.pk_field]
+        return pk_field._serialize(value.pk, attr, obj)
+
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return None
-        if isinstance(value, DBRef):
-            if self.document_cls.collection.name != value.collection:
-                raise ma.ValidationError(_("DBRef must be on collection `{collection}`.").format(
-                    self.document_cls.collection.name))
-            value = value.id
-        elif isinstance(value, Reference):
+        if isinstance(value, Reference):
             if value.document_cls != self.document_cls:
                 raise ma.ValidationError(_("`{document}` reference expected.").format(
                     document=self.document_cls.__name__))
             if not isinstance(value, self.reference_cls):
                 value = self.reference_cls(value.document_cls, value.pk)
             return value
+        if isinstance(value, DBRef):
+            if self.document_cls.collection.name != value.collection:
+                raise ma.ValidationError(_("DBRef must be on collection `{collection}`.").format(
+                    self.document_cls.collection.name))
+            value = value.id
         elif isinstance(value, self.document_cls):
             if not value.is_created:
                 raise ma.ValidationError(
@@ -362,7 +368,8 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         elif isinstance(value, self._document_implementation_cls):
             raise ma.ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
-        value = super()._deserialize(value, attr, data, **kwargs)
+        pk_field = self.document_cls.schema.fields[self.document_cls.pk_field]
+        value = pk_field.deserialize(value)
         return self.reference_cls(self.document_cls, value)
 
     def _serialize_to_mongo(self, obj):
@@ -370,6 +377,25 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
 
     def _deserialize_from_mongo(self, value):
         return self.reference_cls(self.document_cls, value)
+
+    def as_marshmallow_field(self):
+        pk_field = self.document_cls.schema.fields[self.document_cls.pk_field]
+        ma_pk_field = pk_field.as_marshmallow_field()
+
+        class Reference(ma_pk_field.__class__):
+            def _serialize(self, value, attr, obj):
+                if value is None:
+                    return None
+                # In OO world, value is a :class:`umongo.data_object.Reference`
+                if isinstance(value, Reference):
+                    value = value.pk
+                return super()._serialize(value, attr, obj)
+
+        return Reference()
+
+    # TODO: as marshmallow field -> return field
+    # wrap pk field in Reference field to serialize Ref obj (getattr pk)
+    # field factory
 
 
 class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
@@ -389,7 +415,10 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
-        return {'id': str(value.pk), 'cls': value.document_cls.__name__}
+        doc_cls = value.document_cls
+        pk_field = doc_cls.schema.fields[doc_cls.pk_field]
+        value = pk_field._serialize(value.pk, attr, obj)
+        return {'id': value, 'cls': doc_cls.__name__}
 
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
@@ -406,12 +435,10 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
         if isinstance(value, dict):
             if value.keys() != {'cls', 'id'}:
                 raise ma.ValidationError(_("Generic reference must have `id` and `cls` fields."))
-            try:
-                _id = ObjectId(value['id'])
-            except ValueError:
-                raise ma.ValidationError(_("Invalid `id` field."))
             document_cls = self._document_cls(value['cls'])
-            return self.reference_cls(document_cls, _id)
+            pk_field = document_cls.schema.fields[document_cls.pk_field]
+            value = pk_field.deserialize(value['id'])
+            return self.reference_cls(document_cls, value)
         raise ma.ValidationError(_("Invalid value for generic reference field."))
 
     def _serialize_to_mongo(self, obj):
