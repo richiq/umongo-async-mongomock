@@ -456,14 +456,14 @@ class TestDocument(BaseTest):
             cm = fields.IntField()
 
         @self.instance.register
-        class Parent(PMixin, Document):
+        class Parent(Document, PMixin):
             p = fields.StrField()
 
             class Meta:
                 allow_inheritance = True
 
         @self.instance.register
-        class Child(CMixin, Parent):
+        class Child(Parent, CMixin):
             c = fields.StrField()
 
         assert set(Parent.schema.fields.keys()) == {'id', 'p', 'pm'}
@@ -534,7 +534,7 @@ class TestDocument(BaseTest):
             cm = fields.IntField()
 
         @self.instance.register
-        class Parent(PMixin, Document):
+        class Parent(Document, PMixin):
             p = fields.StrField()
             pm = fields.IntField(validate=ma.validate.Range(0, 5))
 
@@ -542,7 +542,7 @@ class TestDocument(BaseTest):
                 allow_inheritance = True
 
         @self.instance.register
-        class Child(CMixin, Parent):
+        class Child(Parent, CMixin):
             c = fields.StrField()
             cm = fields.IntField(validate=ma.validate.Range(0, 5))
 
