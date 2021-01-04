@@ -338,12 +338,16 @@ async def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 
 async def _reference_io_validate(field, value):
+    if value is None:
+        return
     await value.fetch(no_data=True)
 
 
 async def _list_io_validate(field, value):
+    if not value:
+        return
     validators = field.inner.io_validate
-    if not validators or not value:
+    if not validators:
         return
     tasks = [_run_validators(validators, field.inner, e) for e in value]
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -358,6 +362,8 @@ async def _list_io_validate(field, value):
 
 
 async def _embedded_document_io_validate(field, value):
+    if not value:
+        return
     await _io_validate_data_proxy(value.schema, value._data)
 
 

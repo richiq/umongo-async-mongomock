@@ -272,10 +272,14 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 
 
 def _reference_io_validate(field, value):
+    if value is None:
+        return
     value.fetch(no_data=True)
 
 
 def _list_io_validate(field, value):
+    if not value:
+        return
     errors = {}
     validators = field.inner.io_validate
     if not validators:
@@ -290,6 +294,8 @@ def _list_io_validate(field, value):
 
 
 def _embedded_document_io_validate(field, value):
+    if not value:
+        return
     _io_validate_data_proxy(value.schema, value._data)
 
 

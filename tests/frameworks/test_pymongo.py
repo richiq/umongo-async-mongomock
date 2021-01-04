@@ -245,6 +245,11 @@ class TestPymongo(BaseDBTest):
         with pytest.raises(ma.ValidationError) as exc:
             course.io_validate()
         assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
+        # Test setting to None / deleting
+        course.teacher = None
+        course.io_validate()
+        del course.teacher
+        course.io_validate()
 
     def test_io_validate(self, instance, classroom_model):
         Student = classroom_model.Student
@@ -331,11 +336,34 @@ class TestPymongo(BaseDBTest):
 
         @instance.register
         class IOStudent(Student):
-            io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+            io_field = fields.ListField(fields.IntField(io_validate=io_validate), allow_none=True)
 
         student = IOStudent(name='Marty', io_field=values)
         student.io_validate()
         assert called == values
+
+        student.io_field = None
+        student.io_validate()
+        del student.io_field
+        student.io_validate()
+
+    def test_io_validate_embedded(self, instance, classroom_model):
+        Student = classroom_model.Student
+
+        @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField()
+
+        @instance.register
+        class IOStudent(Student):
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, allow_none=True)
+
+        student = IOStudent(name='Marty', embedded_io_field={'io_field': 12})
+        student.io_validate()
+        student.embedded_io_field = None
+        student.io_validate()
+        del student.embedded_io_field
+        student.io_validate()
 
     def test_indexes(self, instance):
 

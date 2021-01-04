@@ -273,14 +273,20 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
         raise ma.ValidationError(errors)
 
 
+@inlineCallbacks
 def _reference_io_validate(field, value):
-    return value.fetch(no_data=True)
+    if value is None:
+        yield
+    else:
+        yield value.fetch(no_data=True)
 
 
 @inlineCallbacks
 def _list_io_validate(field, value):
+    if not value:
+        return
     validators = field.inner.io_validate
-    if not validators or not value:
+    if not validators:
         return
     errors = {}
     defers = []
@@ -294,6 +300,8 @@ def _list_io_validate(field, value):
 
 
 def _embedded_document_io_validate(field, value):
+    if not value:
+        return
     return _io_validate_data_proxy(value.schema, value._data)
 
 

@@ -342,6 +342,11 @@ class TestMotorAsyncIO(BaseDBTest):
             with pytest.raises(ma.ValidationError) as exc:
                 await course.io_validate()
             assert exc.value.messages == {'teacher': ['Reference not found for document Teacher.']}
+            # Test setting to None / deleting
+            course.teacher = None
+            await course.io_validate()
+            del course.teacher
+            await course.io_validate()
 
         loop.run_until_complete(do_test())
 
@@ -474,11 +479,41 @@ class TestMotorAsyncIO(BaseDBTest):
 
             @instance.register
             class IOStudent(Student):
-                io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+                io_field = fields.ListField(
+                    fields.IntField(io_validate=io_validate),
+                    allow_none=True
+                )
 
             student = IOStudent(name='Marty', io_field=values)
             await student.io_validate()
             assert set(called) == set(values)
+
+            student.io_field = None
+            await student.io_validate()
+            del student.io_field
+            await student.io_validate()
+
+        loop.run_until_complete(do_test())
+
+    def test_io_validate_embedded(self, loop, instance, classroom_model):
+        Student = classroom_model.Student
+
+        @instance.register
+        class EmbeddedDoc(EmbeddedDocument):
+            io_field = fields.IntField()
+
+        @instance.register
+        class IOStudent(Student):
+            embedded_io_field = fields.EmbeddedField(EmbeddedDoc, allow_none=True)
+
+        async def do_test():
+
+            student = IOStudent(name='Marty', embedded_io_field={'io_field': 12})
+            await student.io_validate()
+            student.embedded_io_field = None
+            await student.io_validate()
+            del student.embedded_io_field
+            await student.io_validate()
 
         loop.run_until_complete(do_test())
 
