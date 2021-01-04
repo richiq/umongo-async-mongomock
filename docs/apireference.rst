@@ -12,13 +12,13 @@ Instance
 .. autoclass:: umongo.instance.Instance
     :members:
 
-.. autoclass:: umongo.PyMongoInstance
+.. autoclass:: umongo.frameworks.pymongo.PyMongoInstance
 
-.. autoclass:: umongo.TxMongoInstance
+.. autoclass:: umongo.frameworks.txmongo.TxMongoInstance
 
-.. autoclass:: umongo.MotorAsyncIOInstance
+.. autoclass:: umongo.frameworks.motor_asyncio.MotorAsyncIOInstance
 
-.. autoclass:: umongo.MongoMockInstance
+.. autoclass:: umongo.frameworks.mongomock.MongoMockInstance
 
 Document
 ========
