@@ -350,7 +350,7 @@ class DocumentImplementation(
         """
         Overload this method to get a callback before document update.
         :return: Additional filters dict that will be used for the query to
-            select the document to update.
+        select the document to update.
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """
@@ -359,7 +359,7 @@ class DocumentImplementation(
         """
         Overload this method to get a callback before document deletion.
         :return: Additional filters dict that will be used for the query to
-            select the document to update.
+        select the document to update.
 
         .. note:: If you use an async driver, this callback can be asynchronous.
         """

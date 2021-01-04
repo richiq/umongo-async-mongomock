@@ -96,7 +96,7 @@ class BaseField(ma.fields.Field):
     ==============================   ===============
 
     .. note:: Even with allow_none flag, the unique flag will refuse duplicated
-    `null` value (consider unsetting the field with `del` instead)
+        `null` value. Consider unsetting the field with `del` instead.
     """
 
     default_error_messages = {
