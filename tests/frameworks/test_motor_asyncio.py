@@ -479,11 +479,19 @@ class TestMotorAsyncIO(BaseDBTest):
 
             @instance.register
             class IOStudent(Student):
-                io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+                io_field = fields.ListField(
+                    fields.IntField(io_validate=io_validate),
+                    allow_none=True
+                )
 
             student = IOStudent(name='Marty', io_field=values)
             await student.io_validate()
             assert set(called) == set(values)
+
+            student.io_field = None
+            await student.io_validate()
+            del student.io_field
+            await student.io_validate()
 
         loop.run_until_complete(do_test())
 

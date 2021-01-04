@@ -336,11 +336,16 @@ class TestPymongo(BaseDBTest):
 
         @instance.register
         class IOStudent(Student):
-            io_field = fields.ListField(fields.IntField(io_validate=io_validate))
+            io_field = fields.ListField(fields.IntField(io_validate=io_validate), allow_none=True)
 
         student = IOStudent(name='Marty', io_field=values)
         student.io_validate()
         assert called == values
+
+        student.io_field = None
+        student.io_validate()
+        del student.io_field
+        student.io_validate()
 
     def test_indexes(self, instance):
 

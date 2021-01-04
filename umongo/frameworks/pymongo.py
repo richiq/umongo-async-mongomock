@@ -278,6 +278,8 @@ def _reference_io_validate(field, value):
 
 
 def _list_io_validate(field, value):
+    if not value:
+        return
     errors = {}
     validators = field.inner.io_validate
     if not validators:

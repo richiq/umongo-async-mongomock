@@ -344,8 +344,10 @@ async def _reference_io_validate(field, value):
 
 
 async def _list_io_validate(field, value):
+    if not value:
+        return
     validators = field.inner.io_validate
-    if not validators or not value:
+    if not validators:
         return
     tasks = [_run_validators(validators, field.inner, e) for e in value]
     results = await asyncio.gather(*tasks, return_exceptions=True)

@@ -283,8 +283,10 @@ def _reference_io_validate(field, value):
 
 @inlineCallbacks
 def _list_io_validate(field, value):
+    if not value:
+        return
     validators = field.inner.io_validate
-    if not validators or not value:
+    if not validators:
         return
     errors = {}
     defers = []

@@ -316,13 +316,18 @@ class TestTxMongo(BaseDBTest):
 
         @instance.register
         class IOStudent(Student):
-            io_field = fields.StrField(io_validate=io_validate)
+            io_field = fields.StrField(io_validate=io_validate, allow_none=True)
 
         student = IOStudent(name='Marty', io_field=io_field_value)
         assert not io_validate_called
 
         yield student.io_validate()
         assert io_validate_called
+
+        student.io_field = None
+        yield student.io_validate()
+        del student.io_field
+        yield student.io_validate()
 
     @pytest_inlineCallbacks
     def test_io_validate_error(self, instance, classroom_model):
