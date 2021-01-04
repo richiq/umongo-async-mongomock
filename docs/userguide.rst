@@ -207,7 +207,7 @@ to commit changes to the database.
     Dog.find_one({'_id': 'Odwin'})
     <object Document __main__.Dog({'id': 'Odwin', 'breed': 'Labrador'})>
 
-The suer can also access the collection used by the document at any time
+The user can also access the collection used by the document at any time
 to perform more low-level operations:
 
 .. code-block:: python
@@ -616,6 +616,31 @@ using pure marshmallow fields generated with the
     ret = Employee.schema.as_marshmallow_schema()().dump({})
     assert ret == {'name': 'John Doe', 'birthday': '2000-01-01T00:00:00+00:00'}  # Note `skill` hasn't been serialized
 
+It can be useful to let all the generated marshmallow schemas inherit a custom
+base schema class. For instance to customize this base schema using a Meta class.
+
+This can be done by defining a custom base schema class and passing it as a
+class attribute to a custom :class:`umongo.Document` subclass.
+
+Since the default base schema is :class:`umongo.abstract.BaseMarshmallowSchema`,
+it makes sense to build from here.
+
+.. code-block:: python
+
+   class BaseMaSchema(umongo.abstract.BaseMarshmallowSchema):
+      class Meta:
+         ...  # Add custom attributes here
+
+      # Implement custom methods here
+      def custom_method(self):
+         ...
+
+    @instance.register
+    class MyDocument(Document):
+      MA_BASE_SCHEMA_CLS = BaseMaSchema
+
+This is done at document level, but it is possible to do it in a custom base
+``Document`` class to avoid duplication.
 
 Field validate & io_validate
 ============================
