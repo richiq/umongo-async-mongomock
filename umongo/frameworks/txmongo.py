@@ -244,6 +244,8 @@ def _run_validators(validators, field, value):
         except ma.ValidationError as exc:
             errors.extend(exc.messages)
         else:
+            if defer is None:
+                continue
             assert isinstance(defer, Deferred), 'io_validate functions must return a Deferred'
             defer.addErrback(_errback_factory(errors))
             defers.append(defer)
@@ -279,9 +281,8 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
 @inlineCallbacks
 def _reference_io_validate(field, value):
     if value is None:
-        yield
-    else:
-        yield value.fetch(no_data=True)
+        return
+    yield value.fetch(no_data=True)
 
 
 @inlineCallbacks
