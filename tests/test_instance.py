@@ -175,9 +175,9 @@ class TestInstance:
         with pytest.raises(NotRegisteredDocumentError):
             instance.retrieve_embedded_document('Doc')
 
-    def test_lazy_loader_instance(self, db_and_instance):
-        db, lazy_instance = db_and_instance
-        instance = lazy_instance()
+    def test_instance_lazy_loading(self, db_and_instance):
+        db, instance = db_and_instance
+        instance = instance()
 
         class Doc(Document):
             pass

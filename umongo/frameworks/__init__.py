@@ -49,7 +49,7 @@ unregister_instance = default_instance_registerer.unregister
 find_instance_from_db = default_instance_registerer.find_from_db
 
 
-# Define lazy loader instances for each instance
+# Define instances for each driver
 
 register_instance(PyMongoInstance)
 
