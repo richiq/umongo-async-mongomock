@@ -34,9 +34,6 @@ class Reference(ObjectId):
     Marshmallow field for :class:`umongo.fields.ReferenceField`
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def _serialize(self, value, attr, obj):
         if value is None:
             return None
@@ -51,9 +48,6 @@ class GenericReference(ma.fields.Field):
     """
     Marshmallow field for :class:`umongo.fields.GenericReferenceField`
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def _serialize(self, value, attr, obj):
         if value is None:
