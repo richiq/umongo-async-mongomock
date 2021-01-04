@@ -2,6 +2,20 @@
 History
 =======
 
+3.0.0b15 (unreleased)
+---------------------
+
+Features:
+
+* Fix internationalization of generated marshmallow fields for container fields
+  (DictField, ListField, NestedField) (see #329).
+* Don't pass field metadata as kwargs (deprecated in marshmallow 3.10.0) but as
+  ``metadata`` argument (see #328).
+
+Other changes:
+
+* *Backwards-incompatible*: Require marshmallow>=3.10.0 (see #328).
+
 3.0.0b14 (2020-12-08)
 ---------------------
 
