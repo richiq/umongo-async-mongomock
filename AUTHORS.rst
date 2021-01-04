@@ -2,16 +2,20 @@
 Credits
 =======
 
+Original Author
+---------------
+
+* Emmanuel Leblond `@touilleMan <https://github.com/touilleMan>`_
+
 Development Lead
 ----------------
 
-* Emmanuel Leblond `@touilleMan <https://github.com/touilleMan>`_
 * Jérôme Lafréchoux `@lafrech <https://github.com/lafrech>`_
-* Walter Scheper `@wfscheper <https://github.com/wfscheper>`_
 
 Contributors
 ------------
 
+* Walter Scheper `@wfscheper <https://github.com/wfscheper>`_
 * Imbolc `@imbolc <https://github.com/imbolc>`_
 * `@patlach42 <https://github.com/patlach42>`_
 * Serj Shevchenko `@serjshevchenko <https://github.com/serjshevchenko>`_

@@ -27,8 +27,8 @@ from .expose_missing import ExposeMissing, RemoveMissingSchema
 from .i18n import set_gettext
 
 
-__author__ = 'Emmanuel Leblond'
-__email__ = 'emmanuel.leblond@gmail.com'
+__author__ = 'Emmanuel Leblond, Jérôme Lafréchoux'
+__email__ = 'jerome@jolimont.fr'
 __version__ = '3.0.0b14'
 __all__ = (
     'missing',

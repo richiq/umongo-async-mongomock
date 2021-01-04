@@ -83,7 +83,7 @@ dist: clean
 install: clean
 	python setup.py install
 
-AUTHOR='Emmanuel Leblond <emmanuel.leblond@gmail.com>'
+AUTHOR='Jérôme Lafréchoux <jerome@jolimont.fr>'
 
 extract_messages:
 	python setup.py extract_messages
