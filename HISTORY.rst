@@ -16,6 +16,8 @@ Bug fixes:
 
 * Fix IO validation of `None` for references, lists and embedded documents
   (see #330).
+* Add `_dict_io_validate` to propagate IO validation through `DictField`
+  (see #335).
 
 Other changes:
 
