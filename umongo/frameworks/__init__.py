@@ -17,7 +17,8 @@ __all__ = (
     'PyMongoInstance',
     'TxMongoInstance',
     'MotorAsyncIOInstance',
-    'MongoMockInstance'
+    'MongoMockInstance',
+    'AsyncMongoMockInstance'
 )
 
 
@@ -71,5 +72,11 @@ except ImportError:  # pragma: no cover
 try:
     from .mongomock import MongoMockInstance
     register_instance(MongoMockInstance)
+except ImportError:  # pragma: no cover
+    pass
+
+try:
+    from .asyncmongomock import AsyncMongoMockInstance
+    register_instance(AsyncMongoMockInstance)
 except ImportError:  # pragma: no cover
     pass
